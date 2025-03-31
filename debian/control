@@ -1,0 +1,69 @@
+Source: rocm-rocsparse
+Section: devel
+Priority: optional
+Maintainer: CHEN Xuan <chenxuan@iscas.ac.cn>
+Rules-Requires-Root: no
+Build-Depends:
+ debhelper-compat (= 13),
+ cmake,
+ pkg-config,
+ rocm-env,
+ rocm-cmake,
+ rocm-hip-on-rocclr-dev,
+ rocm-hipcc-dev,
+ rocm-llvm,
+ rocm-rocprim-dev,
+#  libedit-dev,
+#  libffi-dev,
+#  libglvnd-dev,
+#  libnuma-dev,
+#  libxml2-dev,
+#  libzstd-dev,
+#  python3-sphinx,
+#  terminfo,
+#  zlib1g-dev,
+Standards-Version: 4.7.0
+Homepage: https://github.com/ROCm/rocPRIM
+Vcs-Browser: https://github.com/r-rocm/rocm-rocsparse
+Vcs-Git: https://github.com/r-rocm/rocm-rocsparse.git
+
+Package: rocm-rocsparse
+Architecture: any
+Depends:
+ ${shlibs:Depends},
+ ${misc:Depends},
+ rocm-hip-on-rocclr,
+ rocm-hipcc,
+Recommends:
+ rocm-rocsparse-doc,
+Conflicts:
+ rocm-hipcc,
+Description: Next generation SPARSE implementation for ROCm platform - Binary
+ rocSPARSE exposes a common interface that provides Basic Linear Algebra
+ Subroutines (BLAS) for sparse computation. It's implemented on top of AMD ROCm
+ runtime and toolchains. rocSPARSE is created using the HIP programming
+ language and optimized for AMD's latest discrete GPUs.
+
+Package: rocm-rocsparse-dev
+Architecture: any
+Depends:
+ ${shlibs:Depends},
+ ${misc:Depends},
+ rocm-rocsparse
+Description: Next generation SPARSE implementation for ROCm platform - Develop
+ rocSPARSE exposes a common interface that provides Basic Linear Algebra
+ Subroutines (BLAS) for sparse computation. It's implemented on top of AMD ROCm
+ runtime and toolchains. rocSPARSE is created using the HIP programming
+ language and optimized for AMD's latest discrete GPUs.
+
+Package: rocm-rocsparse-doc
+Architecture: any
+Depends:
+ ${shlibs:Depends},
+ ${misc:Depends},
+Description: Next generation SPARSE implementation for ROCm platform - Doc
+ rocSPARSE exposes a common interface that provides Basic Linear Algebra
+ Subroutines (BLAS) for sparse computation. It's implemented on top of AMD ROCm
+ runtime and toolchains. rocSPARSE is created using the HIP programming
+ language and optimized for AMD's latest discrete GPUs.
+
