@@ -6,11 +6,12 @@ Rules-Requires-Root: no
 Build-Depends:
  debhelper-compat (= 13),
  cmake,
+ gfortran,
  pkg-config,
  rocm-env,
+ rocm-core-rocm,
  rocm-cmake,
  rocm-hip-on-rocclr-dev,
- rocm-hipcc-dev,
  rocm-llvm,
  rocm-rocprim-dev,
 #  libedit-dev,
@@ -23,7 +24,7 @@ Build-Depends:
 #  terminfo,
 #  zlib1g-dev,
 Standards-Version: 4.7.0
-Homepage: https://github.com/ROCm/rocPRIM
+Homepage: https://github.com/ROCm/rocSPARSE
 Vcs-Browser: https://github.com/r-rocm/rocm-rocsparse
 Vcs-Git: https://github.com/r-rocm/rocm-rocsparse.git
 
@@ -32,8 +33,10 @@ Architecture: any
 Depends:
  ${shlibs:Depends},
  ${misc:Depends},
+ rocm-core-rocm,
+ rocm-env,
  rocm-hip-on-rocclr,
- rocm-hipcc,
+ rocm-rocprim-dev,
 Recommends:
  rocm-rocsparse-doc,
 Conflicts:
@@ -49,7 +52,8 @@ Architecture: any
 Depends:
  ${shlibs:Depends},
  ${misc:Depends},
- rocm-rocsparse
+ rocm-rocsparse,
+ rocm-rocprim-dev,
 Description: Next generation SPARSE implementation for ROCm platform - Develop
  rocSPARSE exposes a common interface that provides Basic Linear Algebra
  Subroutines (BLAS) for sparse computation. It's implemented on top of AMD ROCm
