@@ -33,10 +33,9 @@ Architecture: any
 Depends:
  ${shlibs:Depends},
  ${misc:Depends},
- rocm-core-rocm,
+ rocm-core,
  rocm-env,
  rocm-hip-on-rocclr,
- rocm-rocprim-dev,
 Recommends:
  rocm-rocsparse-doc,
 Conflicts:
