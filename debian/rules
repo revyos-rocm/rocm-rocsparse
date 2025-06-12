@@ -2,9 +2,13 @@
 
 export DH_VERBOSE = 1
 
-CFLAGS_BUILDING := -O2
 export DEB_CFLAGS_MAINT_APPEND = $(CFLAGS_BUILDING)
 export DEB_CXXFLAGS_MAINT_APPEND = $(CFLAGS_BUILDING)
+
+# https://bugs-devel.debian.org/cgi-bin/bugreport.cgi?bug=1065439
+# filtering out flags that are not supported
+CXXFLAGS := $(subst -fstack-protector-strong,-Xarch_host -fstack-protector-strong,$(CXXFLAGS))
+CXXFLAGS := $(subst -fcf-protection,-Xarch_host -fcf-protection,$(CXXFLAGS))
 
 PKG_NAME=$(DEB_SOURCE)
 
