@@ -1,0 +1,21 @@
+From: Sakura286 <sakura286@outlook.com>
+Date: Fri, 13 Jun 2025 19:03:22 +0800
+Subject: avoid explicitly using -fma option
+
+---
+ clients/tests/CMakeLists.txt | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/clients/tests/CMakeLists.txt b/clients/tests/CMakeLists.txt
+index 5070c96..922893b 100644
+--- a/clients/tests/CMakeLists.txt
++++ b/clients/tests/CMakeLists.txt
+@@ -367,7 +367,7 @@ add_executable(rocsparse-test rocsparse_test_main.cpp ${ROCSPARSE_TEST_SOURCES}
+ target_compile_definitions(rocsparse-test PRIVATE GOOGLE_TEST)
+ 
+ # Target compile options
+-target_compile_options(rocsparse-test PRIVATE -ffp-contract=on -mfma -Wno-deprecated -Wno-unused-command-line-argument -Wall)
++target_compile_options(rocsparse-test PRIVATE -ffp-contract=on -Wno-deprecated -Wno-unused-command-line-argument -Wall)
+ 
+ # Internal common header
+ target_include_directories(rocsparse-test PRIVATE $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../include>)
