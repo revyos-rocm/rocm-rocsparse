@@ -14,15 +14,6 @@ Build-Depends:
  rocm-hip-on-rocclr-dev,
  rocm-llvm,
  rocm-rocprim-dev,
-#  libedit-dev,
-#  libffi-dev,
-#  libglvnd-dev,
-#  libnuma-dev,
-#  libxml2-dev,
-#  libzstd-dev,
-#  python3-sphinx,
-#  terminfo,
-#  zlib1g-dev,
 Standards-Version: 4.7.0
 Homepage: https://github.com/ROCm/rocSPARSE
 Vcs-Browser: https://github.com/r-rocm/rocm-rocsparse
@@ -36,8 +27,6 @@ Depends:
  rocm-core,
  rocm-env,
  rocm-hip-on-rocclr,
-Recommends:
- rocm-rocsparse-doc,
 Conflicts:
  rocm-hipcc,
 Description: Next generation SPARSE implementation for ROCm platform - Binary
@@ -51,20 +40,11 @@ Architecture: any
 Depends:
  ${shlibs:Depends},
  ${misc:Depends},
+ rocm-cmake,
  rocm-rocsparse,
  rocm-rocprim-dev,
+ rocm-hip-on-rocclr-dev
 Description: Next generation SPARSE implementation for ROCm platform - Develop
- rocSPARSE exposes a common interface that provides Basic Linear Algebra
- Subroutines (BLAS) for sparse computation. It's implemented on top of AMD ROCm
- runtime and toolchains. rocSPARSE is created using the HIP programming
- language and optimized for AMD's latest discrete GPUs.
-
-Package: rocm-rocsparse-doc
-Architecture: any
-Depends:
- ${shlibs:Depends},
- ${misc:Depends},
-Description: Next generation SPARSE implementation for ROCm platform - Doc
  rocSPARSE exposes a common interface that provides Basic Linear Algebra
  Subroutines (BLAS) for sparse computation. It's implemented on top of AMD ROCm
  runtime and toolchains. rocSPARSE is created using the HIP programming

@@ -60,7 +60,6 @@ override_dh_auto_build:
 
 override_dh_auto_install:
 	DESTDIR=$(DEB_INST_DIR)/ cmake --build $(DEB_BUILD_PATH) -- $(MAKEOPTS) install
-	exit 89
 
 override_dh_install:
 	sed -i "s,@ROCM_VERSION@,${ROCM_VERSION},g" debian/*.install
