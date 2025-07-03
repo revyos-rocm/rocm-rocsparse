@@ -39,9 +39,6 @@ ROCM_MATH_CMAKE_PARAMS += -DCMAKE_INSTALL_RPATH_USE_LINK_PATH=FALSE
 ROCM_MATH_CMAKE_PARAMS += -DBUILD_FILE_REORG_BACKWARD_COMPATIBILITY=OFF
 
 # GPU_TARGETS="gfx908:xnack-;gfx90a:xnack-;gfx90a:xnack+;gfx940;gfx941;gfx942;gfx1030;gfx1100"
-# Tailor target list to accelerate the build proccess.
-# GPU_TARGETS="gfx942"
-GPU_TARGETS="gfx1030;gfx1100"
 
 %:
 	dh $@
