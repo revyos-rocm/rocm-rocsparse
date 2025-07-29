@@ -47,6 +47,7 @@ override_dh_auto_configure:
 	cmake $(REVYOS_ROCM_CMAKE_PARAMS) \
 		$(ROCM_MATH_CMAKE_PARAMS) \
 		-DCMAKE_MODULE_PATH="$(ROCM_PATH)/lib/cmake/hip;$(ROCM_PATH)/hip/cmake" \
+		-GPU_TARGETS="gfx1100" \
 		-DBUILD_CLIENTS_SAMPLES=ON \
 		-DBUILD_CLIENTS_TESTS=ON \
 		-DBUILD_OFFLOAD_COMPRESS=ON \
