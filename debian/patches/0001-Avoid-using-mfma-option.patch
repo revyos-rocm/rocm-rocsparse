@@ -1,16 +1,16 @@
 From: Sakura286 <sakura286@outlook.com>
-Date: Fri, 13 Jun 2025 19:03:22 +0800
-Subject: avoid explicitly using -fma option
+Date: Tue, 29 Jul 2025 10:37:33 +0800
+Subject: Avoid using -mfma option
 
 ---
  clients/tests/CMakeLists.txt | 2 +-
  1 file changed, 1 insertion(+), 1 deletion(-)
 
 diff --git a/clients/tests/CMakeLists.txt b/clients/tests/CMakeLists.txt
-index 5070c96..922893b 100644
+index db8e3f3..b3ac9fe 100644
 --- a/clients/tests/CMakeLists.txt
 +++ b/clients/tests/CMakeLists.txt
-@@ -367,7 +367,7 @@ add_executable(rocsparse-test rocsparse_test_main.cpp ${ROCSPARSE_TEST_SOURCES}
+@@ -377,7 +377,7 @@ add_executable(rocsparse-test rocsparse_test_main.cpp ${ROCSPARSE_TEST_SOURCES}
  target_compile_definitions(rocsparse-test PRIVATE GOOGLE_TEST)
  
  # Target compile options
