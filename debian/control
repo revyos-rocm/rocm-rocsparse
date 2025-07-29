@@ -27,8 +27,6 @@ Depends:
  rocm-core,
  rocm-env,
  rocm-hip-on-rocclr,
-Conflicts:
- rocm-hipcc,
 Description: Next generation SPARSE implementation for ROCm platform - Binary
  rocSPARSE exposes a common interface that provides Basic Linear Algebra
  Subroutines (BLAS) for sparse computation. It's implemented on top of AMD ROCm
