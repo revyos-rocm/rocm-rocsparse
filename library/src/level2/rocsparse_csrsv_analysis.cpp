@@ -30,8 +30,9 @@
 #include "../level1/rocsparse_gthr.hpp"
 #include "control.h"
 #include "csrsv_device.h"
+#include "rocsparse_common.h"
+#include "rocsparse_primitives.h"
 #include "utility.h"
-#include <rocprim/rocprim.hpp>
 
 template <typename I, typename J, typename T>
 rocsparse_status rocsparse::trm_analysis(rocsparse_handle          handle,
@@ -94,18 +95,17 @@ rocsparse_status rocsparse::trm_analysis(rocsparse_handle          handle,
                 rocsparse::create_identity_permutation_template(handle, nnz, (I*)info->trmt_perm));
 
             // Stable sort COO by columns
-            rocprim::double_buffer<J> keys(tmp_work1, (J*)info->trmt_col_ind);
-            rocprim::double_buffer<I> vals((I*)info->trmt_perm, tmp_work2);
+            rocsparse::primitives::double_buffer<J> keys(tmp_work1, (J*)info->trmt_col_ind);
+            rocsparse::primitives::double_buffer<I> vals((I*)info->trmt_perm, tmp_work2);
 
             uint32_t startbit = 0;
             uint32_t endbit   = rocsparse::clz(m);
 
             size_t rocprim_size;
-
-            RETURN_IF_HIP_ERROR(rocprim::radix_sort_pairs(
-                nullptr, rocprim_size, keys, vals, nnz, startbit, endbit, stream));
-            RETURN_IF_HIP_ERROR(rocprim::radix_sort_pairs(
-                rocprim_buffer, rocprim_size, keys, vals, nnz, startbit, endbit, stream));
+            RETURN_IF_ROCSPARSE_ERROR((rocsparse::primitives::radix_sort_pairs_buffer_size<J, I>(
+                handle, nnz, startbit, endbit, &rocprim_size)));
+            RETURN_IF_ROCSPARSE_ERROR(rocsparse::primitives::radix_sort_pairs(
+                handle, keys, vals, nnz, startbit, endbit, rocprim_size, rocprim_buffer));
 
             // Copy permutation vector, if not already available
             if(vals.current() != info->trmt_perm)
@@ -135,14 +135,8 @@ rocsparse_status rocsparse::trm_analysis(rocsparse_handle          handle,
         }
         else
         {
-            RETURN_IF_HIPLAUNCHKERNELGGL_ERROR((rocsparse::set_array_to_value<256, J, I>),
-                                               dim3(m / 256 + 1),
-                                               dim3(256),
-                                               0,
-                                               stream,
-                                               (m + 1),
-                                               (I*)info->trmt_row_ptr,
-                                               static_cast<I>(descr->base));
+            RETURN_IF_ROCSPARSE_ERROR(rocsparse::valset(
+                handle, m + 1, static_cast<I>(descr->base), (I*)info->trmt_row_ptr));
         }
     }
 
@@ -480,14 +474,13 @@ rocsparse_status rocsparse::trm_analysis(rocsparse_handle          handle,
     uint32_t startbit = 0;
     uint32_t endbit   = rocsparse::clz(m);
 
-    rocprim::double_buffer<int> keys(done_array, workspace2);
-    rocprim::double_buffer<J>   vals(workspace, (J*)info->row_map);
+    rocsparse::primitives::double_buffer<int> keys(done_array, workspace2);
+    rocsparse::primitives::double_buffer<J>   vals(workspace, (J*)info->row_map);
 
-    RETURN_IF_HIP_ERROR(
-        rocprim::radix_sort_pairs(nullptr, rocprim_size, keys, vals, m, startbit, endbit, stream));
-
-    RETURN_IF_HIP_ERROR(rocprim::radix_sort_pairs(
-        rocprim_buffer, rocprim_size, keys, vals, m, startbit, endbit, stream));
+    RETURN_IF_ROCSPARSE_ERROR((rocsparse::primitives::radix_sort_pairs_buffer_size<int, J>(
+        handle, m, startbit, endbit, &rocprim_size)));
+    RETURN_IF_ROCSPARSE_ERROR(rocsparse::primitives::radix_sort_pairs(
+        handle, keys, vals, m, startbit, endbit, rocprim_size, rocprim_buffer));
 
     if(vals.current() != info->row_map)
     {
@@ -553,8 +546,11 @@ rocsparse_status rocsparse::csrsv_analysis_template(rocsparse_handle          ha
     ROCSPARSE_CHECKARG_ENUM(10, solve);
 
     // Check matrix type
-    ROCSPARSE_CHECKARG(
-        4, descr, (descr->type != rocsparse_matrix_type_general), rocsparse_status_not_implemented);
+    ROCSPARSE_CHECKARG(4,
+                       descr,
+                       (descr->type != rocsparse_matrix_type_general
+                        && descr->type != rocsparse_matrix_type_triangular),
+                       rocsparse_status_not_implemented);
 
     // Check matrix sorting mode
 

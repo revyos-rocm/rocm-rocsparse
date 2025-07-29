@@ -33,14 +33,18 @@
 /* If this is a C compiler, C++ compiler below C++14, or a host-only compiler, only
    include minimal definitions of rocsparse_float_complex and rocsparse_double_complex */
 
+/*! \brief Struct to represent a complex number with float precision real and imaginary parts. */
 typedef struct
 {
-    float x, y;
+    float x; /**< real part. */
+    float y; /**< imaginary part. */
 } rocsparse_float_complex;
 
+/*! \brief Struct to represent a complex number with double precision real and imaginary parts. */
 typedef struct
 {
-    double x, y;
+    double x; /**< real part. */
+    double y; /**< imaginary part. */
 } rocsparse_double_complex;
 
 #else /* __cplusplus < 201402L || (!defined(__HIPCC__)) */
@@ -84,8 +88,8 @@ public:
 
     // Conversion from std::complex<T>
     __device__ __host__ rocsparse_complex_num(const std::complex<T>& z)
-        : x(reinterpret_cast<T (&)[2]>(z)[0])
-        , y(reinterpret_cast<T (&)[2]>(z)[1])
+        : x(z.real())
+        , y(z.imag())
     {
     }
 

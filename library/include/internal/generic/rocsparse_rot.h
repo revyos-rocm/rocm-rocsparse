@@ -1,6 +1,6 @@
 /*! \file */
 /* ************************************************************************
- * Copyright (C) 2023 Advanced Micro Devices, Inc. All rights Reserved.
+ * Copyright (C) 2023-2024 Advanced Micro Devices, Inc. All rights Reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the Software), to deal
@@ -35,7 +35,7 @@ extern "C" {
 *  \brief Apply Givens rotation to a dense and a sparse vector.
 *
 *  \details
-*  \ref rocsparse_rot applies the Givens rotation matrix \f$G\f$ to the sparse vector
+*  \p rocsparse_rot applies the Givens rotation matrix \f$G\f$ to the sparse vector
 *  \f$x\f$ and the dense vector \f$y\f$, where
 *  \f[
 *    G = \begin{pmatrix} c & s \\ -s & c \end{pmatrix}
@@ -51,6 +51,19 @@ extern "C" {
 *          y[x_ind[i]] = c * y_tmp - s * x_tmp;
 *      }
 *  \endcode
+*
+*  \p rocsparse_rot supports the following uniform precision data types for the sparse and dense vectors x and 
+*  y and compute types for the scalars \f$c\f$ and \f$s\f$.
+*
+*  \par Uniform Precisions:
+*  <table>
+*  <caption id="rot_uniform">Uniform Precisions</caption>
+*  <tr><th>X / Y / compute_type
+*  <tr><td>rocsparse_datatype_f32_r
+*  <tr><td>rocsparse_datatype_f64_r
+*  <tr><td>rocsparse_datatype_f32_c
+*  <tr><td>rocsparse_datatype_f64_c
+*  </table>
 *
 *  \note
 *  This function is non blocking and executed asynchronously with respect to the host.

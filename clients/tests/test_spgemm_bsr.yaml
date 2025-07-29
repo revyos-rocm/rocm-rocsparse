@@ -1,5 +1,5 @@
 # ########################################################################
-# Copyright (C) 2022 Advanced Micro Devices, Inc. All rights Reserved.
+# Copyright (C) 2022-2024 Advanced Micro Devices, Inc. All rights Reserved.
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -23,7 +23,7 @@
 
 ---
 include: rocsparse_common.yaml
-include: known_bugs.yaml
+
 
 Definitions:
   - &alpha_beta_range_quick
@@ -215,8 +215,28 @@ Tests:
   direction: [rocsparse_direction_column]
   matrix: [rocsparse_matrix_file_rocalution]
   spgemm_alg: [rocsparse_spgemm_alg_default]
-  filename: [mplate,
-             Chevron3]
+  filename: [mplate]
+
+- name: spgemm_mult_bsr_file
+  category: pre_checkin
+  function: spgemm_bsr
+  indextype: *i64
+  precision: *single_double_precisions_complex
+  M: 1
+  N: [2014]
+  K: 1
+  block_dim: [9]
+  alpha_beta: *alpha_beta_range_checkin
+  transA: [rocsparse_operation_none]
+  transB: [rocsparse_operation_none]
+  baseA: [rocsparse_index_base_one]
+  baseB: [rocsparse_index_base_zero]
+  baseC: [rocsparse_index_base_one]
+  direction: [rocsparse_direction_column]
+  matrix: [rocsparse_matrix_file_rocalution]
+  spgemm_alg: [rocsparse_spgemm_alg_default]
+  filename: [Chevron3]
+  skip_hardware: gfx1151
 
 - name: spgemm_mult_bsr_file
   category: nightly

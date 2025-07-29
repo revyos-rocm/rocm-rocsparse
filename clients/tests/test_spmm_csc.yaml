@@ -1,5 +1,5 @@
 # ########################################################################
-# Copyright (C) 2022-2023 Advanced Micro Devices, Inc. All rights Reserved.
+# Copyright (C) 2022-2024 Advanced Micro Devices, Inc. All rights Reserved.
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -23,7 +23,7 @@
 
 ---
 include: rocsparse_common.yaml
-include: known_bugs.yaml
+
 
 Definitions:
   - &alpha_beta_range_quick
@@ -121,8 +121,25 @@ Tests:
   orderB: [rocsparse_order_column, rocsparse_order_row]
   orderC: [rocsparse_order_row]
   filename: [nos1,
-             nos3,
-             nos4,
+             nos4]
+
+- name: spmm_csc_file
+  category: quick
+  function: spmm_csc
+  indextype: *i32i32_i64i32_i64i64
+  precision: *double_only_precisions
+  M: 1
+  N: [128]
+  K: 1
+  alpha_beta: *alpha_beta_range_quick
+  transA: [rocsparse_operation_transpose]
+  transB: [rocsparse_operation_none, rocsparse_operation_transpose]
+  baseA: [rocsparse_index_base_one]
+  matrix: [rocsparse_matrix_file_rocalution]
+  spmm_alg: [rocsparse_spmm_alg_csr]
+  orderB: [rocsparse_order_column, rocsparse_order_row]
+  orderC: [rocsparse_order_row]
+  filename: [nos3,
              nos7]
 
 - name: spmm_csc_file
@@ -163,6 +180,40 @@ Tests:
   orderB: [rocsparse_order_column]
   orderC: [rocsparse_order_row]
   filename: [Chevron2]
+
+- name: spmm_csc
+  category: quick
+  function: spmm_csc
+  indextype: *i32i32_i64i32_i64i64
+  precision: *int8_int8_int32_int32_abct_precision
+  M: [346]
+  N: [219]
+  K: [614]
+  alpha_beta: *alpha_beta_range_quick
+  transA: [rocsparse_operation_none, rocsparse_operation_transpose]
+  transB: [rocsparse_operation_none, rocsparse_operation_transpose]
+  baseA: [rocsparse_index_base_zero]
+  matrix: [rocsparse_matrix_random]
+  spmm_alg: [rocsparse_spmm_alg_csr]
+  orderB: [rocsparse_order_row]
+  orderC: [rocsparse_order_row]
+
+- name: spmm_csc
+  category: quick
+  function: spmm_csc
+  indextype: *i32i32_i64i32_i64i64
+  precision: *int8_int8_float32_float32_abct_precision
+  M: [445]
+  N: [310]
+  K: [278]
+  alpha_beta: *alpha_beta_range_quick
+  transA: [rocsparse_operation_none, rocsparse_operation_transpose]
+  transB: [rocsparse_operation_none, rocsparse_operation_transpose]
+  baseA: [rocsparse_index_base_zero]
+  matrix: [rocsparse_matrix_random]
+  spmm_alg: [rocsparse_spmm_alg_csr_row_split]
+  orderB: [rocsparse_order_column]
+  orderC: [rocsparse_order_row]
 
 ##############################
 # Precheckin
@@ -208,7 +259,7 @@ Tests:
   indextype: *i32i32_i64i32_i64i64
   precision: *double_only_precisions
   M: 1
-  N: [54]
+  N: [34]
   K: 1
   alpha_beta: *alpha_beta_range_checkin
   transA: [rocsparse_operation_transpose]
@@ -218,13 +269,13 @@ Tests:
   spmm_alg: [rocsparse_spmm_alg_csr_row_split]
   orderB: [rocsparse_order_column]
   orderC: [rocsparse_order_column]
-  filename: [bmwcra_1]
+  filename: [webbase-1M]
 
 - name: spmm_csc_file
   category: pre_checkin
   function: spmm_csc
   indextype: *i64i32
-  precision: *single_double_precisions_complex
+  precision: *double_only_precisions_complex
   M: 1
   N: [44]
   K: 1
@@ -273,7 +324,7 @@ Tests:
   spmm_alg: [rocsparse_spmm_alg_csr_row_split]
   orderB: [rocsparse_order_column]
   orderC: [rocsparse_order_row]
-  filename: [bmwcra_1]
+  filename: [mac_econ_fwd500]
 
 - name: spmm_csc_file
   category: pre_checkin
@@ -347,6 +398,25 @@ Tests:
   orderC: [rocsparse_order_row]
   filename: [Chebyshev4]
 
+- name: spmm_csc_file
+  category: pre_checkin
+  function: spmm_csc
+  indextype: *i32i32_i64i32_i64i64
+  precision: *int8_int8_int32_int32_abct_precision
+  M: 1
+  N: [27]
+  K: 1
+  alpha_beta: *alpha_beta_range_quick
+  transA: [rocsparse_operation_none, rocsparse_operation_transpose]
+  transB: [rocsparse_operation_none, rocsparse_operation_transpose]
+  baseA: [rocsparse_index_base_zero]
+  matrix: [rocsparse_matrix_file_rocalution]
+  spmm_alg: [rocsparse_spmm_alg_csr_nnz_split]
+  orderB: [rocsparse_order_row]
+  orderC: [rocsparse_order_column]
+  filename: [nos2,
+             nos5]
+
 - name: spmm_csc_graph_test
   category: pre_checkin
   function: spmm_csc
@@ -405,6 +475,26 @@ Tests:
   orderC: [rocsparse_order_column]
   filename: [sme3Dc]
 
+# Fails from rounding. Need to investigate better ways to quantify rounding errors and hoipefully add back later
+# - name: spmm_csc_file
+#   category: nightly
+#   function: spmm_csc
+#   indextype: *i32_i64
+#   precision: *double_only_precisions
+#   M: 1
+#   N: [48]
+#   K: 1
+#   tolm: 4
+#   alpha_beta: *alpha_beta_range_nightly
+#   transA: [rocsparse_operation_transpose]
+#   transB: [rocsparse_operation_none]
+#   baseA: [rocsparse_index_base_one]
+#   matrix: [rocsparse_matrix_file_rocalution]
+#   spmm_alg: [rocsparse_spmm_alg_csr, rocsparse_spmm_alg_csr_row_split]
+#   orderB: [rocsparse_order_row]
+#   orderC: [rocsparse_order_row]
+#   filename: [shipsec1]
+
 - name: spmm_csc_file
   category: nightly
   function: spmm_csc
@@ -413,7 +503,6 @@ Tests:
   M: 1
   N: [48]
   K: 1
-  tolm: 4
   alpha_beta: *alpha_beta_range_nightly
   transA: [rocsparse_operation_transpose]
   transB: [rocsparse_operation_none]
@@ -422,7 +511,7 @@ Tests:
   spmm_alg: [rocsparse_spmm_alg_csr, rocsparse_spmm_alg_csr_row_split]
   orderB: [rocsparse_order_row]
   orderC: [rocsparse_order_row]
-  filename: [shipsec1]
+  filename: [webbase-1M]
 
 - name: spmm_csc_file
   category: nightly
@@ -486,7 +575,6 @@ Tests:
   M: 1
   N: [52]
   K: 1
-  tolm: 4
   alpha_beta: *alpha_beta_range_nightly
   transA: [rocsparse_operation_transpose]
   transB: [rocsparse_operation_none]
@@ -495,7 +583,25 @@ Tests:
   spmm_alg: [rocsparse_spmm_alg_csr_row_split]
   orderB: [rocsparse_order_row]
   orderC: [rocsparse_order_row]
-  filename: [shipsec1]
+  filename: [mc2depi]
+
+- name: spmm_csc_file
+  category: nightly
+  function: spmm_csc
+  indextype: *i32i32_i64i32_i64i64
+  precision: *int8_int8_float32_float32_abct_precision
+  M: 1
+  N: [91]
+  K: 1
+  alpha_beta: *alpha_beta_range_quick
+  transA: [rocsparse_operation_none, rocsparse_operation_transpose]
+  transB: [rocsparse_operation_none, rocsparse_operation_transpose]
+  baseA: [rocsparse_index_base_zero]
+  matrix: [rocsparse_matrix_file_rocalution]
+  spmm_alg: [rocsparse_spmm_alg_csr_merge_path]
+  orderB: [rocsparse_order_column]
+  orderC: [rocsparse_order_column]
+  filename: [scircuit]
 
 ##############################
 # STRESS

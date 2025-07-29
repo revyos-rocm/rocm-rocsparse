@@ -34,17 +34,16 @@
 #include "common.hpp"
 #include "rocsparse_csritilu0_driver.hpp"
 #include "rocsparse_csritilu0x_driver.hpp"
-#include <rocprim/rocprim.hpp>
+#include "rocsparse_primitives.h"
 
 namespace rocsparse
 {
     template <typename I, typename J>
     static rocsparse_status inclusive_scan(rocsparse_handle handle, J m_, I* ptr_)
     {
-        auto   op = rocprim::plus<I>();
         size_t temp_storage_size_bytes;
-        RETURN_IF_HIP_ERROR(rocprim::inclusive_scan(
-            nullptr, temp_storage_size_bytes, ptr_, ptr_, m_ + 1, op, handle->stream));
+        RETURN_IF_ROCSPARSE_ERROR((rocsparse::primitives::inclusive_scan_buffer_size<I, I>(
+            handle, m_ + 1, &temp_storage_size_bytes)));
 
         bool  temp_alloc       = false;
         void* temp_storage_ptr = nullptr;
@@ -61,8 +60,8 @@ namespace rocsparse
             temp_alloc = true;
         }
 
-        RETURN_IF_HIP_ERROR(rocprim::inclusive_scan(
-            temp_storage_ptr, temp_storage_size_bytes, ptr_, ptr_, m_ + 1, op, handle->stream));
+        RETURN_IF_ROCSPARSE_ERROR(rocsparse::primitives::inclusive_scan(
+            handle, ptr_, ptr_, m_ + 1, temp_storage_size_bytes, temp_storage_ptr));
 
         if(temp_alloc)
         {
@@ -527,6 +526,7 @@ namespace rocsparse
         static rocsparse_status run(rocsparse_handle handle_,
                                     J                options_,
                                     J* __restrict__ nmaxiter_,
+                                    J                  nfreeiter_,
                                     floating_data_t<T> tol_,
                                     J                  m_,
                                     I                  nnz_,
@@ -585,6 +585,32 @@ namespace rocsparse
             bool               converged             = false;
             for(J iter = 0; iter < nmaxiter; ++iter)
             {
+
+                if(nfreeiter_ > 0)
+                {
+                    RETURN_IF_ROCSPARSE_ERROR(
+                        (compute_iter<BLOCKSIZE, T, I, J>::light_run)(handle_,
+                                                                      options_,
+                                                                      nfreeiter_,
+                                                                      m_,
+                                                                      nnz_,
+                                                                      ptr_begin_,
+                                                                      ptr_end_,
+                                                                      row_ind_,
+                                                                      ind_,
+                                                                      val_,
+                                                                      base_,
+                                                                      lptr_begin_,
+                                                                      lptr_end_,
+                                                                      lind_,
+
+                                                                      uptr_begin_,
+                                                                      uptr_end_,
+                                                                      uind_,
+                                                                      uperm_,
+                                                                      ilu0_));
+                }
+
                 //
                 // Need to set to zero because of atomics.
                 // (And absolutely need to be aligned).
@@ -1512,6 +1538,7 @@ struct rocsparse::csritilu0_driver_t<rocsparse_itilu0_alg_async_inplace>
                                     rocsparse_itilu0_alg alg_,
                                     J                    options_,
                                     J*                   nmaxiter_,
+                                    J                    nfreeiter_,
                                     floating_data_t<T>   tol_,
                                     J                    m_,
                                     I                    nnz_,
@@ -1562,6 +1589,7 @@ struct rocsparse::csritilu0_driver_t<rocsparse_itilu0_alg_async_inplace>
                 RETURN_IF_ROCSPARSE_ERROR((compute_iter<BLOCKSIZE, T, I, J>::run)(handle_,
                                                                                   options_,
                                                                                   nmaxiter_,
+                                                                                  nfreeiter_,
                                                                                   tol_,
                                                                                   m_,
                                                                                   nnz_,
@@ -1585,10 +1613,12 @@ struct rocsparse::csritilu0_driver_t<rocsparse_itilu0_alg_async_inplace>
             }
             else
             {
+
                 RETURN_IF_ROCSPARSE_ERROR(
                     (compute_iter<BLOCKSIZE, T, I, J>::light_run)(handle_,
                                                                   options_,
-                                                                  nmaxiter_[0],
+                                                                  nmaxiter_[0]
+                                                                      + nmaxiter_[0] * nfreeiter_,
                                                                   m_,
                                                                   nnz_,
                                                                   ptr_,
@@ -1600,7 +1630,6 @@ struct rocsparse::csritilu0_driver_t<rocsparse_itilu0_alg_async_inplace>
                                                                   p_lptr_begin,
                                                                   p_lptr_end,
                                                                   ind_,
-
                                                                   p_uptr_begin,
                                                                   p_uptr_end,
                                                                   p_uind,

@@ -5,7 +5,7 @@
 .. _rocsparse_precond_functions_:
 
 ********************************************************************
-Sparse Preconditioner Functions
+Sparse preconditioner functions
 ********************************************************************
 
 This module holds all sparse preconditioners.
@@ -199,6 +199,18 @@ rocsparse_csritilu0_compute()
 .. doxygenfunction:: rocsparse_ccsritilu0_compute
   :outline:
 .. doxygenfunction:: rocsparse_zcsritilu0_compute
+
+
+rocsparse_csritilu0_compute_ex()
+--------------------------------
+
+.. doxygenfunction:: rocsparse_scsritilu0_compute_ex
+  :outline:
+.. doxygenfunction:: rocsparse_dcsritilu0_compute_ex
+  :outline:
+.. doxygenfunction:: rocsparse_ccsritilu0_compute_ex
+  :outline:
+.. doxygenfunction:: rocsparse_zcsritilu0_compute_ex
 
 
 rocsparse_csrilu0_zero_pivot()

@@ -30,7 +30,7 @@
 #include "utility.h"
 
 #include "common.h"
-#include <rocprim/rocprim.hpp>
+#include "rocsparse_primitives.h"
 
 namespace rocsparse
 {
@@ -398,7 +398,7 @@ namespace rocsparse
         }
     }
 
-    template <uint32_t BLOCKSIZE, uint32_t GROUPS, bool CPLX, typename I, typename J>
+    template <uint32_t BLOCKSIZE, uint32_t GROUPS, bool EXCEEDS_SMEM, typename I, typename J>
     ROCSPARSE_KERNEL(BLOCKSIZE)
     void csrgemm_symbolic_group_reduce_part2(J m,
                                              const I* __restrict__ csr_row_ptr,
@@ -430,9 +430,7 @@ namespace rocsparse
         else if(nnz <=   512) { ++sdata[hipThreadIdx_x * GROUPS + 3]; workspace[row] = 3; }
         else if(nnz <=  1024) { ++sdata[hipThreadIdx_x * GROUPS + 4]; workspace[row] = 4; }
         else if(nnz <=  2048) { ++sdata[hipThreadIdx_x * GROUPS + 5]; workspace[row] = 5; }
-#ifndef rocsparse_ILP64
-        else if(nnz <=  4096 && !CPLX) { ++sdata[hipThreadIdx_x * GROUPS + 6]; workspace[row] = 6; }
-#endif
+        else if(nnz <=  4096 && !EXCEEDS_SMEM) { ++sdata[hipThreadIdx_x * GROUPS + 6]; workspace[row] = 6; }
         else                  { ++sdata[hipThreadIdx_x * GROUPS + 7]; workspace[row] = 7; }
             // clang-format on
         }
@@ -547,12 +545,15 @@ namespace rocsparse
         // Loop until key has been inserted
         while(true)
         {
-            if(table[hash] == key)
+            // Load table[hash] exactly once in case it gets set by another thread
+            const I temp = table[hash];
+
+            if(temp == key)
             {
                 // Element already present
                 return false;
             }
-            else if(table[hash] == empty)
+            else if(temp == empty)
             {
                 // If empty, add element with atomic
                 if(rocsparse::atomic_cas(&table[hash], empty, key) == empty)
@@ -1081,7 +1082,8 @@ rocsparse_status rocsparse::csrgemm_symbolic_calc_preprocess_template(rocsparse_
     hipStream_t stream = handle->stream;
 
     // Flag for exceeding shared memory
-    constexpr bool exceeding_smem = false;
+    constexpr bool exceeding_smem
+        = (std::is_same<I, int64_t>::value && std::is_same<J, int64_t>::value);
 
     // Temporary buffer
     char* buffer = reinterpret_cast<char*>(temp_buffer);
@@ -1167,37 +1169,30 @@ rocsparse_status rocsparse::csrgemm_symbolic_calc_preprocess_template(rocsparse_
 #undef CSRGEMM_DIM
         size_t rocprim_size;
         // Exclusive sum to obtain group offsets
-        RETURN_IF_HIP_ERROR(rocprim::exclusive_scan(nullptr,
-                                                    rocprim_size,
-                                                    d_group_size,
-                                                    d_group_offset,
-                                                    0,
-                                                    CSRGEMM_MAXGROUPS,
-                                                    rocprim::plus<J>(),
-                                                    stream));
         void* rocprim_buffer = reinterpret_cast<void*>(buffer);
-        RETURN_IF_HIP_ERROR(rocprim::exclusive_scan(rocprim_buffer,
-                                                    rocprim_size,
-                                                    d_group_size,
-                                                    d_group_offset,
-                                                    0,
-                                                    CSRGEMM_MAXGROUPS,
-                                                    rocprim::plus<J>(),
-                                                    stream));
+        RETURN_IF_ROCSPARSE_ERROR((rocsparse::primitives::exclusive_scan_buffer_size<J, J>(
+            handle, static_cast<J>(0), CSRGEMM_MAXGROUPS, &rocprim_size)));
+        RETURN_IF_ROCSPARSE_ERROR(rocsparse::primitives::exclusive_scan(handle,
+                                                                        d_group_size,
+                                                                        d_group_offset,
+                                                                        static_cast<J>(0),
+                                                                        CSRGEMM_MAXGROUPS,
+                                                                        rocprim_size,
+                                                                        rocprim_buffer));
 
         // Create identity permutation for group access
         RETURN_IF_ROCSPARSE_ERROR(
             rocsparse::create_identity_permutation_template(handle, m, tmp_perm));
 
-        rocprim::double_buffer<int> d_keys(tmp_groups, tmp_keys);
-        rocprim::double_buffer<J>   d_vals(tmp_perm, tmp_vals);
+        rocsparse::primitives::double_buffer<int> d_keys(tmp_groups, tmp_keys);
+        rocsparse::primitives::double_buffer<J>   d_vals(tmp_perm, tmp_vals);
 
         // Sort pairs (by groups)
-        RETURN_IF_HIP_ERROR(
-            rocprim::radix_sort_pairs(nullptr, rocprim_size, d_keys, d_vals, m, 0, 3, stream));
         rocprim_buffer = reinterpret_cast<void*>(buffer);
-        RETURN_IF_HIP_ERROR(rocprim::radix_sort_pairs(
-            rocprim_buffer, rocprim_size, d_keys, d_vals, m, 0, 3, stream));
+        RETURN_IF_ROCSPARSE_ERROR((rocsparse::primitives::radix_sort_pairs_buffer_size<int, J>(
+            handle, m, 0, 3, &rocprim_size)));
+        RETURN_IF_ROCSPARSE_ERROR(rocsparse::primitives::radix_sort_pairs(
+            handle, d_keys, d_vals, m, 0, 3, rocprim_size, rocprim_buffer));
 
         // Release tmp_groups buffer
         // buffer -= ((sizeof(int) * m - 1) / 256 + 1) * 256;
@@ -1286,7 +1281,8 @@ rocsparse_status rocsparse::csrgemm_symbolic_calc_template(rocsparse_handle     
         = info_C->csrgemm_info->add ? descr_D->base : rocsparse_index_base_zero;
 
     // Flag for exceeding shared memory
-    constexpr bool exceeding_smem = false;
+    constexpr bool exceeding_smem
+        = (std::is_same<I, int64_t>::value && std::is_same<J, int64_t>::value);
 
     // Group 0: 0 - 16 non-zeros per row
     if(h_group_size[0] > 0)
@@ -1514,7 +1510,6 @@ rocsparse_status rocsparse::csrgemm_symbolic_calc_template(rocsparse_handle     
 #undef CSRGEMM_DIM
     }
 
-#ifndef rocsparse_ILP64
     // Group 6: 2049 - 4096 non-zeros per row
     if(h_group_size[6] > 0 && !exceeding_smem)
     {
@@ -1540,7 +1535,6 @@ rocsparse_status rocsparse::csrgemm_symbolic_calc_template(rocsparse_handle     
                                                               info_C->csrgemm_info->mul,
                                                               info_C->csrgemm_info->add));
     }
-#endif
 
     // Group 7: more than 4096 non-zeros per row
     if(h_group_size[7] > 0)

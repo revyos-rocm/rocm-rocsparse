@@ -1,5 +1,5 @@
 # ########################################################################
-# Copyright (C) 2021-2023 Advanced Micro Devices, Inc. All rights Reserved.
+# Copyright (C) 2021-2024 Advanced Micro Devices, Inc. All rights Reserved.
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -23,7 +23,7 @@
 
 ---
 include: rocsparse_common.yaml
-include: known_bugs.yaml
+
 
 Definitions:
   - &alpha_beta_range_quick
@@ -162,6 +162,40 @@ Tests:
   orderC: [rocsparse_order_row]
   filename: [Chevron2,
              qc2534]
+
+- name: spmm_coo
+  category: quick
+  function: spmm_coo
+  indextype: *i32i32_i64i32_i64i64
+  precision: *int8_int8_int32_int32_abct_precision
+  M: [429]
+  N: [118]
+  K: [548]
+  alpha_beta: *alpha_beta_range_quick
+  transA: [rocsparse_operation_none, rocsparse_operation_transpose]
+  transB: [rocsparse_operation_none, rocsparse_operation_transpose]
+  baseA: [rocsparse_index_base_zero]
+  matrix: [rocsparse_matrix_random]
+  spmm_alg: [rocsparse_spmm_alg_coo_segmented]
+  orderB: [rocsparse_order_row]
+  orderC: [rocsparse_order_row]
+
+- name: spmm_coo
+  category: quick
+  function: spmm_coo
+  indextype: *i32i32_i64i32_i64i64
+  precision: *int8_int8_float32_float32_abct_precision
+  M: [816]
+  N: [231]
+  K: [176]
+  alpha_beta: *alpha_beta_range_quick
+  transA: [rocsparse_operation_none, rocsparse_operation_transpose]
+  transB: [rocsparse_operation_none, rocsparse_operation_transpose]
+  baseA: [rocsparse_index_base_zero]
+  matrix: [rocsparse_matrix_random]
+  spmm_alg: [rocsparse_spmm_alg_coo_segmented_atomic]
+  orderB: [rocsparse_order_column]
+  orderC: [rocsparse_order_row]
 
 ##############################
 # Precheckin
@@ -314,6 +348,24 @@ Tests:
   orderC: [rocsparse_order_column]
   filename: [Chevron3]
 
+- name: spmm_coo_file
+  category: pre_checkin
+  function: spmm_coo
+  indextype: *i32i32_i64i32_i64i64
+  precision: *int8_int8_int32_int32_abct_precision
+  M: 1
+  N: [87]
+  K: 1
+  alpha_beta: *alpha_beta_range_quick
+  transA: [rocsparse_operation_none, rocsparse_operation_transpose]
+  transB: [rocsparse_operation_none, rocsparse_operation_transpose]
+  baseA: [rocsparse_index_base_zero]
+  matrix: [rocsparse_matrix_file_rocalution]
+  spmm_alg: [rocsparse_spmm_alg_coo_atomic]
+  orderB: [rocsparse_order_row]
+  orderC: [rocsparse_order_column]
+  filename: [mplate]
+
 - name: spmm_coo_graph_test
   category: pre_checkin
   function: spmm_coo
@@ -463,7 +515,25 @@ Tests:
   orderB: [rocsparse_order_row]
   orderC: [rocsparse_order_row]
   filename: [sme3Dc,
-             bmwcra_1]
+             webbase-1M]
+
+- name: spmm_coo_file
+  category: nightly
+  function: spmm_coo
+  indextype: *i32i32_i64i32_i64i64
+  precision: *int8_int8_float32_float32_abct_precision
+  M: 1
+  N: [65]
+  K: 1
+  alpha_beta: *alpha_beta_range_quick
+  transA: [rocsparse_operation_none, rocsparse_operation_transpose]
+  transB: [rocsparse_operation_none, rocsparse_operation_transpose]
+  baseA: [rocsparse_index_base_zero]
+  matrix: [rocsparse_matrix_file_rocalution]
+  spmm_alg: [rocsparse_spmm_alg_coo_segmented]
+  orderB: [rocsparse_order_column]
+  orderC: [rocsparse_order_column]
+  filename: [bmwcra_1]
 
 ##############################
 # STRESS

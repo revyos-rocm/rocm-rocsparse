@@ -25,12 +25,11 @@
 #include "utility.h"
 
 #include "internal/conversion/rocsparse_coo2dense.h"
+#include "rocsparse_common.h"
 #include "rocsparse_coo2dense.hpp"
 
 #include "common.h"
 #include "coo2dense_device.h"
-
-#include <rocprim/rocprim.hpp>
 
 template <typename I, typename T>
 rocsparse_status rocsparse::coo2dense_template(rocsparse_handle          handle, //0
@@ -90,17 +89,7 @@ rocsparse_status rocsparse::coo2dense_template(rocsparse_handle          handle,
     // RETURN_IF_HIP_ERROR(hipMemset2DAsync(A, sizeof(T) * lda, 0, sizeof(T) * mn, nm, stream));
 
     // Set memory to zero.
-    RETURN_IF_HIPLAUNCHKERNELGGL_ERROR((rocsparse::memset2d_kernel<512>),
-                                       dim3((m * n - 1) / 512 + 1),
-                                       dim3(512),
-                                       0,
-                                       stream,
-                                       m,
-                                       n,
-                                       static_cast<T>(0),
-                                       A,
-                                       lda,
-                                       order);
+    RETURN_IF_ROCSPARSE_ERROR(rocsparse::valset_2d(handle, m, n, lda, static_cast<T>(0), A, order));
 
     if(nnz > 0)
     {

@@ -5,12 +5,16 @@
 .. _rocsparse_generic_functions_:
 
 ********************************************************************
-Sparse Generic Functions
+Sparse generic functions
 ********************************************************************
 
 This module holds all sparse generic routines.
 
-The sparse generic routines describe operations that manipulate sparse matrices.
+The sparse generic routines describe some of the most common operations that manipulate sparse matrices and
+vectors. The generic API is more flexible than the other rocSPARSE APIs in that it is easy to set
+different index types, data types and compute types. For some generic routines, for example SpMV, the generic
+API also allows users to select different algorithms which have different performance characteristics depending
+on the sparse matrix being operated on.
 
 rocsparse_axpby()
 -----------------
@@ -102,3 +106,27 @@ rocsparse_sparse_to_sparse()
 
 .. doxygenfunction:: rocsparse_sparse_to_sparse
 
+rocsparse_extract_buffer_size()
+-------------------------------
+
+.. doxygenfunction:: rocsparse_extract_buffer_size
+
+rocsparse_extract_nnz
+---------------------
+
+.. doxygenfunction:: rocsparse_extract_nnz
+
+rocsparse_extract()
+-------------------
+
+.. doxygenfunction:: rocsparse_extract
+
+rocsparse_check_spmat
+---------------------
+
+.. doxygenfunction:: rocsparse_check_spmat
+
+rocsparse_spitsv
+----------------
+
+.. doxygenfunction:: rocsparse_spitsv

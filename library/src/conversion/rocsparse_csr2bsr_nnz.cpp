@@ -24,12 +24,13 @@
 
 #include "control.h"
 #include "internal/conversion/rocsparse_csr2bsr.h"
+#include "rocsparse_common.h"
 #include "rocsparse_csr2bsr.hpp"
 #include "utility.h"
 
 #include "csr2bsr_nnz_device.h"
 
-#include <rocprim/rocprim.hpp>
+#include "rocsparse_primitives.h"
 
 /*
  * ===========================================================================
@@ -102,14 +103,8 @@ rocsparse_status rocsparse::csr2bsr_nnz_quickreturn(rocsparse_handle          ha
         if(bsr_row_ptr != nullptr)
         {
             const J mb = (m + block_dim - 1) / block_dim;
-            RETURN_IF_HIPLAUNCHKERNELGGL_ERROR((rocsparse::set_array_to_value<256>),
-                                               dim3(((mb + 1) - 1) / 256 + 1),
-                                               dim3(256),
-                                               0,
-                                               handle->stream,
-                                               (mb + 1),
-                                               bsr_row_ptr,
-                                               static_cast<I>(bsr_descr->base));
+            RETURN_IF_ROCSPARSE_ERROR(
+                rocsparse::valset(handle, mb + 1, static_cast<I>(bsr_descr->base), bsr_row_ptr));
         }
 
         return rocsparse_status_success;
@@ -244,14 +239,8 @@ rocsparse_status rocsparse::csr2bsr_nnz_core(rocsparse_handle          handle,
 
         if(bsr_row_ptr != nullptr)
         {
-            RETURN_IF_HIPLAUNCHKERNELGGL_ERROR((rocsparse::set_array_to_value<256>),
-                                               dim3(((mb + 1) - 1) / 256 + 1),
-                                               dim3(256),
-                                               0,
-                                               handle->stream,
-                                               (mb + 1),
-                                               bsr_row_ptr,
-                                               static_cast<I>(bsr_descr->base));
+            RETURN_IF_ROCSPARSE_ERROR(
+                rocsparse::valset(handle, mb + 1, static_cast<I>(bsr_descr->base), bsr_row_ptr));
         }
 
         return rocsparse_status_success;
@@ -405,10 +394,9 @@ rocsparse_status rocsparse::csr2bsr_nnz_core(rocsparse_handle          handle,
     }
 
     // Perform inclusive scan on bsr row pointer array
-    auto   op = rocprim::plus<I>();
     size_t temp_storage_size_bytes;
-    RETURN_IF_HIP_ERROR(rocprim::inclusive_scan(
-        nullptr, temp_storage_size_bytes, bsr_row_ptr, bsr_row_ptr, mb + 1, op, handle->stream));
+    RETURN_IF_ROCSPARSE_ERROR((rocsparse::primitives::inclusive_scan_buffer_size<I, I>(
+        handle, mb + 1, &temp_storage_size_bytes)));
 
     bool  temp_alloc       = false;
     void* temp_storage_ptr = nullptr;
@@ -424,13 +412,8 @@ rocsparse_status rocsparse::csr2bsr_nnz_core(rocsparse_handle          handle,
         temp_alloc = true;
     }
 
-    RETURN_IF_HIP_ERROR(rocprim::inclusive_scan(temp_storage_ptr,
-                                                temp_storage_size_bytes,
-                                                bsr_row_ptr,
-                                                bsr_row_ptr,
-                                                mb + 1,
-                                                op,
-                                                handle->stream));
+    RETURN_IF_ROCSPARSE_ERROR(rocsparse::primitives::inclusive_scan(
+        handle, bsr_row_ptr, bsr_row_ptr, mb + 1, temp_storage_size_bytes, temp_storage_ptr));
 
     if(temp_alloc)
     {

@@ -30,31 +30,6 @@
 
 namespace rocsparse
 {
-    // Scale kernel for beta != 1.0
-    template <uint32_t BLOCKSIZE, typename I, typename C, typename T>
-    ROCSPARSE_DEVICE_ILF void csrmmnn_merge_path_scale_device(
-        I m, I n, T beta, C* __restrict__ data, int64_t ld, rocsparse_order order_C)
-    {
-        const I gid = hipBlockIdx_x * BLOCKSIZE + hipThreadIdx_x;
-
-        if(gid >= m * n)
-        {
-            return;
-        }
-
-        const I wid = (order_C == rocsparse_order_column) ? gid / m : gid / n;
-        const I lid = (order_C == rocsparse_order_column) ? gid % m : gid % n;
-
-        if(beta == 0)
-        {
-            data[lid + ld * wid] = 0;
-        }
-        else
-        {
-            data[lid + ld * wid] *= beta;
-        }
-    }
-
     template <typename T>
     struct coordinate_t
     {
@@ -75,7 +50,7 @@ namespace rocsparse
 
         // Search starting/ending coordinates of the range for this block.
         const I diagonal0 = (bid + 0) * ITEMS_PER_THREAD;
-        const I diagonal1 = (bid + 1) * ITEMS_PER_THREAD;
+        const I diagonal1 = rocsparse::min((I)(M + nnz), (I)((bid + 1) * ITEMS_PER_THREAD));
 
         rocprim::counting_iterator<I> nnz_indices0(idx_base);
         rocprim::counting_iterator<I> nnz_indices1(idx_base);

@@ -24,21 +24,15 @@
 
 #include "internal/level3/rocsparse_gemmi.h"
 #include "gemmi_device.h"
+#include "rocsparse_common.h"
 #include "rocsparse_gemmi.hpp"
 
 namespace rocsparse
 {
     template <uint32_t BLOCKSIZE, typename T, typename U>
     ROCSPARSE_KERNEL(BLOCKSIZE)
-    void gemmi_scale_kernel(rocsparse_int size, U alpha_device_host, T* __restrict__ data)
-    {
-        auto alpha = rocsparse::load_scalar_device_host(alpha_device_host);
-        rocsparse::gemmi_scale_kernel<BLOCKSIZE>(size, alpha, data);
-    }
-
-    template <uint32_t BLOCKSIZE, typename T, typename U>
-    ROCSPARSE_KERNEL(BLOCKSIZE)
     void gemmit_kernel(rocsparse_int m,
+                       rocsparse_int n,
                        U             alpha_device_host,
                        const T* __restrict__ A,
                        rocsparse_int lda,
@@ -52,8 +46,8 @@ namespace rocsparse
     {
         auto alpha = rocsparse::load_scalar_device_host(alpha_device_host);
         auto beta  = rocsparse::load_scalar_device_host(beta_device_host);
-        rocsparse::gemmit_kernel<BLOCKSIZE>(
-            m, alpha, A, lda, csr_row_ptr, csr_col_ind, csr_val, beta, C, ldc, base);
+        rocsparse::gemmit_device<BLOCKSIZE>(
+            m, n, alpha, A, lda, csr_row_ptr, csr_col_ind, csr_val, beta, C, ldc, base);
     }
 
     template <typename T>
@@ -82,20 +76,9 @@ namespace rocsparse
         // If k == 0, scale C with beta
         if(k == 0)
         {
-#define SCALE_DIM 256
-            dim3 scale_blocks((m * n - 1) / SCALE_DIM + 1);
-            dim3 scale_threads(SCALE_DIM);
-
             if(handle->pointer_mode == rocsparse_pointer_mode_device)
             {
-                RETURN_IF_HIPLAUNCHKERNELGGL_ERROR((rocsparse::gemmi_scale_kernel<SCALE_DIM>),
-                                                   scale_blocks,
-                                                   scale_threads,
-                                                   0,
-                                                   stream,
-                                                   m * n,
-                                                   beta,
-                                                   C);
+                RETURN_IF_ROCSPARSE_ERROR(rocsparse::scale_array(handle, m * n, beta, C));
             }
             else
             {
@@ -105,23 +88,15 @@ namespace rocsparse
                 }
                 else if(*beta != static_cast<T>(1))
                 {
-                    RETURN_IF_HIPLAUNCHKERNELGGL_ERROR((rocsparse::gemmi_scale_kernel<SCALE_DIM>),
-                                                       scale_blocks,
-                                                       scale_threads,
-                                                       0,
-                                                       stream,
-                                                       m * n,
-                                                       *beta,
-                                                       C);
+                    RETURN_IF_ROCSPARSE_ERROR(rocsparse::scale_array(handle, m * n, *beta, C));
                 }
             }
-#undef SCALE_DIM
 
             return rocsparse_status_success;
         }
 
 #define GEMMIT_DIM 256
-        dim3 gemmit_blocks((m - 1) / GEMMIT_DIM + 1, n);
+        dim3 gemmit_blocks((m - 1) / GEMMIT_DIM + 1, std::min(n, (rocsparse_int)65535));
         dim3 gemmit_threads(GEMMIT_DIM);
 
         if(handle->pointer_mode == rocsparse_pointer_mode_device)
@@ -132,6 +107,7 @@ namespace rocsparse
                                                0,
                                                stream,
                                                m,
+                                               n,
                                                alpha,
                                                A,
                                                lda,
@@ -158,19 +134,7 @@ namespace rocsparse
                 }
                 else
                 {
-#define SCALE_DIM 256
-                    dim3 scale_blocks((m * n - 1) / SCALE_DIM + 1);
-                    dim3 scale_threads(SCALE_DIM);
-
-                    RETURN_IF_HIPLAUNCHKERNELGGL_ERROR((rocsparse::gemmi_scale_kernel<SCALE_DIM>),
-                                                       scale_blocks,
-                                                       scale_threads,
-                                                       0,
-                                                       stream,
-                                                       m * n,
-                                                       *beta,
-                                                       C);
-#undef SCALE_DIM
+                    RETURN_IF_ROCSPARSE_ERROR(rocsparse::scale_array(handle, m * n, *beta, C));
                 }
 
                 return rocsparse_status_success;
@@ -182,6 +146,7 @@ namespace rocsparse
                                                0,
                                                stream,
                                                m,
+                                               n,
                                                *alpha,
                                                A,
                                                lda,

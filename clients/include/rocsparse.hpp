@@ -1,6 +1,6 @@
 /*! \file */
 /* ************************************************************************
- * Copyright (C) 2020-2022 Advanced Micro Devices, Inc. All rights Reserved.
+ * Copyright (C) 2020-2024 Advanced Micro Devices, Inc. All rights Reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -532,6 +532,26 @@ REAL_COMPLEX_TEMPLATE(csritsv_analysis,
 
 REAL_COMPLEX_TEMPLATE(csritsv_solve,
                       rocsparse_int*            nmaxiter,
+                      const floating_data_t<T>* host_tol,
+                      floating_data_t<T>*       host_history,
+                      rocsparse_handle          handle,
+                      rocsparse_operation       trans,
+                      rocsparse_int             m,
+                      rocsparse_int             nnz,
+                      const T*                  alpha,
+                      const rocsparse_mat_descr descr,
+                      const T*                  csr_val,
+                      const rocsparse_int*      csr_row_ptr,
+                      const rocsparse_int*      csr_col_ind,
+                      rocsparse_mat_info        info,
+                      const T*                  x,
+                      T*                        y,
+                      rocsparse_solve_policy    policy,
+                      void*                     temp_buffer);
+
+REAL_COMPLEX_TEMPLATE(csritsv_solve_ex,
+                      rocsparse_int*            nmaxiter,
+                      rocsparse_int             nfreeiter,
                       const floating_data_t<T>* host_tol,
                       floating_data_t<T>*       host_history,
                       rocsparse_handle          handle,
@@ -1156,12 +1176,30 @@ REAL_COMPLEX_TEMPLATE(csric0,
                       rocsparse_solve_policy    policy,
                       void*                     temp_buffer);
 
+// csritilu0_compute_ex
+REAL_COMPLEX_TEMPLATE(csritilu0_compute_ex,
+                      rocsparse_handle     handle,
+                      rocsparse_itilu0_alg alg,
+                      rocsparse_int        options,
+                      rocsparse_int*       nmaxiter,
+                      rocsparse_int        nfreeiter,
+                      floating_data_t<T>   tol_correction,
+                      rocsparse_int        m,
+                      rocsparse_int        nnz,
+                      const rocsparse_int* ptr,
+                      const rocsparse_int* ind,
+                      const T*             val,
+                      T*                   ilu0,
+                      rocsparse_index_base base,
+                      size_t               buffer_size_,
+                      void*                buffer);
+
 // csritilu0_compute
 REAL_COMPLEX_TEMPLATE(csritilu0_compute,
                       rocsparse_handle     handle,
                       rocsparse_itilu0_alg alg,
                       rocsparse_int        options,
-                      rocsparse_int*       nsweeps,
+                      rocsparse_int*       nmaxiter,
                       floating_data_t<T>   tol_correction,
                       rocsparse_int        m,
                       rocsparse_int        nnz,

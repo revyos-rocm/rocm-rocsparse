@@ -1189,6 +1189,97 @@ ROCSPARSE_EXPORT
 rocsparse_status rocsparse_destroy_spmat_descr(rocsparse_const_spmat_descr descr);
 
 /*! \ingroup aux_module
+*  \brief Sparse matrix to sparse matrix conversion.
+*
+*  \details
+*  \p rocsparse_create_sparse_to_sparse_descr creates the descriptor of the sparse_to_sparse algorithm.
+
+*  @param[out]
+*  descr        pointer to the descriptor of the sparse_to_sparse algorithm.
+*  @param[in]
+*  source       source sparse matrix descriptor.
+*  @param[in]
+*  target       target sparse matrix descriptor.
+*  @param[in]
+*  alg          algorithm for the sparse_to_sparse computation.
+*
+*  \retval      rocsparse_status_success the operation completed successfully.
+*  \retval      rocsparse_status_invalid_value if any required enumeration is invalid.
+*  \retval      rocsparse_status_invalid_pointer \p descr, \p source, or \p target
+*               pointer is invalid.
+*/
+ROCSPARSE_EXPORT
+rocsparse_status rocsparse_create_sparse_to_sparse_descr(rocsparse_sparse_to_sparse_descr* descr,
+                                                         rocsparse_const_spmat_descr       source,
+                                                         rocsparse_spmat_descr             target,
+                                                         rocsparse_sparse_to_sparse_alg    alg);
+
+/*! \ingroup aux_module
+*  \brief Sparse matrix to sparse matrix conversion.
+*
+*  \details
+*  \p rocsparse_sparse_to_sparse_permissive allows the routine to allocate an intermediate sparse matrix
+*  in order to perform the conversion. By default, the routine is not permissive.
+*  @param[in]
+*  descr        descriptor of the sparse_to_sparse algorithm.
+*  \retval      rocsparse_status_success the operation completed successfully.
+*/
+ROCSPARSE_EXPORT
+rocsparse_status rocsparse_sparse_to_sparse_permissive(rocsparse_sparse_to_sparse_descr descr);
+
+/*! \ingroup aux_module
+*  \brief Sparse matrix to sparse matrix conversion.
+*
+*  \details
+*  \p rocsparse_destroy_sparse_to_sparse_descr destroys the descriptor of the sparse_to_sparse algorithm.
+*
+*  @param[in]
+*  descr        descriptor of the sparse_to_sparse algorithm.
+*  \retval      rocsparse_status_success the operation completed successfully.
+*/
+ROCSPARSE_EXPORT
+rocsparse_status rocsparse_destroy_sparse_to_sparse_descr(rocsparse_sparse_to_sparse_descr descr);
+
+/*! \ingroup aux_module
+*  \brief Sparse matrix extraction.
+*
+*  \details
+*  \p rocsparse_create_extract_descr creates the descriptor of the extract algorithm.
+
+*  @param[out]
+*  descr        pointer to the descriptor of the extract algorithm.
+*  @param[in]
+*  source       source sparse matrix descriptor.
+*  @param[in]
+*  target       target sparse matrix descriptor.
+*  @param[in]
+*  alg          algorithm for the extract computation.
+*
+*  \retval      rocsparse_status_success the operation completed successfully.
+*  \retval      rocsparse_status_invalid_value if any required enumeration is invalid.
+*  \retval      rocsparse_status_invalid_pointer \p descr, \p source, or \p target
+*               pointer is invalid.
+*/
+ROCSPARSE_EXPORT
+rocsparse_status rocsparse_create_extract_descr(rocsparse_extract_descr*    descr,
+                                                rocsparse_const_spmat_descr source,
+                                                rocsparse_spmat_descr       target,
+                                                rocsparse_extract_alg       alg);
+
+/*! \ingroup aux_module
+*  \brief Sparse matrix extraction.
+*
+*  \details
+*  \p rocsparse_destroy_extract_descr destroys the descriptor of the extract algorithm.
+*
+*  @param[in]
+*  descr        descriptor of the extract algorithm.
+*  \retval      rocsparse_status_success the operation completed successfully.
+*/
+ROCSPARSE_EXPORT
+rocsparse_status rocsparse_destroy_extract_descr(rocsparse_extract_descr descr);
+
+/*! \ingroup aux_module
  *  \brief Get the fields of the sparse COO matrix descriptor
  *  \details
  *  \p rocsparse_coo_get gets the fields of the sparse COO matrix descriptor
@@ -1816,6 +1907,41 @@ rocsparse_status rocsparse_const_spmat_get_values(rocsparse_const_spmat_descr de
  */
 ROCSPARSE_EXPORT
 rocsparse_status rocsparse_spmat_set_values(rocsparse_spmat_descr descr, void* values);
+
+/*! \ingroup aux_module
+ *  \brief Get the number of non-zeros from the sparse matrix descriptor
+ *
+ *  \note The returned number of non-zeros is the number of elements of the array of values of the sparse matrix.
+ *
+ *  @param[in]
+ *  descr       the pointer to the sparse matrix descriptor.
+ *  @param[out]
+ *  nnz the number of non-zeros of the sparse matrix.
+ *
+ *  \retval rocsparse_status_success the operation completed successfully.
+ *  \retval rocsparse_status_invalid_pointer if \p descr or \p nnz is invalid.
+ */
+ROCSPARSE_EXPORT
+rocsparse_status rocsparse_spmat_get_nnz(rocsparse_const_spmat_descr descr, int64_t* nnz);
+
+/*! \ingroup aux_module
+ *  \brief Set the number of non-zeros in the sparse matrix descriptor
+ *
+ *  \note In the case of a sparse matrix with the format \ref rocsparse_format_bsr, \p nnz is the number of blocks.
+ *  \note In the case of a sparse matrix with the format \ref rocsparse_format_ell, the operation will return an error.
+ *  \note In the case of a sparse matrix with the format \ref rocsparse_format_bell, the operation will return an error.
+ *
+ *  @param[in]
+ *  descr       the pointer to the sparse matrix descriptor.
+ *  @param[in]
+ *  nnz         number of non-zeros of the sparse matrix.
+ *
+ *  \retval rocsparse_status_success the operation completed successfully.
+ *  \retval rocsparse_status_invalid_pointer if \p descr is invalid.
+ *  \retval rocsparse_status_invalid_size if \p nnz is invalid.
+ */
+ROCSPARSE_EXPORT
+rocsparse_status rocsparse_spmat_set_nnz(rocsparse_spmat_descr descr, int64_t nnz);
 
 /*! \ingroup aux_module
  *  \brief Get the strided batch count from the sparse matrix descriptor

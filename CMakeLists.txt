@@ -57,7 +57,7 @@ project(rocsparse LANGUAGES CXX C)
 if (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
   message(STATUS "Using hip-clang to build for amdgpu backend")
 else()
-  message(FATAL_ERROR "'hipcc' compiler required to compile for ROCm platform.")
+  message(FATAL_ERROR "'hip-clang' compiler required to compile for ROCm platform.")
 endif()
 
 # Build flags
@@ -77,12 +77,26 @@ option(BUILD_MEMSTAT "Build rocSPARSE with memory statistics enabled" OFF)
 option(BUILD_ROCSPARSE_ILP64 "Build rocSPARSE with rocsparse_int equal to int64_t" OFF)
 option(BUILD_COMPRESSED_DBG "Enable compressed debug symbols" ON)
 option(BUILD_WITH_ROCBLAS "Enable building rocSPARSE with rocBLAS" ON)
+option(BUILD_WITH_OFFLOAD_COMPRESS
+       "Enable offload compression during compilation" ON)
 
 # Clients utilize rocsparse fortran API and a fortran compiler
 if( NOT BUILD_FORTRAN_CLIENTS )
   option( BUILD_FORTRAN_CLIENTS "Build rocSPARSE clients requiring Fortran capabilities" ON )
 endif( )
 option(BUILD_DOCS "Build documentation" OFF)
+
+if(BUILD_WITH_OFFLOAD_COMPRESS)
+  include(CheckCXXCompilerFlag)
+  check_cxx_compiler_flag("--offload-compress"
+                          CXX_COMPILER_SUPPORTS_OFFLOAD_COMPRESS)
+  if(NOT CXX_COMPILER_SUPPORTS_OFFLOAD_COMPRESS)
+    message(
+      FATAL_ERROR
+        "The option '--offload-compress' is not supported from the CXX compiler, turn off the option BUILD_WITH_OFFLOAD_COMPRESS."
+    )
+  endif()
+endif()
 
 #
 if(BUILD_CODE_COVERAGE)
@@ -123,7 +137,7 @@ if(BUILD_FILE_REORG_BACKWARD_COMPATIBILITY AND NOT WIN32)
 endif()
 
 # Detect compiler support for target ID
-if(CMAKE_CXX_COMPILER MATCHES ".*/hipcc$")
+if(CMAKE_CXX_COMPILER MATCHES ".*/hipcc$" OR CMAKE_CXX_COMPILER MATCHES ".*clang\\+\\+")
   execute_process(COMMAND ${CMAKE_CXX_COMPILER} "--help"
     OUTPUT_VARIABLE CXX_OUTPUT
     OUTPUT_STRIP_TRAILING_WHITESPACE
@@ -133,7 +147,7 @@ endif()
 
 # Detect compiler support for target ID
 # This section is deprecated. Please use rocm_check_target_ids for future use.
-if( CMAKE_CXX_COMPILER MATCHES ".*/hipcc$" )
+if( CMAKE_CXX_COMPILER MATCHES ".*/hipcc$" OR CMAKE_CXX_COMPILER MATCHES ".*clang\\+\\+")
     execute_process(COMMAND ${CMAKE_CXX_COMPILER} "--help"
         OUTPUT_VARIABLE CXX_OUTPUT
         OUTPUT_STRIP_TRAILING_WHITESPACE
@@ -141,36 +155,48 @@ if( CMAKE_CXX_COMPILER MATCHES ".*/hipcc$" )
     string(REGEX MATCH ".mcode\-object\-version" TARGET_ID_SUPPORT ${CXX_OUTPUT})
 endif()
 
-#Set the AMDGPU_TARGETS with backward compatibility
+#Set the GPU_TARGETS with backward compatibility
 if(COMMAND rocm_check_target_ids)
     if(BUILD_ADDRESS_SANITIZER)
-      rocm_check_target_ids(DEFAULT_AMDGPU_TARGETS
-        TARGETS "gfx900:xnack-;gfx906:xnack-;gfx908:xnack-;gfx90a:xnack-;gfx90a:xnack+;gfx940;gfx941;gfx942;gfx1030;gfx1100;gfx1101;gfx1102;gfx1151")
+      rocm_check_target_ids(DEFAULT_GPU_TARGETS
+        TARGETS "gfx908:xnack+;gfx90a:xnack+;gfx942:xnack+")
     else()
-      rocm_check_target_ids(DEFAULT_AMDGPU_TARGETS
-          TARGETS "gfx803;gfx900:xnack-;gfx906:xnack-;gfx908:xnack-;gfx90a:xnack-;gfx90a:xnack+;gfx940;gfx941;gfx942;gfx1030;gfx1100;gfx1101;gfx1102;gfx1151")
+      rocm_check_target_ids(DEFAULT_GPU_TARGETS
+          TARGETS "gfx803;gfx900:xnack-;gfx906:xnack-;gfx908:xnack-;gfx90a:xnack-;gfx90a:xnack+;gfx942;gfx1030;gfx1100;gfx1101;gfx1102;gfx1151;gfx1200;gfx1201")
     endif()
 else()
-    # Use target ID syntax if supported for AMDGPU_TARGETS
+    # Use target ID syntax if supported for GPU_TARGETS
     if(TARGET_ID_SUPPORT)
-        set(DEFAULT_AMDGPU_TARGETS "gfx803;gfx900:xnack-;gfx906:xnack-;gfx908:xnack-;gfx1030;gfx1100;gfx1101;gfx1102;gfx1151")
+        set(DEFAULT_GPU_TARGETS "gfx803;gfx900:xnack-;gfx906:xnack-;gfx908:xnack-;gfx1030;gfx1100;gfx1101;gfx1102;gfx1151;gfx1200;gfx1201")
     else()
-        set(DEFAULT_AMDGPU_TARGETS "gfx803;gfx900;gfx906;gfx908")
+        set(DEFAULT_GPU_TARGETS "gfx803;gfx900;gfx906;gfx908")
     endif()
 endif()
 
-if (AMDGPU_TARGETS)
-  set(TMPAMDGPU_TARGETS "${AMDGPU_TARGETS}")
-  if(TMPAMDGPU_TARGETS STREQUAL "all" )
-    set(AMDGPU_TARGETS "${DEFAULT_AMDGPU_TARGETS}" CACHE STRING "List of specific machine types for library to target" FORCE)
+#Support AMDGPU_TARGETS as deprecated
+if( AMDGPU_TARGETS AND NOT GPU_TARGETS )
+  message( DEPRECATION "AMDGPU_TARGETS use is deprecated. Use GPU_TARGETS." )
+  set( GFX_LIST ${AMDGPU_TARGETS} )
+elseif( GPU_TARGETS )
+  set( GFX_LIST ${GPU_TARGETS} )
+else ()
+  set( GFX_LIST ${DEFAULT_AMDGPU_TARGETS} ) # default if not set
+endif()
+
+set(GPU_TARGETS "${GFX_LIST}" CACHE STRING "GPU architectures to build for")
+
+if (GPU_TARGETS)
+  set(TMPGPU_TARGETS "${GPU_TARGETS}")
+  if(TMPGPU_TARGETS STREQUAL "all" )
+    set(GPU_TARGETS "${DEFAULT_GPU_TARGETS}" CACHE STRING "List of specific machine types for library to target" FORCE)
   else()
-    set(AMDGPU_TARGETS "${TMPAMDGPU_TARGETS}" CACHE STRING "AMD GPU targets to compile for" FORCE)
+    set(GPU_TARGETS "${TMPGPU_TARGETS}" CACHE STRING "AMD GPU targets to compile for" FORCE)
   endif()
 else()
-  set(AMDGPU_TARGETS "${DEFAULT_AMDGPU_TARGETS}" CACHE STRING "List of specific machine types for library to target")
+  set(GPU_TARGETS "${DEFAULT_GPU_TARGETS}" CACHE STRING "List of specific machine types for library to target")
 endif()
 
-message(STATUS "AMDGPU_TARGETS: ${AMDGPU_TARGETS}")
+message(STATUS "GPU_TARGETS: ${GPU_TARGETS}")
 
 # Find rocprim package
 find_package(rocprim REQUIRED)
@@ -185,7 +211,7 @@ if( CMAKE_CXX_COMPILER_ID MATCHES "Clang" )
 endif( )
 
 # Setup version
-set(VERSION_STRING "3.2.1")
+set(VERSION_STRING "3.4.0")
 set(SOVERSION_STRING "1.0")
 
 rocm_setup_version(VERSION ${VERSION_STRING})
@@ -213,7 +239,7 @@ if( BUILD_CLIENTS_SAMPLES OR BUILD_CLIENTS_TESTS OR BUILD_CLIENTS_BENCHMARKS )
     set(GFORTRAN_DEB "libgfortran5")
   elseif(CLIENTS_OS STREQUAL "sles" AND OPENMP_FOUND)
     set(OPENMP_RPM "libgomp1")
-  elseif(CLIENTS_OS STREQUAL "mariner")
+  elseif(CLIENTS_OS STREQUAL "mariner" OR CLIENTS_OS STREQUAL "azurelinux")
     set(GFORTRAN_RPM "gfortran")
   endif()
 
@@ -308,7 +334,7 @@ set(ROCSPARSE_CONFIG_DIR "\${CPACK_PACKAGING_INSTALL_PREFIX}/${CMAKE_INSTALL_LIB
 
 rocm_create_package(
   NAME ${package_name}
-  DESCRIPTION "Radeon Open Compute SPARSE library"
+  DESCRIPTION "ROCm SPARSE library"
   MAINTAINER "rocSPARSE Maintainer <rocsparse-maintainer@amd.com>"
   LDCONFIG
   LDCONFIG_DIR ${ROCSPARSE_CONFIG_DIR}

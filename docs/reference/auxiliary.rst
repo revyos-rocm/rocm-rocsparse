@@ -5,7 +5,7 @@
 .. _rocsparse_auxiliary_functions_:
 
 ********************************************************************
-Sparse Auxiliary Functions
+Sparse auxiliary functions
 ********************************************************************
 
 This module holds all sparse auxiliary functions.
@@ -224,6 +224,11 @@ rocsparse_create_csc_descr
 
 .. doxygenfunction:: rocsparse_create_csc_descr
 
+rocsparse_create_bsr_descr
+--------------------------
+
+.. doxygenfunction:: rocsparse_create_bsr_descr
+
 rocsparse_create_ell_descr
 --------------------------
 
@@ -234,10 +239,55 @@ rocsparse_create_bell_descr
 
 .. doxygenfunction:: rocsparse_create_bell_descr
 
+rocsparse_create_const_coo_descr
+--------------------------------
+
+.. doxygenfunction:: rocsparse_create_const_coo_descr
+
+rocsparse_create_const_csr_descr
+--------------------------------
+
+.. doxygenfunction:: rocsparse_create_const_csr_descr
+
+rocsparse_create_const_csc_descr
+--------------------------------
+
+.. doxygenfunction:: rocsparse_create_const_csc_descr
+
+rocsparse_create_const_bell_descr
+---------------------------------
+
+.. doxygenfunction:: rocsparse_create_const_bell_descr
+
 rocsparse_destroy_spmat_descr
 -----------------------------
 
 .. doxygenfunction:: rocsparse_destroy_spmat_descr
+
+rocsparse_create_sparse_to_sparse_descr
+---------------------------------------
+
+.. doxygenfunction:: rocsparse_create_sparse_to_sparse_descr
+
+rocsparse_destroy_sparse_to_sparse_descr
+----------------------------------------
+
+.. doxygenfunction:: rocsparse_destroy_sparse_to_sparse_descr
+
+rocsparse_sparse_to_sparse_permissive
+-------------------------------------
+
+.. doxygenfunction:: rocsparse_sparse_to_sparse_permissive
+
+rocsparse_create_extract_descr
+------------------------------
+
+.. doxygenfunction:: rocsparse_create_extract_descr
+
+rocsparse_destroy_extract_descr
+-------------------------------
+
+.. doxygenfunction:: rocsparse_destroy_extract_descr
 
 rocsparse_coo_get
 -----------------
@@ -299,6 +349,11 @@ rocsparse_spmat_get_size
 
 .. doxygenfunction:: rocsparse_spmat_get_size
 
+rocsparse_spmat_get_nnz
+------------------------
+
+.. doxygenfunction:: rocsparse_spmat_get_nnz
+
 rocsparse_spmat_get_format
 --------------------------
 
@@ -359,6 +414,11 @@ rocsparse_create_dnvec_descr
 
 .. doxygenfunction:: rocsparse_create_dnvec_descr
 
+rocsparse_create_const_dnvec_descr
+----------------------------------
+
+.. doxygenfunction:: rocsparse_create_const_dnvec_descr
+
 rocsparse_destroy_dnvec_descr
 -----------------------------
 
@@ -383,6 +443,11 @@ rocsparse_create_dnmat_descr
 ----------------------------
 
 .. doxygenfunction:: rocsparse_create_dnmat_descr
+
+rocsparse_create_const_dnmat_descr
+----------------------------------
+
+.. doxygenfunction:: rocsparse_create_const_dnmat_descr
 
 rocsparse_destroy_dnmat_descr
 -----------------------------

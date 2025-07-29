@@ -105,6 +105,7 @@ set(ROCSPARSE_TEST_SOURCES
   test_csric0.cpp
   test_csrilu0.cpp
   test_csritilu0.cpp
+  test_csritilu0_ex.cpp
   test_gtsv_no_pivot.cpp
   test_gtsv_no_pivot_strided_batch.cpp
   test_gtsv_interleaved_batch.cpp
@@ -160,6 +161,7 @@ set(ROCSPARSE_TEST_SOURCES
   test_spsv_coo.cpp
   test_spsm_csr.cpp
   test_spsm_coo.cpp
+  test_spmm_bsr.cpp
   test_spmm_csr.cpp
   test_spmm_csc.cpp
   test_spmm_coo.cpp
@@ -176,8 +178,10 @@ set(ROCSPARSE_TEST_SOURCES
   test_dense_to_sparse_csr.cpp
   test_dense_to_sparse_csc.cpp
   test_sparse_to_sparse.cpp
+  test_extract.cpp
   test_spgemm_bsr.cpp
   test_spgemm_csr.cpp
+  test_spgemm_reuse_csr.cpp
   test_gtsv.cpp
   test_gemvi.cpp
   test_sddmm.cpp
@@ -233,6 +237,7 @@ set(ROCSPARSE_CLIENTS_TESTINGS
 ../testings/testing_csric0.cpp
 ../testings/testing_csrilu0.cpp
 ../testings/testing_csritilu0.cpp
+../testings/testing_csritilu0_ex.cpp
 ../testings/testing_gtsv_no_pivot.cpp
 ../testings/testing_gtsv_no_pivot_strided_batch.cpp
 ../testings/testing_gtsv_interleaved_batch.cpp
@@ -288,6 +293,7 @@ set(ROCSPARSE_CLIENTS_TESTINGS
 ../testings/testing_spsv_coo.cpp
 ../testings/testing_spsm_csr.cpp
 ../testings/testing_spsm_coo.cpp
+../testings/testing_spmm_bsr.cpp
 ../testings/testing_spmm_csr.cpp
 ../testings/testing_spmm_csc.cpp
 ../testings/testing_spmm_coo.cpp
@@ -304,8 +310,10 @@ set(ROCSPARSE_CLIENTS_TESTINGS
 ../testings/testing_dense_to_sparse_csr.cpp
 ../testings/testing_dense_to_sparse_csc.cpp
 ../testings/testing_sparse_to_sparse.cpp
+../testings/testing_extract.cpp
 ../testings/testing_spgemm_bsr.cpp
 ../testings/testing_spgemm_csr.cpp
+../testings/testing_spgemm_reuse_csr.cpp
 ../testings/testing_gtsv.cpp
 ../testings/testing_gemvi.cpp
 ../testings/testing_sddmm.cpp
@@ -350,12 +358,14 @@ set(ROCSPARSE_CLIENTS_COMMON
   ../common/rocsparse_exporter_rocalution.cpp
   ../common/rocsparse_exporter_matrixmarket.cpp
   ../common/rocsparse_exporter_ascii.cpp
+  ../common/rocsparse_exporter_format_t.cpp
   ../common/rocsparse_type_conversion.cpp
   ../common/rocsparse_importer_rocalution.cpp
   ../common/rocsparse_importer_rocsparseio.cpp
   ../common/rocsparse_importer_matrixmarket.cpp
   ../common/rocsparse_importer_mlbsr.cpp
   ../common/rocsparse_importer_mlcsr.cpp
+  ../common/rocsparse_importer_format_t.cpp
   ../common/rocsparse_clients_envariables.cpp
   ../common/rocsparse_clients_matrices_dir.cpp
   ../common/rocsparseio.cpp
@@ -395,8 +405,8 @@ string(REGEX REPLACE ".cpp" ".yaml" ROCSPARSE_TEST_YAMLS "${ROCSPARSE_TEST_SOURC
 # Prepare testing data
 set(ROCSPARSE_TEST_DATA "${PROJECT_BINARY_DIR}/staging/rocsparse_test.data")
 add_custom_command(OUTPUT "${ROCSPARSE_TEST_DATA}"
-                   COMMAND ${python} ../common/rocsparse_gentest.py -I ../include rocsparse_test.yaml -o "${ROCSPARSE_TEST_DATA}"
-                   DEPENDS ../common/rocsparse_gentest.py rocsparse_test.yaml ../include/rocsparse_common.yaml known_bugs.yaml ${ROCSPARSE_TEST_YAMLS}
+                   COMMAND ${python} ../common/rocsparse_gentest.py -m ${PROJECT_BINARY_DIR}/matrices -I ../include rocsparse_test.yaml -o "${ROCSPARSE_TEST_DATA}"
+                   DEPENDS ../common/rocsparse_gentest.py rocsparse_test.yaml ../include/rocsparse_common.yaml ${ROCSPARSE_TEST_YAMLS}
                    WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}")
 add_custom_target(rocsparse-test-data
   DEPENDS "${ROCSPARSE_TEST_DATA}" )

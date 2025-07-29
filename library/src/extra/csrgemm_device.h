@@ -28,19 +28,6 @@
 
 namespace rocsparse
 {
-    template <uint32_t BLOCKSIZE, typename I, typename J>
-    ROCSPARSE_KERNEL(BLOCKSIZE)
-    void csrgemm_set_base(I size, J* __restrict__ out, rocsparse_index_base idx_base_out)
-    {
-        I idx = hipBlockIdx_x * BLOCKSIZE + hipThreadIdx_x;
-        if(idx >= size)
-        {
-            return;
-        }
-
-        out[idx] = idx_base_out;
-    }
-
     // Decrement
     template <uint32_t BLOCKSIZE, typename I>
     ROCSPARSE_KERNEL(BLOCKSIZE)
@@ -209,7 +196,7 @@ namespace rocsparse
         }
     }
 
-    template <uint32_t BLOCKSIZE, uint32_t GROUPS, bool CPLX, typename I, typename J>
+    template <uint32_t BLOCKSIZE, uint32_t GROUPS, bool EXCEEDS_SMEM, typename I, typename J>
     ROCSPARSE_KERNEL(BLOCKSIZE)
     void csrgemm_group_reduce_part2(J m,
                                     const I* __restrict__ csr_row_ptr,
@@ -241,9 +228,7 @@ namespace rocsparse
         else if(nnz <=   512) { ++sdata[hipThreadIdx_x * GROUPS + 3]; workspace[row] = 3; }
         else if(nnz <=  1024) { ++sdata[hipThreadIdx_x * GROUPS + 4]; workspace[row] = 4; }
         else if(nnz <=  2048) { ++sdata[hipThreadIdx_x * GROUPS + 5]; workspace[row] = 5; }
-#ifndef rocsparse_ILP64
-        else if(nnz <=  4096 && !CPLX) { ++sdata[hipThreadIdx_x * GROUPS + 6]; workspace[row] = 6; }
-#endif
+        else if(nnz <=  4096 && !EXCEEDS_SMEM) { ++sdata[hipThreadIdx_x * GROUPS + 6]; workspace[row] = 6; }
         else                  { ++sdata[hipThreadIdx_x * GROUPS + 7]; workspace[row] = 7; }
             // clang-format on
         }
@@ -352,21 +337,26 @@ namespace rocsparse
     template <uint32_t HASHVAL, uint32_t HASHSIZE, typename I>
     ROCSPARSE_DEVICE_ILF bool insert_key(I key, I* __restrict__ table)
     {
+        constexpr I empty = -1;
+
         // Compute hash
         I hash = (key * HASHVAL) & (HASHSIZE - 1);
 
         // Loop until key has been inserted
         while(true)
         {
-            if(table[hash] == key)
+            // Load table[hash] exactly once in case it gets set by another thread
+            const I temp = table[hash];
+
+            if(temp == key)
             {
                 // Element already present
                 return false;
             }
-            else if(table[hash] == -1)
+            else if(temp == empty)
             {
                 // If empty, add element with atomic
-                if(rocsparse::atomic_cas<I>(&table[hash], -1, key) == -1)
+                if(rocsparse::atomic_cas<I>(&table[hash], empty, key) == empty)
                 {
                     // Increment number of insertions
                     return true;
@@ -393,13 +383,16 @@ namespace rocsparse
         // Loop until pair has been inserted
         while(true)
         {
-            if(table[hash] == key)
+            // Load table[hash] exactly once in case it gets set by another thread
+            const I temp = table[hash];
+
+            if(temp == key)
             {
                 // Element already present, add value to exsiting entry
                 rocsparse::atomic_add(&data[hash], val);
                 break;
             }
-            else if(table[hash] == empty)
+            else if(temp == empty)
             {
                 // If empty, add element with atomic
                 if(rocsparse::atomic_cas<I>(&table[hash], empty, key) == empty)

@@ -30,7 +30,8 @@
 #include "csr2csr_compress_device.h"
 #include "prune_dense2csr_by_percentage_device.h"
 #include "prune_dense2csr_device.h"
-#include <rocprim/rocprim.hpp>
+#include "rocsparse_common.h"
+#include "rocsparse_primitives.h"
 
 namespace rocsparse
 {
@@ -180,14 +181,8 @@ rocsparse_status
     {
         if(nnz_total_dev_host_ptr != nullptr && csr_row_ptr != nullptr)
         {
-            RETURN_IF_HIPLAUNCHKERNELGGL_ERROR((rocsparse::set_array_to_value<256>),
-                                               dim3(m / 256 + 1),
-                                               dim3(256),
-                                               0,
-                                               stream,
-                                               (m + 1),
-                                               csr_row_ptr,
-                                               static_cast<rocsparse_int>(descr->base));
+            RETURN_IF_ROCSPARSE_ERROR(rocsparse::valset(
+                handle, m + 1, static_cast<rocsparse_int>(descr->base), csr_row_ptr));
 
             if(handle->pointer_mode == rocsparse_pointer_mode_device)
             {
@@ -227,16 +222,14 @@ rocsparse_status
     size_t temp_storage_size_bytes_sort = 0;
     size_t temp_storage_size_bytes_scan = 0;
 
-    RETURN_IF_HIP_ERROR(rocprim::radix_sort_keys(
-        nullptr, temp_storage_size_bytes_sort, output, (output + nnz_A), nnz_A));
+    uint32_t startbit = 0;
+    uint32_t endbit   = 8 * sizeof(T);
+    RETURN_IF_ROCSPARSE_ERROR((rocsparse::primitives::radix_sort_keys_buffer_size<T>(
+        handle, nnz_A, startbit, endbit, &temp_storage_size_bytes_sort)));
 
-    RETURN_IF_HIP_ERROR(rocprim::inclusive_scan(nullptr,
-                                                temp_storage_size_bytes_scan,
-                                                csr_row_ptr,
-                                                csr_row_ptr,
-                                                m + 1,
-                                                rocprim::plus<rocsparse_int>(),
-                                                handle->stream));
+    RETURN_IF_ROCSPARSE_ERROR(
+        (rocsparse::primitives::inclusive_scan_buffer_size<rocsparse_int, rocsparse_int>(
+            handle, m + 1, &temp_storage_size_bytes_scan)));
 
     size_t temp_storage_size_bytes
         = rocsparse::max(temp_storage_size_bytes_sort, temp_storage_size_bytes_scan);
@@ -257,10 +250,11 @@ rocsparse_status
     }
 
     // perform sort on first half of output array and store result in second half of output array
-    rocprim::radix_sort_keys(
-        temp_storage_ptr, temp_storage_size_bytes_sort, output, (output + nnz_A), nnz_A);
+    rocsparse::primitives::double_buffer<T> keys(output, output + nnz_A);
+    RETURN_IF_ROCSPARSE_ERROR(rocsparse::primitives::radix_sort_keys(
+        handle, keys, nnz_A, startbit, endbit, temp_storage_size_bytes_sort, temp_storage_ptr));
 
-    const T* d_threshold = &output[nnz_A + pos];
+    const T* d_threshold = keys.current() + pos;
 
     static constexpr int NNZ_DIM_X = 64;
     static constexpr int NNZ_DIM_Y = 16;
@@ -316,13 +310,9 @@ rocsparse_status
     RETURN_IF_HIP_ERROR(hipStreamSynchronize(handle->stream));
 
     // Perform actual inclusive sum
-    RETURN_IF_HIP_ERROR(rocprim::inclusive_scan(temp_storage_ptr,
-                                                temp_storage_size_bytes_scan,
-                                                csr_row_ptr,
-                                                csr_row_ptr,
-                                                m + 1,
-                                                rocprim::plus<rocsparse_int>(),
-                                                handle->stream));
+    RETURN_IF_ROCSPARSE_ERROR(rocsparse::primitives::inclusive_scan(
+        handle, csr_row_ptr, csr_row_ptr, m + 1, temp_storage_size_bytes_scan, temp_storage_ptr));
+
     // Free rocprim buffer, if allocated
     if(temp_alloc == true)
     {

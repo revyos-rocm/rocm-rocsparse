@@ -98,9 +98,12 @@ inline const char* rocsparse_status_to_string(rocsparse_status status)
         return "rocsparse_status_type_mismatch";
     case rocsparse_status_requires_sorted_storage:
         return "rocsparse_status_requires_sorted_storage";
-    default:
-        return "<undefined rocsparse_status value>";
+    case rocsparse_status_thrown_exception:
+        return "rocsparse_status_thrown_exception";
+    case rocsparse_status_continue:
+        return "rocsparse_status_continue";
     }
+    return "<undefined rocsparse_status value>";
 }
 
 inline const char* rocsparse_data_status_to_string(rocsparse_data_status status)
@@ -123,9 +126,8 @@ inline const char* rocsparse_data_status_to_string(rocsparse_data_status status)
         return "rocsparse_data_status_invalid_sorting";
     case rocsparse_data_status_invalid_fill:
         return "rocsparse_data_status_invalid_fill";
-    default:
-        return "<undefined rocsparse_status value>";
     }
+    return "<undefined rocsparse_data_status value>";
 }
 
 inline void rocsparse_expect_status(rocsparse_status status, rocsparse_status expect)
@@ -221,8 +223,16 @@ inline void rocsparse_expect_data_status(rocsparse_data_status status, rocsparse
                           RocSPARSE_TestData::end()),                          \
         testclass::PrintToStringParamName());
 
+#if defined(GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST)
+#define ROCSPARSE_ALLOW_UNINSTANTIATED_GTEST(testclass) \
+    GTEST_ALLOW_UNINSTANTIATED_PARAMETERIZED_TEST(testclass);
+#else
+#define ROCSPARSE_ALLOW_UNINSTANTIATED_GTEST(testclass)
+#endif
+
 // Instantiate all test categories
 #define INSTANTIATE_TEST_CATEGORIES(testclass)        \
+    ROCSPARSE_ALLOW_UNINSTANTIATED_GTEST(testclass)   \
     INSTANTIATE_TEST_CATEGORY(testclass, quick)       \
     INSTANTIATE_TEST_CATEGORY(testclass, pre_checkin) \
     INSTANTIATE_TEST_CATEGORY(testclass, nightly)     \

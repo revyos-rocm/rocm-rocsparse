@@ -73,7 +73,7 @@ endif()
 if (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
   message(STATUS "Using hip-clang to build for amdgpu backend")
 else()
-  message(FATAL_ERROR "'hipcc' compiler required to compile for ROCm platform.")
+  message(FATAL_ERROR "'hipcc' or 'amdclang++' compiler required to compile for ROCm platform.")
 endif()
 
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
@@ -131,7 +131,15 @@ if(BUILD_CLIENTS_TESTS)
   if(NOT CONVERT_SOURCE)
     set(CONVERT_SOURCE ${CMAKE_SOURCE_DIR}/deps/convert.cpp)
   endif()
-  execute_process(COMMAND ${CMAKE_CXX_COMPILER} ${CONVERT_SOURCE} -O3 -L${ROCM_PATH}/${CMAKE_INSTALL_LIBDIR} -Wl,--enable-new-dtags,--build-id=sha1,--rpath,$ENV{ROCM_EXE_RPATH} -o ${PROJECT_BINARY_DIR}/mtx2csr.exe RESULT_VARIABLE STATUS)
+
+  ## determine separator for rpath argument
+  if("${CMAKE_CXX_COMPILER}" MATCHES ".*amdclang")
+  set(rpath_sep "=")
+  else()
+  # default to old behaviour
+  set(rpath_sep ",")
+  endif()
+  execute_process(COMMAND ${CMAKE_CXX_COMPILER} ${CONVERT_SOURCE} -O3 -L${ROCM_PATH}/${CMAKE_INSTALL_LIBDIR} -Wl,--enable-new-dtags,--build-id=sha1,--rpath${rpath_sep}$ENV{ROCM_EXE_RPATH} -o ${PROJECT_BINARY_DIR}/mtx2csr.exe RESULT_VARIABLE STATUS)
   if(STATUS AND NOT STATUS EQUAL 0)
     message(FATAL_ERROR "mtx2csr.exe failed to build, aborting.")
   endif()
@@ -156,16 +164,26 @@ if(BUILD_CLIENTS_TESTS)
                     DEPENDS include/rocsparse_template.yaml
                     WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}")
 
+  set(ROCSPARSE_SMOKE "${PROJECT_BINARY_DIR}/staging/rocsparse_smoke.yaml")
+  set(ROCSPARSE_REGRESSION "${PROJECT_BINARY_DIR}/staging/rocsparse_regression.yaml")
+  set(ROCSPARSE_EXTENDED "${PROJECT_BINARY_DIR}/staging/rocsparse_extended.yaml")
+  add_custom_command(OUTPUT "${ROCSPARSE_SMOKE}" "${ROCSPARSE_REGRESSION}" "${ROCSPARSE_EXTENDED}"
+                    COMMAND ${CMAKE_COMMAND} -E copy include/rocsparse_smoke.yaml "${ROCSPARSE_SMOKE}"
+                    COMMAND ${CMAKE_COMMAND} -E copy include/rocsparse_regression.yaml "${ROCSPARSE_REGRESSION}"
+                    COMMAND ${CMAKE_COMMAND} -E copy include/rocsparse_extended.yaml "${ROCSPARSE_EXTENDED}"
+                    DEPENDS include/rocsparse_smoke.yaml include/rocsparse_regression.yaml include/rocsparse_extended.yaml
+                    WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}")
+
   set(ROCSPARSE_GENTEST "${PROJECT_BINARY_DIR}/staging/rocsparse_gentest.py")
   add_custom_command(OUTPUT "${ROCSPARSE_GENTEST}"
                     COMMAND ${CMAKE_COMMAND} -E copy common/rocsparse_gentest.py "${ROCSPARSE_GENTEST}"
                     DEPENDS common/rocsparse_gentest.py
                     WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}")
 
-  add_custom_target(rocsparse-common DEPENDS "${ROCSPARSE_COMMON}" "${ROCSPARSE_TEMPLATE}" "${ROCSPARSE_GENTEST}" "${ROCSPARSE_CONVERT}")
+  add_custom_target(rocsparse-common DEPENDS "${ROCSPARSE_COMMON}" "${ROCSPARSE_TEMPLATE}" "${ROCSPARSE_SMOKE}" "${ROCSPARSE_GENTEST}" "${ROCSPARSE_CONVERT}")
 
   rocm_install(
-    FILES "${ROCSPARSE_COMMON}" "${ROCSPARSE_TEMPLATE}"
+    FILES "${ROCSPARSE_COMMON}" "${ROCSPARSE_TEMPLATE}" "${ROCSPARSE_SMOKE}"
     COMPONENT clients-common
     DESTINATION "${CMAKE_INSTALL_DATADIR}/rocsparse/test"
     )

@@ -29,7 +29,8 @@
 #include "utility.h"
 
 #include "hyb2csr_device.h"
-#include <rocprim/rocprim.hpp>
+#include "rocsparse_common.h"
+#include "rocsparse_primitives.h"
 
 namespace rocsparse
 {
@@ -45,6 +46,12 @@ namespace rocsparse
         // Quick return if possible
         if(hyb->m == 0 || hyb->n == 0 || (hyb->ell_nnz == 0 && hyb->coo_nnz == 0))
         {
+            if(hyb->m >= 0 && csr_row_ptr != nullptr)
+            {
+                RETURN_IF_ROCSPARSE_ERROR(rocsparse::valset(
+                    handle, hyb->m + 1, static_cast<rocsparse_int>(descr->base), csr_row_ptr));
+            }
+
             return rocsparse_status_success;
         }
         return rocsparse_status_continue;
@@ -139,22 +146,17 @@ rocsparse_status rocsparse::hyb2csr_template(rocsparse_handle          handle,
     size_t rocprim_size;
     void*  rocprim_buffer = reinterpret_cast<void*>(ptr);
 
-    RETURN_IF_HIP_ERROR(rocprim::exclusive_scan(nullptr,
-                                                rocprim_size,
-                                                csr_row_ptr,
-                                                csr_row_ptr,
-                                                static_cast<rocsparse_int>(descr->base),
-                                                hyb->m + 1,
-                                                rocprim::plus<rocsparse_int>(),
-                                                stream));
-    RETURN_IF_HIP_ERROR(rocprim::exclusive_scan(rocprim_buffer,
-                                                rocprim_size,
-                                                csr_row_ptr,
-                                                csr_row_ptr,
-                                                static_cast<rocsparse_int>(descr->base),
-                                                hyb->m + 1,
-                                                rocprim::plus<rocsparse_int>(),
-                                                stream));
+    RETURN_IF_ROCSPARSE_ERROR(
+        (rocsparse::primitives::exclusive_scan_buffer_size<rocsparse_int, rocsparse_int>(
+            handle, static_cast<rocsparse_int>(descr->base), hyb->m + 1, &rocprim_size)));
+    RETURN_IF_ROCSPARSE_ERROR(
+        rocsparse::primitives::exclusive_scan(handle,
+                                              csr_row_ptr,
+                                              csr_row_ptr,
+                                              static_cast<rocsparse_int>(descr->base),
+                                              hyb->m + 1,
+                                              rocprim_size,
+                                              rocprim_buffer));
 
     // Fill columns and values
     RETURN_IF_HIPLAUNCHKERNELGGL_ERROR((rocsparse::hyb2csr_fill_kernel<HYB2CSR_DIM>),
@@ -242,9 +244,6 @@ try
 
     ROCSPARSE_CHECKARG_POINTER(3, csr_row_ptr);
 
-    // Stream
-    hipStream_t stream = handle->stream;
-
     // Initialize buffer size
     *buffer_size = 0;
 
@@ -255,17 +254,10 @@ try
     }
 
     // Exclusive scan
-    size_t         rocprim_size;
-    rocsparse_int* ptr = reinterpret_cast<rocsparse_int*>(buffer_size);
-
-    RETURN_IF_HIP_ERROR(rocprim::exclusive_scan(nullptr,
-                                                rocprim_size,
-                                                ptr,
-                                                ptr,
-                                                static_cast<rocsparse_int>(descr->base),
-                                                hyb->m + 1,
-                                                rocprim::plus<rocsparse_int>(),
-                                                stream));
+    size_t rocprim_size;
+    RETURN_IF_ROCSPARSE_ERROR(
+        (rocsparse::primitives::exclusive_scan_buffer_size<rocsparse_int, rocsparse_int>(
+            handle, static_cast<rocsparse_int>(descr->base), hyb->m + 1, &rocprim_size)));
 
     // rocprim buffer
     *buffer_size += rocprim_size;

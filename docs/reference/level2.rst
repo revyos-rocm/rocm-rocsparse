@@ -5,7 +5,7 @@
 .. _rocsparse_level2_functions_:
 
 ********************************************************************
-Sparse Level 2 Functions
+Sparse level 2 functions
 ********************************************************************
 
 This module holds all sparse level 2 routines.
@@ -223,6 +223,17 @@ rocsparse_csritsv_solve()
 .. doxygenfunction:: rocsparse_ccsritsv_solve
   :outline:
 .. doxygenfunction:: rocsparse_zcsritsv_solve
+
+rocsparse_csritsv_solve_ex()
+----------------------------
+
+.. doxygenfunction:: rocsparse_scsritsv_solve_ex
+  :outline:
+.. doxygenfunction:: rocsparse_dcsritsv_solve_ex
+  :outline:
+.. doxygenfunction:: rocsparse_ccsritsv_solve_ex
+  :outline:
+.. doxygenfunction:: rocsparse_zcsritsv_solve_ex
 
 rocsparse_csritsv_clear()
 -------------------------
