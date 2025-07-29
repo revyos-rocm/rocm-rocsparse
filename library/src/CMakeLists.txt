@@ -24,6 +24,7 @@
 # rocSPARSE source
 set(rocsparse_source
   src/handle.cpp
+  src/rocsparse_common.cpp
   src/rocsparse_auxiliary.cpp
   src/rocsparse_blas.cpp
   src/rocsparse_blas_rocblas.cpp
@@ -35,6 +36,17 @@ set(rocsparse_source
   src/rocsparse_message.cpp
   ##
   src/to_string.cpp
+
+# Primitives
+  src/primitives/rocsparse_radix_sort_pairs.cpp
+  src/primitives/rocsparse_radix_sort_keys.cpp
+  src/primitives/rocsparse_run_length_encode.cpp
+  src/primitives/rocsparse_exclusive_scan.cpp
+  src/primitives/rocsparse_inclusive_scan.cpp
+  src/primitives/rocsparse_find_max.cpp
+  src/primitives/rocsparse_find_sum.cpp
+  src/primitives/rocsparse_segmented_radix_sort_pairs.cpp
+  src/primitives/rocsparse_segmented_radix_sort_keys.cpp
 
 # Level1
   src/level1/rocsparse_axpyi.cpp
@@ -81,6 +93,7 @@ set(rocsparse_source
   src/level2/rocsparse_csritsv_buffer_size.cpp
   src/level2/rocsparse_csritsv_analysis.cpp
   src/level2/rocsparse_csritsv_solve.cpp
+  src/level2/rocsparse_csritsv_solve_ex.cpp
   src/level2/rocsparse_coosv.cpp
   src/level2/rocsparse_ellmv.cpp
   src/level2/rocsparse_hybmv.cpp
@@ -107,10 +120,10 @@ set(rocsparse_source
   src/level3/rocsparse_bsrmm_template_small.cpp
   src/level3/rocsparse_bsrmm_template_large_ext.cpp
   src/level3/rocsparse_bsrmm_template_general.cpp
+  src/level3/rocsparse_bsrmm_template_bsralg.cpp
   src/level3/rocsparse_bsrmm.cpp
   src/level3/rocsparse_bellmm.cpp
   src/level3/rocsparse_bellmm_template_general.cpp
-  src/level3/rocsparse_csrmm_template_general.cpp
   src/level3/rocsparse_csrmm_template_row_split.cpp
   src/level3/rocsparse_csrmm_template_nnz_split.cpp
   src/level3/rocsparse_csrmm_template_merge.cpp
@@ -219,6 +232,7 @@ set(rocsparse_source
   src/precond/itilu0/rocsparse_csritilu0_buffer_size.cpp
   src/precond/itilu0/rocsparse_csritilu0_preprocess.cpp
   src/precond/itilu0/rocsparse_csritilu0_compute.cpp
+  src/precond/itilu0/rocsparse_csritilu0_compute_ex.cpp
   src/precond/itilu0/rocsparse_csritilu0_history.cpp
   src/precond/itilu0/rocsparse_csritilu0_async_inplace.cpp
   src/precond/itilu0/rocsparse_csritilu0_async_split.cpp
@@ -289,6 +303,14 @@ set(rocsparse_source
   src/conversion/rocsparse_sparse_to_sparse_buffer_size.cpp
   src/conversion/rocsparse_sparse_to_sparse.cpp
   src/conversion/rocsparse_sparse_to_sparse_compute.cpp
+  #
+  src/conversion/rocsparse_create_extract_descr.cpp
+  src/conversion/rocsparse_destroy_extract_descr.cpp
+  src/conversion/rocsparse_extract_buffer_size.cpp
+  src/conversion/rocsparse_extract.cpp
+  src/conversion/rocsparse_extract_nnz.cpp
+  src/conversion/rocsparse_extract_alg_default.cpp
+  #
   src/conversion/rocsparse_sparse_to_csr_to_sparse.cpp
   src/conversion/rocsparse_spmat_transfer_from.cpp
   src/conversion/rocsparse_internal_spmat_print.cpp

@@ -65,12 +65,14 @@ set(ROCSPARSE_CLIENTS_COMMON
   ../common/rocsparse_exporter_rocalution.cpp
   ../common/rocsparse_exporter_matrixmarket.cpp
   ../common/rocsparse_exporter_ascii.cpp
+  ../common/rocsparse_exporter_format_t.cpp
   ../common/rocsparse_type_conversion.cpp
   ../common/rocsparse_importer_rocalution.cpp
   ../common/rocsparse_importer_rocsparseio.cpp
   ../common/rocsparse_importer_matrixmarket.cpp
   ../common/rocsparse_importer_mlbsr.cpp
   ../common/rocsparse_importer_mlcsr.cpp
+  ../common/rocsparse_importer_format_t.cpp
   ../common/rocsparse_clients_envariables.cpp
   ../common/rocsparse_clients_matrices_dir.cpp
   ../common/rocsparseio.cpp
@@ -99,6 +101,7 @@ set(ROCSPARSE_CLIENTS_TESTINGS
 ../testings/testing_bsrmm.cpp
 ../testings/testing_gebsrmm.cpp
 ../testings/testing_csrmm.cpp
+../testings/testing_spmm_bsr.cpp
 ../testings/testing_spmm_csr.cpp
 ../testings/testing_spmm_csc.cpp
 ../testings/testing_spmm_coo.cpp
@@ -120,6 +123,7 @@ set(ROCSPARSE_CLIENTS_TESTINGS
 ../testings/testing_csric0.cpp
 ../testings/testing_csrilu0.cpp
 ../testings/testing_csritilu0.cpp
+../testings/testing_csritilu0_ex.cpp
 ../testings/testing_gpsv_interleaved_batch.cpp
 ../testings/testing_gtsv.cpp
 ../testings/testing_gtsv_no_pivot.cpp
@@ -175,8 +179,10 @@ set(ROCSPARSE_CLIENTS_TESTINGS
 ../testings/testing_dense_to_sparse_csr.cpp
 ../testings/testing_dense_to_sparse_csc.cpp
 ../testings/testing_sparse_to_sparse.cpp
+../testings/testing_extract.cpp
 ../testings/testing_spgemm_bsr.cpp
 ../testings/testing_spgemm_csr.cpp
+../testings/testing_spgemm_reuse_csr.cpp
 ../testings/testing_gemvi.cpp
 ../testings/testing_sddmm.cpp
 ../testings/testing_csrcolor.cpp

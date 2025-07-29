@@ -1,6 +1,6 @@
 /*! \file */
 /* ************************************************************************
- * Copyright (C) 2023 Advanced Micro Devices, Inc. All rights Reserved.
+ * Copyright (C) 2023-2024 Advanced Micro Devices, Inc. All rights Reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the Software), to deal
@@ -34,7 +34,7 @@ extern "C" {
 
 /*! \ingroup conv_module
 *  \brief
-*  This function converts the sparse matrix in CSR format into a dense matrix.
+*  This function converts the sparse matrix in CSR format into a column-oriented dense matrix.
 *
 *  \note
 *  This function is non blocking and executed asynchronously with respect to the host.
@@ -47,26 +47,26 @@ extern "C" {
 *  handle      handle to the rocsparse library context queue.
 *
 *  @param[in]
-*  m           number of rows of the dense matrix \p A.
+*  m           number of rows of the column-oriented dense matrix \p A.
 *
 *  @param[in]
-*  n           number of columns of the dense matrix \p A.
+*  n           number of columns of the column-oriented dense matrix \p A.
 *
 *  @param[in]
-*  descr       the descriptor of the dense matrix \p A, the supported matrix type is \ref rocsparse_matrix_type_general and also any valid value of the \ref rocsparse_index_base.
+*  descr       the descriptor of the column-oriented dense matrix \p A, the supported matrix type is \ref rocsparse_matrix_type_general and also any valid value of the \ref rocsparse_index_base.
 *
 *  @param[in]
 *  csr_val     array of nnz ( = \p csr_row_ptr[m] - \p csr_row_ptr[0] ) nonzero elements of matrix \p A.
 *  @param[in]
-*  csr_row_ptr integer array of m+1 elements that contains the start of every row and the end of the last row plus one.
+*  csr_row_ptr integer array of \p m+1 elements that contains the start of every row and the end of the last row plus one.
 *  @param[in]
-*  csr_col_ind integer array of nnz ( = \p csr_row_ptr[m] - csr_row_ptr[0] ) column indices of the non-zero elements of matrix \p A.
+*  csr_col_ind integer array of nnz ( = \p csr_row_ptr[m] - \p csr_row_ptr[0] ) column indices of the non-zero elements of matrix \p A.
 *
 *  @param[out]
 *  A           array of dimensions (\p ld, \p n)
 *
 *  @param[out]
-*  ld          leading dimension of dense array \p A.
+*  ld          leading dimension of column-oriented dense matrix \p A.
 *
 *  \retval     rocsparse_status_success the operation completed successfully.
 *  \retval     rocsparse_status_invalid_handle the library context was not initialized.

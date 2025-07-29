@@ -78,8 +78,10 @@ def parse_args():
     # rocsparse
     parser.add_argument(     '--clients-only', dest='clients_only', required=False, default = False, action='store_true',
                         help='Build only clients with a pre-built library')
-    parser.add_argument('-n', '--without-rocblas', dest='build_with_rocblas', required=False, default=True, action='store_false',
+    parser.add_argument('-n', '--no-rocblas', dest='build_with_rocblas', required=False, default=True, action='store_false',
                         help='Build rocSPARSE without rocBLAS.')
+    parser.add_argument('-m', '--no-compression', dest='build_with_offload_compress', required=False, default=True, action='store_false',
+                        help='Build rocSPARSE without offload compression.')
     return parser.parse_args()
 
 def os_detect():
@@ -187,6 +189,11 @@ def config_cmd():
     else:
         cmake_options.append(f"-DBUILD_WITH_ROCBLAS=OFF")
 
+    if args.build_with_offload_compress:
+        cmake_options.append(f"-DBUILD_WITH_OFFLOAD_COMPRESS=ON")
+    else:
+        cmake_options.append(f"-DBUILD_WITH_OFFLOAD_COMPRESS=OFF")
+
     if args.static_lib:
         cmake_options.append( f"-DBUILD_SHARED_LIBS=OFF" )
 
@@ -203,7 +210,7 @@ def config_cmd():
             args.gpu_architecture = OS_info["GPU"]
         else:
             fatal("Could not detect GPU as requested. Not continuing.")
-    cmake_options.append(f'-DAMDGPU_TARGETS=\"{args.gpu_architecture}\"')
+    cmake_options.append(f'-DGPU_TARGETS=\"{args.gpu_architecture}\"')
 
  #   if args.clients_only:
  #       if args.library_dir_installed:
@@ -222,7 +229,7 @@ def config_cmd():
 #
 # Reject for now
 #
-#    cmake_options.append( f"-DAMDGPU_TARGETS={args.gpu_architecture}" )
+#    cmake_options.append( f"-DGPU_TARGETS={args.gpu_architecture}" )
 
     if args.cmake_dargs:
         for i in args.cmake_dargs:

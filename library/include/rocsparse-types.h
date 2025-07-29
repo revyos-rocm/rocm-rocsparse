@@ -42,7 +42,9 @@
 /// \endcond
 
 /*! \ingroup types_module
- *  \brief Specifies whether int32 or int64 is used.
+ *  \brief Specifies rocSPARSE integer type (defaults to int32_t).
+ *
+ *  \note When rocSPARSE is built with rocsparse_ILP64, \ref rocsparse_int is typedef to int64_t.
  */
 #if defined(rocsparse_ILP64)
 typedef int64_t rocsparse_int;
@@ -118,7 +120,7 @@ typedef struct _rocsparse_spvec_descr* rocsparse_spvec_descr;
  *
  *  \details
  *  The rocSPARSE constant sparse vector descriptor is a structure holding all properties of a sparse vector.
- *  It must be initialized using rocsparse_create_const_spvec_descr() and the returned
+ *  It must be initialized using \ref rocsparse_create_const_spvec_descr() and the returned
  *  descriptor must be passed to all subsequent generic API library calls that involve the sparse vector.
  *  It should be destroyed at the end using rocsparse_destroy_spvec_descr().
  */
@@ -142,7 +144,7 @@ typedef struct _rocsparse_spmat_descr* rocsparse_spmat_descr;
  *
  *  \details
  *  The rocSPARSE constant sparse matrix descriptor is a structure holding all properties of a sparse matrix.
- *  It must be initialized using rocsparse_create__constcoo_descr(), rocsparse_create_const_bsr_descr(),
+ *  It must be initialized using rocsparse_create_const_coo_descr(),
  *  rocsparse_create_const_csr_descr(), rocsparse_create_const_csc_descr(),
  *  or rocsparse_create_const_bell_descr() and the returned
  *  descriptor must be passed to all subsequent generic API library calls that involve the sparse matrix.
@@ -207,6 +209,22 @@ typedef struct _rocsparse_dnmat_descr const* rocsparse_const_dnmat_descr;
  */
 typedef struct _rocsparse_color_info* rocsparse_color_info;
 
+/*! \ingroup types_module
+ * \brief rocsparse_sparse_to_sparse_descr is a structure holding the rocsparse sparse_to_sparse
+ * descr data. It must be initialized using
+ * the rocsparse_create_sparse_to_sparse_descr() routine. It should be destroyed at the
+ * end using rocsparse_destroy_sparse_to_sparse_descr().
+ */
+typedef struct _rocsparse_sparse_to_sparse_descr* rocsparse_sparse_to_sparse_descr;
+
+/*! \ingroup types_module
+ * \brief rocsparse_extract_descr is a structure holding the rocsparse extract
+ * descr data. It must be initialized using
+ * the rocsparse_create_extract_descr() routine. It should be destroyed at the
+ * end using rocsparse_destroy_extract_descr().
+ */
+typedef struct _rocsparse_extract_descr* rocsparse_extract_descr;
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -243,10 +261,25 @@ typedef enum rocsparse_index_base_
  *  \brief Specify the matrix type.
  *
  *  \details
- *  The \ref rocsparse_matrix_type indices the type of a matrix. For a given
+ *  The \ref rocsparse_matrix_type indicates the type of a matrix. For a given
  *  \ref rocsparse_mat_descr, the \ref rocsparse_matrix_type can be set using
  *  rocsparse_set_mat_type(). The current \ref rocsparse_matrix_type of a matrix can be
  *  obtained by rocsparse_get_mat_type().
+ *
+ *  For the matrix types \ref rocsparse_matrix_type_symmetric, \ref rocsparse_matrix_type_hermitian,
+ *  and \ref rocsparse_matrix_type_triangular, only the upper or lower part of the matrix
+ *  (specified by setting the \ref rocsparse_fill_mode) is assumed to be stored. The purpose of this
+ *  is to minimize the amount of memory required to store the matrix.
+ *
+ *  Routines that accept \ref rocsparse_matrix_type_symmetric or \ref rocsparse_matrix_type_hermitian
+ *  will only read from the stored upper or lower part of the matrix but will perform the computation
+ *  as if the full symmetric/hermitian matrix existed. For example, when computing \f$y=A*x\f$ where
+ *  A is symmetric and only the lower part is stored, internally the multiplication will be performed
+ *  in two steps. First the computation \f$y=(L+D)*x\f$ will be performed. Secondly the multiplication
+ *  will be completed by performing \f$y=L^T*x + y\f$. This second step involves a transposed
+ *  multiplication which is slower. For this reason, where space allows, it is faster to store the
+ *  entire symmetric matrix and use \ref rocsparse_matrix_type_general instead of
+ *  \ref rocsparse_matrix_type_symmetric.
  */
 typedef enum rocsparse_matrix_type_
 {
@@ -349,9 +382,10 @@ typedef enum rocsparse_hyb_partition_
  *
  *  \details
  *  The \ref rocsparse_analysis_policy specifies whether gathered analysis data should be
- *  re-used or not. If meta data from a previous e.g. rocsparse_csrilu0_analysis() call
- *  is available, it can be re-used for subsequent calls to e.g.
- *  rocsparse_csrsv_analysis() and greatly improve performance of the analysis function.
+ *  re-used or not. If meta data from a previous e.g. \ref rocsparse_scsrilu0_analysis
+ *  "rocsparse_Xcsrilu0_analysis()" call is available, it can be re-used for subsequent calls to e.g.
+ *  \ref rocsparse_scsrsv_analysis "rocsparse_Xcsrsv_analysis()" and greatly improve performance
+ *  of the analysis function.
  */
 typedef enum rocsparse_analysis_policy_
 {
@@ -535,13 +569,37 @@ typedef enum rocsparse_sparse_to_sparse_alg_
    *
    *  \details
    *  This is a list of possible stages during sparse_to_sparse conversion. Typical order is
-   *  rocsparse_sparse_to_sparse_buffer_size, rocsparse_sparse_to_sparse_preprocess, rocsparse_sparse_to_sparse_compute.
+   *  rocsparse_sparse_to_sparse_stage_analysis, rocsparse_sparse_to_sparse_stage_compute.
    */
 typedef enum rocsparse_sparse_to_sparse_stage_
 {
     rocsparse_sparse_to_sparse_stage_analysis = 0, /**< Data analysis. */
     rocsparse_sparse_to_sparse_stage_compute  = 1 /**< Performs the actual conversion. */
 } rocsparse_sparse_to_sparse_stage;
+
+/*! \ingroup types_module
+   *  \brief List of extract algorithms.
+   *
+   *  \details
+   *  This is a list of supported \ref rocsparse_extract_alg types that are used to perform
+   *  the submatrix extraction.
+   */
+typedef enum rocsparse_extract_alg_
+{
+    rocsparse_extract_alg_default = 0, /**< Default extract algorithm for the given format. */
+} rocsparse_extract_alg;
+
+/*! \ingroup types_module
+   *  \brief List of extract stages.
+   *
+   *  \details
+   *  The analysis \ref rocsparse_extract_stage_analysis must be done before the first call of the calculation \ref rocsparse_extract_stage_compute.
+   */
+typedef enum rocsparse_extract_stage_
+{
+    rocsparse_extract_stage_analysis = 0, /**< Data analysis. */
+    rocsparse_extract_stage_compute  = 1 /**< Performs the actual extraction. */
+} rocsparse_extract_stage;
 
 /*! \ingroup types_module
  *  \brief List of Iterative ILU0 algorithms.
@@ -617,7 +675,7 @@ typedef enum rocsparse_check_spmat_stage_
  *
  *  \details
  *  This is a list of possible stages during SpMV computation. Typical order is
- *  rocsparse_spmv_buffer_size, rocsparse_spmv_preprocess, rocsparse_spmv_compute.
+ *  rocsparse_spmv_stage_buffer_size, rocsparse_spmv_stage_preprocess, rocsparse_spmv_stage_compute.
  */
 typedef enum rocsparse_spmv_stage_
 {
@@ -662,7 +720,7 @@ typedef enum rocsparse_spsv_alg_
  *
  *  \details
  *  This is a list of possible stages during SpSV computation. Typical order is
- *  rocsparse_spsv_buffer_size, rocsparse_spsv_preprocess, rocsparse_spsv_compute.
+ *  rocsparse_spsv_stage_buffer_size, rocsparse_spsv_stage_preprocess, rocsparse_spsv_stage_compute.
  */
 typedef enum rocsparse_spsv_stage_
 {
@@ -688,7 +746,7 @@ typedef enum rocsparse_spitsv_alg_
  *
  *  \details
  *  This is a list of possible stages during SpITSV computation. Typical order is
- *  buffer_size, preprocess, compute.
+ *  rocsparse_spitsv_stage_buffer_size, rocsparse_spitsv_stage_preprocess, rocsparse_spitsv_stage_compute.
  */
 typedef enum rocsparse_spitsv_stage_
 {
@@ -714,7 +772,7 @@ typedef enum rocsparse_spsm_alg_
  *
  *  \details
  *  This is a list of possible stages during SpSM computation. Typical order is
- *  rocsparse_spsm_buffer_size, rocsparse_spsm_preprocess, rocsparse_spsm_compute.
+ *  rocsparse_spsm_stage_buffer_size, rocsparse_spsm_stage_preprocess, rocsparse_spsm_stage_compute.
  */
 typedef enum rocsparse_spsm_stage_
 {
@@ -790,7 +848,7 @@ typedef enum rocsparse_dense_to_sparse_alg_
  *
  *  \details
  *  This is a list of possible stages during SpMM computation. Typical order is
- *  rocsparse_spmm_buffer_size, rocsparse_spmm_preprocess, rocsparse_spmm_compute.
+ *  rocsparse_spmm_stage_buffer_size, rocsparse_spmm_stage_preprocess, rocsparse_spmm_stage_compute.
  */
 typedef enum rocsparse_spmm_stage_
 {
@@ -804,7 +862,7 @@ typedef enum rocsparse_spmm_stage_
  *
  *  \details
  *  This is a list of possible stages during SpGEMM computation. Typical order is
- *  rocsparse_spgemm_buffer_size, rocsparse_spgemm_nnz, rocsparse_spgemm_compute.
+ *  rocsparse_spgemm_stage_buffer_size, rocsparse_spgemm_stage_nnz, rocsparse_spgemm_stage_compute.
  */
 typedef enum rocsparse_spgemm_stage_
 {

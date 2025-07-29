@@ -24,6 +24,7 @@
 
 #include "control.h"
 #include "csrgemm_device.h"
+#include "rocsparse_common.h"
 #include "rocsparse_csrgemm_multadd.hpp"
 #include "rocsparse_csrgemm_nnz_calc.hpp"
 #include "utility.h"
@@ -64,18 +65,10 @@ rocsparse_status rocsparse::csrgemm_multadd_nnz_quickreturn(rocsparse_handle    
             *nnz_C = 0;
         }
 
-        if(m > 0)
+        if(csr_row_ptr_C != nullptr)
         {
-#define CSRGEMM_DIM 1024
-            RETURN_IF_HIPLAUNCHKERNELGGL_ERROR((rocsparse::csrgemm_set_base<CSRGEMM_DIM>),
-                                               dim3((m + 1) / CSRGEMM_DIM + 1),
-                                               dim3(CSRGEMM_DIM),
-                                               0,
-                                               handle->stream,
-                                               m + 1,
-                                               csr_row_ptr_C,
-                                               descr_C->base);
-#undef CSRGEMM_DIM
+            RETURN_IF_ROCSPARSE_ERROR(
+                rocsparse::valset(handle, m + 1, static_cast<I>(descr_C->base), csr_row_ptr_C));
         }
         return rocsparse_status_success;
     }

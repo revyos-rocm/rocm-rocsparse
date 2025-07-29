@@ -95,12 +95,13 @@ namespace rocsparse
             nmaxiter_[0] = 0;
             RETURN_IF_ROCSPARSE_ERROR(rocsparse_status_zero_pivot);
         }
-
+        static constexpr J nfreeiter = 0;
         RETURN_IF_ROCSPARSE_ERROR((rocsparse::compute_dispatch<T, I, J>(alg_,
                                                                         handle_,
                                                                         alg_,
                                                                         options_,
                                                                         nmaxiter_,
+                                                                        nfreeiter,
                                                                         tol_,
                                                                         m_,
                                                                         nnz_,

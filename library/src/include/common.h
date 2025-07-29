@@ -798,6 +798,396 @@ __device__ __forceinline__ double wfreduce_sum(double sum)
     sum = temp_sum.val;
     return sum;
 }
+
+// DPP-based double wavefront partial reduction
+template <uint32_t WFSIZE, uint32_t SUB_WFSIZE>
+__device__ __forceinline__ int32_t wfreduce_partial_sum(int32_t sum)
+{
+    if(SUB_WFSIZE == 1)
+    {
+        return wfreduce_sum<WFSIZE>(sum);
+    }
+    if(SUB_WFSIZE == 2)
+    {
+        if(WFSIZE >  2) sum += __hip_move_dpp(sum, 0x112, 0xf, 0xf, 0);
+        if(WFSIZE >  4) sum += __hip_move_dpp(sum, 0x114, 0xf, 0xe, 0);
+        if(WFSIZE >  8) sum += __hip_move_dpp(sum, 0x118, 0xf, 0xc, 0);
+        if(WFSIZE > 16) sum += __shfl_xor(sum, 16);
+        if(WFSIZE > 32) sum += __shfl_xor(sum, 32);
+        return sum;
+    }
+    if(SUB_WFSIZE == 4)
+    {
+        if(WFSIZE >  4) sum += __hip_move_dpp(sum, 0x114, 0xf, 0xe, 0);
+        if(WFSIZE >  8) sum += __hip_move_dpp(sum, 0x118, 0xf, 0xc, 0);
+        if(WFSIZE > 16) sum += __shfl_xor(sum, 16);
+        if(WFSIZE > 32) sum += __shfl_xor(sum, 32);
+        return sum;
+    }
+    if(SUB_WFSIZE == 8)
+    {
+        if(WFSIZE >  8) sum += __hip_move_dpp(sum, 0x118, 0xf, 0xc, 0);
+        if(WFSIZE > 16) sum += __shfl_xor(sum, 16);
+        if(WFSIZE > 32) sum += __shfl_xor(sum, 32);
+        return sum;
+    }
+    if(SUB_WFSIZE == 16)
+    {
+        if(WFSIZE > 16) sum += __shfl_xor(sum, 16);
+        if(WFSIZE > 32) sum += __shfl_xor(sum, 32);
+        return sum;
+    }
+    if(SUB_WFSIZE == 32)
+    {
+        if(WFSIZE > 32) sum += __shfl_xor(sum, 32);
+        return sum;
+    }
+    return sum;
+}
+
+// DPP-based double wavefront partial reduction
+template <uint32_t WFSIZE, uint32_t SUB_WFSIZE>
+__device__ __forceinline__ int64_t wfreduce_partial_sum(int64_t sum)
+{
+    typedef union i64_b32
+    {
+        int64_t i64;
+        uint32_t b32[2];
+    } i64_b32_t;
+    i64_b32_t upper_sum;
+    i64_b32_t temp_sum;
+    temp_sum.i64 = sum;
+    if(SUB_WFSIZE == 1)
+    {
+        return wfreduce_sum<WFSIZE>(sum);
+    }
+    if(SUB_WFSIZE == 2)
+    {
+        if(WFSIZE > 2)
+        {
+            upper_sum.b32[0] = __hip_move_dpp(temp_sum.b32[0], 0x112, 0xf, 0xf, false);
+            upper_sum.b32[1] = __hip_move_dpp(temp_sum.b32[1], 0x112, 0xf, 0xf, false);
+            temp_sum.i64 += upper_sum.i64;
+        }
+        if(WFSIZE > 4)
+        {
+            upper_sum.b32[0] = __hip_move_dpp(temp_sum.b32[0], 0x114, 0xf, 0xe, false);
+            upper_sum.b32[1] = __hip_move_dpp(temp_sum.b32[1], 0x114, 0xf, 0xe, false);
+            temp_sum.i64 += upper_sum.i64;
+        }
+        if(WFSIZE > 8)
+        {
+            upper_sum.b32[0] = __hip_move_dpp(temp_sum.b32[0], 0x118, 0xf, 0xc, false);
+            upper_sum.b32[1] = __hip_move_dpp(temp_sum.b32[1], 0x118, 0xf, 0xc, false);
+            temp_sum.i64 += upper_sum.i64;
+        }
+        if(WFSIZE > 16)
+        {
+            temp_sum.i64 += __shfl_xor(temp_sum.i64, 16);
+        }
+        if(WFSIZE > 32)
+        {
+            temp_sum.i64 += __shfl_xor(temp_sum.i64, 32);
+        }
+        sum = temp_sum.i64;
+        return sum;   
+    }
+    if(SUB_WFSIZE == 4)
+    {
+        if(WFSIZE > 4)
+        {
+            upper_sum.b32[0] = __hip_move_dpp(temp_sum.b32[0], 0x114, 0xf, 0xe, false);
+            upper_sum.b32[1] = __hip_move_dpp(temp_sum.b32[1], 0x114, 0xf, 0xe, false);
+            temp_sum.i64 += upper_sum.i64;
+        }
+        if(WFSIZE > 8)
+        {
+            upper_sum.b32[0] = __hip_move_dpp(temp_sum.b32[0], 0x118, 0xf, 0xc, false);
+            upper_sum.b32[1] = __hip_move_dpp(temp_sum.b32[1], 0x118, 0xf, 0xc, false);
+            temp_sum.i64 += upper_sum.i64;
+        }
+        if(WFSIZE > 16)
+        {
+            temp_sum.i64 += __shfl_xor(temp_sum.i64, 16);
+        }
+        if(WFSIZE > 32)
+        {
+            temp_sum.i64 += __shfl_xor(temp_sum.i64, 32);
+        }
+        sum = temp_sum.i64;
+        return sum;   
+    }
+    if(SUB_WFSIZE == 8)
+    {
+        if(WFSIZE > 8)
+        {
+            upper_sum.b32[0] = __hip_move_dpp(temp_sum.b32[0], 0x118, 0xf, 0xc, false);
+            upper_sum.b32[1] = __hip_move_dpp(temp_sum.b32[1], 0x118, 0xf, 0xc, false);
+            temp_sum.i64 += upper_sum.i64;
+        }
+        if(WFSIZE > 16)
+        {
+            temp_sum.i64 += __shfl_xor(temp_sum.i64, 16);
+        }
+        if(WFSIZE > 32)
+        {
+            temp_sum.i64 += __shfl_xor(temp_sum.i64, 32);
+        }
+        sum = temp_sum.i64;
+        return sum;   
+    }
+    if(SUB_WFSIZE == 16)
+    {
+        if(WFSIZE > 16)
+        {
+            temp_sum.i64 += __shfl_xor(temp_sum.i64, 16);
+        }
+        if(WFSIZE > 32)
+        {
+            temp_sum.i64 += __shfl_xor(temp_sum.i64, 32);
+        }
+        sum = temp_sum.i64;
+        return sum;   
+    }
+    if(SUB_WFSIZE == 32)
+    {
+        if(WFSIZE > 32)
+        {
+            temp_sum.i64 += __shfl_xor(temp_sum.i64, 32);
+        }
+        sum = temp_sum.i64;
+        return sum;   
+    }
+    sum = temp_sum.i64;
+    return sum;   
+}
+// DPP-based float wavefront partial reduction sum
+template <uint32_t WFSIZE, uint32_t SUB_WFSIZE>
+__device__ __forceinline__ float wfreduce_partial_sum(float sum)
+{
+    typedef union flt_b32
+    {
+        float val;
+        uint32_t b32;
+    } flt_b32_t;
+    flt_b32_t upper_sum;
+    flt_b32_t temp_sum;
+    temp_sum.val = sum;
+    if(SUB_WFSIZE == 1)
+    {
+        return wfreduce_sum<WFSIZE>(sum);
+    }
+    if(SUB_WFSIZE == 2)
+    {
+        if(WFSIZE > 2)
+        {
+            upper_sum.b32 = __hip_move_dpp(temp_sum.b32, 0x112, 0xf, 0xf, false);
+            temp_sum.val += upper_sum.val;
+        }
+        if(WFSIZE > 4)
+        {
+            upper_sum.b32 = __hip_move_dpp(temp_sum.b32, 0x114, 0xf, 0xe, false);
+            temp_sum.val += upper_sum.val;
+        }
+        if(WFSIZE > 8)
+        {
+            upper_sum.b32 = __hip_move_dpp(temp_sum.b32, 0x118, 0xf, 0xc, false);
+            temp_sum.val += upper_sum.val;
+        }
+        if(WFSIZE > 16)
+        {
+            temp_sum.val += __shfl_xor(temp_sum.val, 16);
+        }
+        if(WFSIZE > 32)
+        {
+            temp_sum.val += __shfl_xor(temp_sum.val, 32);
+        }
+        sum = temp_sum.val;
+        return sum;
+    }
+    if(SUB_WFSIZE == 4)
+    {
+        if(WFSIZE > 4)
+        {
+            upper_sum.b32 = __hip_move_dpp(temp_sum.b32, 0x114, 0xf, 0xe, false);
+            temp_sum.val += upper_sum.val;
+        }
+        if(WFSIZE > 8)
+        {
+            upper_sum.b32 = __hip_move_dpp(temp_sum.b32, 0x118, 0xf, 0xc, false);
+            temp_sum.val += upper_sum.val;
+        }
+        if(WFSIZE > 16)
+        {
+            temp_sum.val += __shfl_xor(temp_sum.val, 16);
+        }
+        if(WFSIZE > 32)
+        {
+            temp_sum.val += __shfl_xor(temp_sum.val, 32);
+        }
+        sum = temp_sum.val;
+        return sum;
+    }
+    if(SUB_WFSIZE == 8)
+    {
+        if(WFSIZE > 8)
+        {
+            upper_sum.b32 = __hip_move_dpp(temp_sum.b32, 0x118, 0xf, 0xc, false);
+            temp_sum.val += upper_sum.val;
+        }
+        if(WFSIZE > 16)
+        {
+            temp_sum.val += __shfl_xor(temp_sum.val, 16);
+        }
+        if(WFSIZE > 32)
+        {
+            temp_sum.val += __shfl_xor(temp_sum.val, 32);
+        }
+        sum = temp_sum.val;
+        return sum;
+    }
+    if(SUB_WFSIZE == 16)
+    {
+        if(WFSIZE > 16)
+        {
+            temp_sum.val += __shfl_xor(temp_sum.val, 16);
+        }
+        if(WFSIZE > 32)
+        {
+            temp_sum.val += __shfl_xor(temp_sum.val, 32);
+        }
+        sum = temp_sum.val;
+        return sum;
+    }
+    if(SUB_WFSIZE == 32)
+    {
+        if(WFSIZE > 32)
+        {
+            temp_sum.val += __shfl_xor(temp_sum.val, 32);
+        }
+        sum = temp_sum.val;
+        return sum;
+    }
+    sum = temp_sum.val;
+    return sum;
+}
+
+// DPP-based double wavefront partial reduction
+template <uint32_t WFSIZE, uint32_t SUB_WFSIZE>
+__device__ __forceinline__ double wfreduce_partial_sum(double sum)
+{
+    typedef union dbl_b32
+    {
+        double val;
+        uint32_t b32[2];
+    } dbl_b32_t;
+    dbl_b32_t upper_sum;
+    dbl_b32_t temp_sum;
+    temp_sum.val = sum;
+    if(SUB_WFSIZE == 1)
+    {
+        return wfreduce_sum<WFSIZE>(sum);
+    }
+    if(SUB_WFSIZE == 2)
+    {
+        if(WFSIZE > 2)
+        {
+            upper_sum.b32[0] = __hip_move_dpp(temp_sum.b32[0], 0x112, 0xf, 0xf, false);
+            upper_sum.b32[1] = __hip_move_dpp(temp_sum.b32[1], 0x112, 0xf, 0xf, false);
+            temp_sum.val += upper_sum.val;
+        }
+        if(WFSIZE > 4)
+        {
+            upper_sum.b32[0] = __hip_move_dpp(temp_sum.b32[0], 0x114, 0xf, 0xe, false);
+            upper_sum.b32[1] = __hip_move_dpp(temp_sum.b32[1], 0x114, 0xf, 0xe, false);
+            temp_sum.val += upper_sum.val;
+        }
+        if(WFSIZE > 8)
+        {
+            upper_sum.b32[0] = __hip_move_dpp(temp_sum.b32[0], 0x118, 0xf, 0xc, false);
+            upper_sum.b32[1] = __hip_move_dpp(temp_sum.b32[1], 0x118, 0xf, 0xc, false);
+            temp_sum.val += upper_sum.val;
+        }
+        if(WFSIZE > 16)
+        {
+            temp_sum.val += __shfl_xor(temp_sum.val, 16);
+        }
+        if(WFSIZE > 32)
+        {
+            temp_sum.val += __shfl_xor(temp_sum.val, 32);
+        }
+        sum = temp_sum.val;
+        return sum;
+    }
+    if(SUB_WFSIZE == 4)
+    {
+        if(WFSIZE > 4)
+        {
+            upper_sum.b32[0] = __hip_move_dpp(temp_sum.b32[0], 0x114, 0xf, 0xe, false);
+            upper_sum.b32[1] = __hip_move_dpp(temp_sum.b32[1], 0x114, 0xf, 0xe, false);
+            temp_sum.val += upper_sum.val;
+        }
+        if(WFSIZE > 8)
+        {
+            upper_sum.b32[0] = __hip_move_dpp(temp_sum.b32[0], 0x118, 0xf, 0xc, false);
+            upper_sum.b32[1] = __hip_move_dpp(temp_sum.b32[1], 0x118, 0xf, 0xc, false);
+            temp_sum.val += upper_sum.val;
+        }
+        if(WFSIZE > 16)
+        {
+            temp_sum.val += __shfl_xor(temp_sum.val, 16);
+        }
+        if(WFSIZE > 32)
+        {
+            temp_sum.val += __shfl_xor(temp_sum.val, 32);
+        }
+        sum = temp_sum.val;
+        return sum;
+    }
+    if(SUB_WFSIZE == 8)
+    {
+        if(WFSIZE > 8)
+        {
+            upper_sum.b32[0] = __hip_move_dpp(temp_sum.b32[0], 0x118, 0xf, 0xc, false);
+            upper_sum.b32[1] = __hip_move_dpp(temp_sum.b32[1], 0x118, 0xf, 0xc, false);
+            temp_sum.val += upper_sum.val;
+        }
+        if(WFSIZE > 16)
+        {
+            temp_sum.val += __shfl_xor(temp_sum.val, 16);
+        }
+        if(WFSIZE > 32)
+        {
+            temp_sum.val += __shfl_xor(temp_sum.val, 32);
+        }
+        sum = temp_sum.val;
+        return sum;
+    }
+    if(SUB_WFSIZE == 16)
+    {
+        if(WFSIZE > 16)
+        {
+            temp_sum.val += __shfl_xor(temp_sum.val, 16);
+        }
+        if(WFSIZE > 32)
+        {
+            temp_sum.val += __shfl_xor(temp_sum.val, 32);
+        }
+        sum = temp_sum.val;
+        return sum;
+    }
+    if(SUB_WFSIZE == 32)
+    {
+        if(WFSIZE > 32)
+        {
+            temp_sum.val += __shfl_xor(temp_sum.val, 32);
+        }
+        sum = temp_sum.val;
+        return sum;
+    }
+    sum = temp_sum.val;
+    return sum;
+}
 #else /* ROCSPARSE_USE_MOVE_DPP */
 
 
@@ -895,6 +1285,48 @@ __device__ __forceinline__ double wfreduce_sum(double sum)
 
     return sum;
 }
+
+template <uint32_t WFSIZE, uint32_t SUB_WF_SIZE>
+__device__ __forceinline__ int32_t wfreduce_partial_sum(int32_t sum)
+{
+    for(int i = WFSIZE >> 1; i >= SUB_WF_SIZE; i >>= 1)
+    {
+        sum += __shfl_xor(sum, i);
+    }
+    return sum;
+}
+
+template <uint32_t WFSIZE, uint32_t SUB_WF_SIZE>
+__device__ __forceinline__ int64_t wfreduce_partial_sum(int64_t sum)
+{
+    for(int i = WFSIZE >> 1; i >= SUB_WF_SIZE; i >>= 1)
+    {
+        sum += __shfl_xor(sum, i);
+    }
+    return sum;
+}
+
+template <uint32_t WFSIZE, uint32_t SUB_WF_SIZE>
+__device__ __forceinline__ float wfreduce_partial_sum(float sum)
+{
+    for(int i = WFSIZE >> 1; i >= SUB_WF_SIZE; i >>= 1)
+    {
+        sum += __shfl_xor(sum, i);
+    }
+
+    return sum;
+}
+
+template <uint32_t WFSIZE, uint32_t SUB_WF_SIZE>
+__device__ __forceinline__ double wfreduce_partial_sum(double sum)
+{
+    for(int i = WFSIZE >> 1; i >= SUB_WF_SIZE; i >>= 1)
+    {
+        sum += __shfl_xor(sum, i);
+    }
+
+    return sum;
+}
 #endif /* ROCSPARSE_USE_MOVE_DPP */
 
 // DPP-based complex float wavefront reduction sum
@@ -912,90 +1344,23 @@ __device__ __forceinline__ rocsparse_double_complex wfreduce_sum(rocsparse_doubl
     return rocsparse_double_complex(rocsparse::wfreduce_sum<WFSIZE>(std::real(sum)),
                                     rocsparse::wfreduce_sum<WFSIZE>(std::imag(sum)));
 }
+
+// DPP-based complex float wavefront reduction sum
+template <uint32_t WFSIZE, uint32_t SUB_WF_SIZE>
+__device__ __forceinline__ rocsparse_float_complex wfreduce_partial_sum(rocsparse_float_complex sum)
+{
+    return rocsparse_float_complex(rocsparse::wfreduce_partial_sum<WFSIZE, SUB_WF_SIZE>(std::real(sum)),
+                                   rocsparse::wfreduce_partial_sum<WFSIZE, SUB_WF_SIZE>(std::imag(sum)));
+}
+
+// DPP-based complex double wavefront reduction
+template <uint32_t WFSIZE, uint32_t SUB_WF_SIZE>
+__device__ __forceinline__ rocsparse_double_complex wfreduce_partial_sum(rocsparse_double_complex sum)
+{
+    return rocsparse_double_complex(rocsparse::wfreduce_partial_sum<WFSIZE, SUB_WF_SIZE>(std::real(sum)),
+                                    rocsparse::wfreduce_partial_sum<WFSIZE, SUB_WF_SIZE>(std::imag(sum)));
+}
     // clang-format on
-
-    // Perform dense matrix transposition
-    template <uint32_t DIMX, uint32_t DIMY, typename I, typename T>
-    __device__ void dense_transpose_device(
-        I m, I n, T alpha, const T* __restrict__ A, int64_t lda, T* __restrict__ B, int64_t ldb)
-    {
-        int lid = threadIdx.x & (DIMX - 1);
-        int wid = threadIdx.x / DIMX;
-
-        I row_A = blockIdx.x * DIMX + lid;
-        I row_B = blockIdx.x * DIMX + wid;
-
-        __shared__ T sdata[DIMX][DIMX];
-
-        for(I j = 0; j < n; j += DIMX)
-        {
-            __syncthreads();
-
-            I col_A = j + wid;
-
-            for(uint32_t k = 0; k < DIMX; k += DIMY)
-            {
-                if(row_A < m && col_A + k < n)
-                {
-                    sdata[wid + k][lid] = A[row_A + lda * (col_A + k)];
-                }
-            }
-
-            __syncthreads();
-
-            I col_B = j + lid;
-
-            for(uint32_t k = 0; k < DIMX; k += DIMY)
-            {
-                if(col_B < n && row_B + k < m)
-                {
-                    B[col_B + ldb * (row_B + k)] = alpha * sdata[lid][wid + k];
-                }
-            }
-        }
-    }
-
-    // Perform dense matrix back transposition
-    template <uint32_t DIMX, uint32_t DIMY, typename I, typename T>
-    ROCSPARSE_KERNEL(DIMX* DIMY)
-    void dense_transpose_back(
-        I m, I n, const T* __restrict__ A, int64_t lda, T* __restrict__ B, int64_t ldb)
-    {
-        int lid = hipThreadIdx_x & (DIMX - 1);
-        int wid = hipThreadIdx_x / DIMX;
-
-        I row_A = hipBlockIdx_x * DIMX + wid;
-        I row_B = hipBlockIdx_x * DIMX + lid;
-
-        __shared__ T sdata[DIMX][DIMX];
-
-        for(I j = 0; j < n; j += DIMX)
-        {
-            __syncthreads();
-
-            I col_A = j + lid;
-
-            for(uint32_t k = 0; k < DIMX; k += DIMY)
-            {
-                if(col_A < n && row_A + k < m)
-                {
-                    sdata[wid + k][lid] = A[col_A + lda * (row_A + k)];
-                }
-            }
-
-            __syncthreads();
-
-            I col_B = j + wid;
-
-            for(uint32_t k = 0; k < DIMX; k += DIMY)
-            {
-                if(row_B < m && col_B + k < n)
-                {
-                    B[row_B + ldb * (col_B + k)] = sdata[lid][wid + k];
-                }
-            }
-        }
-    }
 
     // BSR gather functionality to permute the BSR values array
     template <uint32_t WFSIZE, uint32_t DIMY, uint32_t BSRDIM, typename I, typename T>
@@ -1033,126 +1398,6 @@ __device__ __forceinline__ rocsparse_double_complex wfreduce_sum(rocsparse_doubl
         }
     }
 
-    // Set array to be filled with value
-    template <uint32_t BLOCKSIZE, typename I, typename T>
-    ROCSPARSE_KERNEL(BLOCKSIZE)
-    void set_array_to_value(I m, T* __restrict__ array, T value)
-    {
-        I idx = hipThreadIdx_x + BLOCKSIZE * hipBlockIdx_x;
-
-        if(idx >= m)
-        {
-            return;
-        }
-
-        array[idx] = value;
-    }
-
-    // Scale array by value
-    template <uint32_t BLOCKSIZE, typename I, typename T>
-    ROCSPARSE_KERNEL(BLOCKSIZE)
-    void scale_array(I m, T* __restrict__ array, T value)
-    {
-        I idx = hipThreadIdx_x + BLOCKSIZE * hipBlockIdx_x;
-
-        if(idx >= m)
-        {
-            return;
-        }
-
-        array[idx] *= value;
-    }
-
-    template <uint32_t BLOCKSIZE, typename I, typename T>
-    ROCSPARSE_KERNEL(BLOCKSIZE)
-    void scale_array(I m, T* __restrict__ array, const T* value)
-    {
-        I idx = hipThreadIdx_x + BLOCKSIZE * hipBlockIdx_x;
-
-        if(idx >= m)
-        {
-            return;
-        }
-
-        if(*value != static_cast<T>(1))
-        {
-            array[idx] *= (*value);
-        }
-    }
-
-    // Scale 2d array by value
-    template <uint32_t BLOCKSIZE, typename I, typename T>
-    ROCSPARSE_KERNEL(BLOCKSIZE)
-    void scale_array_2d(
-        I m, I n, int64_t ld, int64_t stride, T* __restrict__ array, T value, rocsparse_order order)
-    {
-        I gid   = hipBlockIdx_x * BLOCKSIZE + hipThreadIdx_x;
-        I batch = hipBlockIdx_y;
-
-        if(gid >= m * n)
-        {
-            return;
-        }
-
-        I wid = (order == rocsparse_order_column) ? gid / m : gid / n;
-        I lid = (order == rocsparse_order_column) ? gid % m : gid % n;
-
-        if(value == static_cast<T>(0))
-        {
-            array[lid + ld * wid + stride * batch] = static_cast<T>(0);
-        }
-        else
-        {
-            array[lid + ld * wid + stride * batch] *= value;
-        }
-    }
-
-    template <uint32_t BLOCKSIZE, typename I, typename T>
-    ROCSPARSE_KERNEL(BLOCKSIZE)
-    void scale_array_2d(I       m,
-                        I       n,
-                        int64_t ld,
-                        int64_t stride,
-                        T* __restrict__ array,
-                        const T*        value,
-                        rocsparse_order order)
-    {
-        I gid   = hipBlockIdx_x * BLOCKSIZE + hipThreadIdx_x;
-        I batch = hipBlockIdx_y;
-
-        if(gid >= m * n)
-        {
-            return;
-        }
-
-        I wid = (order == rocsparse_order_column) ? gid / m : gid / n;
-        I lid = (order == rocsparse_order_column) ? gid % m : gid % n;
-
-        if((*value) == static_cast<T>(0))
-        {
-            array[lid + ld * wid + stride * batch] = static_cast<T>(0);
-        }
-        else
-        {
-            array[lid + ld * wid + stride * batch] *= (*value);
-        }
-    }
-
-    // conjugate values in array
-    template <uint32_t BLOCKSIZE, typename I, typename T>
-    ROCSPARSE_KERNEL(BLOCKSIZE)
-    void conjugate(I m, T* __restrict__ array)
-    {
-        I idx = hipThreadIdx_x + BLOCKSIZE * hipBlockIdx_x;
-
-        if(idx >= m)
-        {
-            return;
-        }
-
-        array[idx] = rocsparse::conj(array[idx]);
-    }
-
     template <uint32_t BLOCKSIZE, typename I, typename J>
     ROCSPARSE_KERNEL(BLOCKSIZE)
     void csr_max_nnz_per_row(J m, const I* __restrict__ csr_row_ptr, J* __restrict__ max_nnz)
@@ -1179,23 +1424,6 @@ __device__ __forceinline__ rocsparse_double_complex wfreduce_sum(rocsparse_doubl
         {
             rocsparse::atomic_max(max_nnz, shared[0]);
         }
-    }
-
-    template <uint32_t BLOCKSIZE, typename I, typename T>
-    ROCSPARSE_KERNEL(BLOCKSIZE)
-    void memset2d_kernel(I m, I n, T value, T* __restrict__ data, int64_t ld, rocsparse_order order)
-    {
-        I gid = hipBlockIdx_x * BLOCKSIZE + hipThreadIdx_x;
-
-        if(gid >= m * n)
-        {
-            return;
-        }
-
-        I wid = (order == rocsparse_order_column) ? gid / m : gid / n;
-        I lid = (order == rocsparse_order_column) ? gid % m : gid % n;
-
-        data[lid + ld * wid] = value;
     }
 
     template <bool SLEEP>

@@ -28,78 +28,6 @@
 #include "rocsparse_enum.hpp"
 #include "testing.hpp"
 #include <hip/hip_runtime.h>
-template <typename T, typename I, typename J>
-rocsparse_status rocsparse_host_csrscaling_ruiz(
-    J m_, J n_, I nnz_, const I* ptr_, const J* ind_, T* val_, rocsparse_index_base base_)
-
-{
-    T*      D1   = (T*)malloc(sizeof(T) * m_);
-    T*      D2   = (T*)malloc(sizeof(T) * n_);
-    T*      DR   = (T*)malloc(sizeof(T) * m_);
-    T*      DC   = (T*)malloc(sizeof(T) * n_);
-    double* DRMX = (double*)malloc(sizeof(double) * m_);
-    double* DCMX = (double*)malloc(sizeof(double) * n_);
-    for(J i = 0; i < m_; ++i)
-        D1[i] = static_cast<T>(1);
-    for(J j = 0; j < n_; ++j)
-        D2[j] = static_cast<T>(1);
-    for(J i = 0; i < m_; ++i)
-        DRMX[i] = static_cast<double>(0);
-    for(J j = 0; j < n_; ++j)
-        DCMX[j] = static_cast<double>(0);
-    for(J iter = 0; iter < 40; ++iter)
-    {
-        for(J i = 0; i < m_; ++i)
-            DRMX[i] = static_cast<double>(0);
-        for(J j = 0; j < n_; ++j)
-            DCMX[j] = static_cast<double>(0);
-
-        for(J i = 0; i < m_; ++i)
-        {
-            for(J k = ptr_[i] - base_; k < ptr_[i + 1] - base_; ++k)
-            {
-                const J      j = ind_[k] - base_;
-                const double v = std::abs(val_[k]);
-
-                DRMX[i] = std::max(DRMX[i], v);
-                DCMX[j] = std::max(DCMX[j], v);
-            }
-        }
-
-        double resr = 0.0;
-        double resc = 0.0;
-        for(J i = 0; i < m_; ++i)
-            resr = std::max(resr, std::abs((double(1.0) - DRMX[i])));
-        for(J j = 0; j < n_; ++j)
-            resc = std::max(resc, std::abs((double(1.0) - DCMX[j])));
-        if(resr < 1e-5 && resc < 1.0e-5)
-            break;
-
-        for(J i = 0; i < m_; ++i)
-            DRMX[i] = static_cast<double>(1) / sqrt(DRMX[i]);
-        for(J j = 0; j < n_; ++j)
-            DCMX[j] = static_cast<double>(1) / sqrt(DCMX[j]);
-        for(J i = 0; i < m_; ++i)
-        {
-            for(J k = ptr_[i] - base_; k < ptr_[i + 1] - base_; ++k)
-            {
-                const J j = ind_[k] - base_;
-                val_[k] *= DRMX[i] * DCMX[j];
-            }
-        }
-
-        for(J i = 0; i < m_; ++i)
-            D1[i] *= DRMX[i];
-        for(J j = 0; j < n_; ++j)
-            D2[j] *= DCMX[j];
-    }
-    free(DRMX);
-    free(DC);
-    free(DR);
-    free(D1);
-    free(D2);
-    return rocsparse_status_success;
-}
 
 template <typename T>
 static rocsparse_status csrilu0(rocsparse_handle          handle_,
@@ -298,8 +226,8 @@ struct csritilu0_params_t
 template <typename T>
 void testing_csritilu0(const Arguments& arg)
 {
-    static constexpr bool          verbose   = false;
-    static constexpr rocsparse_int s_maxiter = 1000;
+    static constexpr bool verbose = false;
+
     floating_data_t<T> tol = (sizeof(floating_data_t<T>) == sizeof(float)) ? 2e-7 : 5e-15;
     if(arg.numericboost)
     {
@@ -314,7 +242,7 @@ void testing_csritilu0(const Arguments& arg)
     // options |= rocsparse_itilu0_option_compute_nrm_correction; // Compute the norm of the correction.
     // options |= rocsparse_itilu0_option_coo_format; // Use internal sparse coordinate format.
 
-    csritilu0_params_t<T> p(arg.itilu0_alg, options, s_maxiter, tol);
+    csritilu0_params_t<T> p(arg.itilu0_alg, options, arg.nmaxiter, tol);
     //
     // Set constant parameters.
     //
@@ -331,21 +259,13 @@ void testing_csritilu0(const Arguments& arg)
     //
     host_csr_matrix<T> hA;
     matrix_factory.init_csr(hA);
-    if(false)
-    {
-        if(hA.m > 0 && hA.nnz > 0)
-        {
-            rocsparse_host_csrscaling_ruiz<T, rocsparse_int, rocsparse_int>(
-                hA.m, hA.n, hA.nnz, hA.ptr, hA.ind, hA.val, hA.base);
-        }
-    }
 
     //
     // Transfer matrix A to device.
     //
     device_csr_matrix<T> dA(hA);
 
-    p.maxiter                             = s_maxiter;
+    p.maxiter                             = arg.nmaxiter;
     size_t                    buffer_size = 0;
     device_dense_vector<char> buffer;
 
@@ -436,7 +356,7 @@ void testing_csritilu0(const Arguments& arg)
             }
         }
 
-        p.maxiter = s_maxiter;
+        p.maxiter = arg.nmaxiter;
         status    = rocsparse_csritilu0_preprocess(handle,
                                                 p.alg,
                                                 p.options,
@@ -469,7 +389,7 @@ void testing_csritilu0(const Arguments& arg)
         //
         if(status_csrilu0 != rocsparse_status_zero_pivot)
         {
-            p.maxiter = s_maxiter;
+            p.maxiter = arg.nmaxiter;
             CHECK_ROCSPARSE_ERROR(rocsparse_set_pointer_mode(handle, rocsparse_pointer_mode_host));
             status = rocsparse_csritilu0_compute<T>(handle,
                                                     p.alg,
@@ -541,7 +461,7 @@ void testing_csritilu0(const Arguments& arg)
         //
         hipMemset((T*)ilu0, 0, sizeof(T) * dA.nnz);
 
-        p.maxiter = s_maxiter;
+        p.maxiter = arg.nmaxiter;
         CHECK_ROCSPARSE_ERROR(rocsparse_set_pointer_mode(handle, rocsparse_pointer_mode_host));
         status = rocsparse_csritilu0_compute<T>(handle,
                                                 p.alg,
@@ -632,7 +552,7 @@ void testing_csritilu0(const Arguments& arg)
         for(int iter = 0; iter < number_cold_calls; ++iter)
         {
             dA.val.transfer_from(hA.val);
-            p.maxiter = s_maxiter;
+            p.maxiter = arg.nmaxiter;
 
             status = rocsparse_csritilu0_preprocess(handle,
                                                     p.alg,
@@ -679,7 +599,7 @@ void testing_csritilu0(const Arguments& arg)
             //
             hipMemset((T*)ilu0, 0, sizeof(T) * dA.nnz);
 
-            p.maxiter                          = s_maxiter;
+            p.maxiter                          = arg.nmaxiter;
             double gpu_presolve_time_used_iter = get_time_us();
             status                             = rocsparse_csritilu0_preprocess(handle,
                                                     p.alg,
@@ -702,7 +622,7 @@ void testing_csritilu0(const Arguments& arg)
             //
             //
             double gpu_solve_time_used_iter = get_time_us();
-            p.maxiter                       = s_maxiter;
+            p.maxiter                       = arg.nmaxiter;
 
             status = rocsparse_csritilu0_compute<T>(handle,
                                                     p.alg,

@@ -1,6 +1,6 @@
 /*! \file */
 /* ************************************************************************
- * Copyright (C) 2023 Advanced Micro Devices, Inc. All rights Reserved.
+ * Copyright (C) 2023-2024 Advanced Micro Devices, Inc. All rights Reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the Software), to deal
@@ -36,10 +36,10 @@ extern "C" {
 *  \brief Sparse vector inner dot product
 *
 *  \details
-*  \ref rocsparse_spvv computes the inner dot product of the sparse vecotr \f$x\f$ with the
+*  \p rocsparse_spvv computes the inner dot product of the sparse vecotr \f$x\f$ with the
 *  dense vector \f$y\f$, such that
 *  \f[
-*    \text{result} := x^{'} \cdot y,
+*    \text{result} := op(x) \cdot y,
 *  \f]
 *  with
 *  \f[
@@ -58,6 +58,9 @@ extern "C" {
 *          result += x_val[i] * y[x_ind[i]];
 *      }
 *  \endcode
+*
+*  \p rocsparse_spvv supports the following uniform and mixed precision data types for the sparse and dense vectors x and 
+*  y and compute types for the scalar \f$result\f$.
 *
 *  \par Uniform Precisions:
 *  <table>
@@ -198,8 +201,6 @@ extern "C" {
 *                  temp_buffer);
 *
 *   hipDeviceSynchronize();
-*
-*   std::cout << "hresult: " << hresult << std::endl;
 *
 *   // Clear rocSPARSE
 *   rocsparse_destroy_spvec_descr(vecX);

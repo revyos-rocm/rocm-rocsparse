@@ -22,6 +22,8 @@ function display_help()
   echo "    [--hip-clang] build library for amdgpu backend using hip-clang"
   echo "    [-s|--static] build static library"
   echo "    [--memstat] build with memory statistics enabled."
+  echo "    [--offload-compress] Apply offload compression (enabled by default)."
+  echo "    [--no-offload-compress] Do not apply offload compression."
   echo "    [--rocsparse_ILP64] build with rocsparse_int equal to int64_t."
   echo "    [--address-sanitizer] build with address sanitizer"
   echo "    [--codecoverage] build with code coverage profiling enabled"
@@ -30,7 +32,7 @@ function display_help()
   echo "    [--matrices-dir] existing client matrices directory"
   echo "    [--matrices-dir-install] install client matrices directory"
   echo "    [--rm-legacy-include-dir] Remove legacy include dir Packaging added for file/folder reorg backward compatibility."
-  echo "    [--without-rocblas] Disable building rocSPARSE with rocBLAS."
+  echo "    [--no-rocblas] Disable building rocSPARSE with rocBLAS."
   echo "    [--cmake-arg] Forward the given argument to CMake when configuring the build."
 }
 
@@ -283,6 +285,7 @@ build_address_sanitizer=false
 build_memstat=false
 build_rocsparse_ILP64=false
 build_with_rocblas=true
+build_with_offload_compress=true
 matrices_dir=
 matrices_dir_install=
 gpu_architecture=all
@@ -297,7 +300,7 @@ declare -a cmake_client_options
 # check if we have a modern version of getopt that can handle whitespace and long parameters
 getopt -T
 if [[ $? -eq 4 ]]; then
- GETOPT_PARSE=$(getopt --name "${0}" --longoptions help,install,clients,dependencies,debug,hip-clang,static,relocatable,codecoverage,relwithdebinfo,memstat,rocsparse_ILP64,rocprim-path:,rocblas-path:,without-rocblas,address-sanitizer,matrices-dir:,matrices-dir-install:,architecture:,rm-legacy-include-dir,cmake-arg: --options hicdgrska: -- "$@")
+ GETOPT_PARSE=$(getopt --name "${0}" --longoptions help,install,clients,dependencies,debug,hip-clang,static,relocatable,codecoverage,relwithdebinfo,memstat,rocsparse_ILP64,rocprim-path:,rocblas-path:,no-offload-compress,offload-compress,no-rocblas,address-sanitizer,matrices-dir:,matrices-dir-install:,architecture:,rm-legacy-include-dir,cmake-arg: --options hicdgrska: -- "$@")
 
 else
   echo "Need a new version of getopt"
@@ -353,7 +356,13 @@ while true; do
         --rocblas-path)
             rocblas_path=${2}
             shift 2 ;;
-        --without-rocblas)
+	--no-offload-compress)
+            build_with_offload_compress=false
+            shift ;;
+        --offload-compress)
+            build_with_offload_compress=true
+            shift ;;
+        --no-rocblas)
             build_with_rocblas=false
             shift ;;
         -k|--relwithdebinfo)
@@ -396,11 +405,24 @@ while true; do
     esac
 done
 
+
+if [[ -n "$CXX" ]]; then
+    cxx_compiler="${CXX}"
+else
+    cxx_compiler="${rocm_path}/bin/amdclang++"
+fi
+
+if [[ -n "$CC" ]]; then
+    cc_compiler="${CC}"
+else
+    cc_compiler="${rocm_path}/bin/amdclang"
+fi
+
 #
 # If matrices_dir_install has been set up then install matrices dir and exit.
 #
 if ! [[ "${matrices_dir_install}" == "" ]];then
-    cmake -DCMAKE_CXX_COMPILER="${rocm_path}/bin/hipcc" -DCMAKE_C_COMPILER="${rocm_path}/bin/hipcc"  -DPROJECT_BINARY_DIR=${matrices_dir_install} -DCMAKE_MATRICES_DIR=${matrices_dir_install} -DROCM_PATH=${rocm_path} -DCMAKE_INSTALL_LIBDIR=lib -P ./cmake/ClientMatrices.cmake
+    cmake -DCMAKE_CXX_COMPILER=${cxx_compiler}  -DCMAKE_C_COMPILER=${cc_compiler} -DPROJECT_BINARY_DIR=${matrices_dir_install} -DCMAKE_MATRICES_DIR=${matrices_dir_install} -DROCM_PATH=${rocm_path} -DCMAKE_INSTALL_LIBDIR=lib -P ./cmake/ClientMatrices.cmake
     exit 0
 fi
 
@@ -417,7 +439,7 @@ if ! [[ "${matrices_dir}" == "" ]];then
     # Let's 'reinstall' to the specified location to check if all good
     # Will be fast if everything already exists as expected.
     # This is to prevent any empty directory.
-    cmake -DCMAKE_CXX_COMPILER="${rocm_path}/bin/hipcc" -DCMAKE_C_COMPILER="${rocm_path}/bin/hipcc" -DPROJECT_BINARY_DIR=${matrices_dir} -DCMAKE_MATRICES_DIR=${matrices_dir} -DROCM_PATH=${rocm_path} -DCMAKE_INSTALL_LIBDIR=lib -P ./cmake/ClientMatrices.cmake
+    cmake -DCMAKE_CXX_COMPILER=${cxx_compiler}  -DCMAKE_C_COMPILER=${cc_compiler}  -DPROJECT_BINARY_DIR=${matrices_dir} -DCMAKE_MATRICES_DIR=${matrices_dir} -DROCM_PATH=${rocm_path} -DCMAKE_INSTALL_LIBDIR=lib -P ./cmake/ClientMatrices.cmake
 fi
 
 build_dir=./build
@@ -479,10 +501,14 @@ if [[ "${build_relocatable}" == true ]]; then
     if ! [ -z ${ROCM_PATH+x} ]; then
         rocm_path=${ROCM_PATH}
     fi
-
-    rocm_rpath=" -Wl,--enable-new-dtags -Wl,--rpath,/opt/rocm/lib:/opt/rocm/lib64"
+    if [[ "${cxx_compiler}" =~ .*amdclang\+\+ ]]; then
+        rpath_sep="="
+    else
+        rpath_sep=","
+    fi
+    rocm_rpath=" -Wl,--enable-new-dtags -Wl,--rpath${rpath_sep}/opt/rocm/lib:/opt/rocm/lib64"
     if ! [ -z ${ROCM_RPATH+x} ]; then
-        rocm_rpath=" -Wl,--enable-new-dtags -Wl,--rpath,${ROCM_RPATH}"
+        rocm_rpath=" -Wl,--enable-new-dtags -Wl,--rpath${rpath_sep}${ROCM_RPATH}"
     fi
 fi
 
@@ -498,7 +524,7 @@ pushd .
   # #################################################
   # configure & build
   # #################################################
-  cmake_common_options+=("-DAMDGPU_TARGETS=${gpu_architecture}")
+  cmake_common_options+=("--toolchain=toolchain-linux.cmake -DGPU_TARGETS=${gpu_architecture}")
 
   # build type
   if [[ "${build_release}" == true ]]; then
@@ -528,7 +554,14 @@ pushd .
     cmake_common_options+=("-DBUILD_ROCSPARSE_ILP64=ON")
   fi
 
-  # without-rocblas
+  # offload-compress
+  if [[ "${build_with_offload_compress}" == true ]]; then
+    cmake_common_options+=("-DBUILD_WITH_OFFLOAD_COMPRESS=ON")
+  else
+    cmake_common_options+=("-DBUILD_WITH_OFFLOAD_COMPRESS=OFF")
+  fi
+
+  # no-rocblas
   if [[ "${build_with_rocblas}" == true ]]; then
     cmake_common_options+=("-DBUILD_WITH_ROCBLAS=ON")
   else
@@ -567,11 +600,6 @@ pushd .
       fi
   fi
 
-  compiler="hcc"
-  if [[ "${build_hip_clang}" == true ]]; then
-    compiler="${rocm_path}/bin/hipcc"
-  fi
-
   # custom rocprim
   if [[ ${rocprim_path+foo} ]]; then
     cmake_common_options+=("-Drocprim_DIR=${rocprim_path}/rocprim")
@@ -584,7 +612,7 @@ pushd .
 
   # Build library with AMD toolchain because of existence of device kernels
   if [[ "${build_relocatable}" == true ]]; then
-    FC=gfortran CXX=${compiler} CC=${compiler} ${cmake_executable} ${cmake_common_options[@]} ${cmake_client_options[@]} -DCPACK_SET_DESTDIR=OFF \
+    FC=gfortran ${cmake_executable} ${cmake_common_options[@]} ${cmake_client_options[@]} -DCPACK_SET_DESTDIR=OFF \
       -DCMAKE_INSTALL_PREFIX=${install_prefix} \
       -DCPACK_PACKAGING_INSTALL_PREFIX=${rocm_path} \
       -DCMAKE_SHARED_LINKER_FLAGS="${rocm_rpath}" \
@@ -593,7 +621,7 @@ pushd .
       -DROCM_DISABLE_LDCONFIG=ON \
       -DROCM_PATH="${rocm_path}" ../..
   else
-    FC=gfortran CXX=${compiler} CC=${compiler} ${cmake_executable} ${cmake_common_options[@]} ${cmake_client_options[@]} -DCPACK_SET_DESTDIR=OFF -DCMAKE_INSTALL_PREFIX=${install_prefix} -DCPACK_PACKAGING_INSTALL_PREFIX=${rocm_path} -DROCM_PATH="${rocm_path}" ../..
+    FC=gfortran ${cmake_executable} ${cmake_common_options[@]} ${cmake_client_options[@]} -DCPACK_SET_DESTDIR=OFF -DCMAKE_INSTALL_PREFIX=${install_prefix} -DCPACK_PACKAGING_INSTALL_PREFIX=${rocm_path} -DROCM_PATH="${rocm_path}" ../..
   fi
   check_exit_code "$?"
 

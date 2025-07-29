@@ -1,11 +1,11 @@
 // This file is for internal AMD use.
 // If you are interested in running your own Jenkins, please raise a github issue for assistance.
 
-def runCompileCommand(platform, project, jobName, boolean sameOrg=true)
+def runCompileCommand(platform, project, jobName, boolean sameOrg=false)
 {
     project.paths.construct_build_prefix()
 
-    String compiler = jobName.contains('hipclang') ? 'hipcc' : 'hcc'
+    String compiler = 'amdclang++'
     String hipClangArgs = jobName.contains('hipclang') ? ' --hip-clang' : ''
     String staticArgs = jobName.contains('static') ? ' -s' : ''
     //Temporary workaround due to bug in container
@@ -43,6 +43,7 @@ def runTestCommand (platform, project, gfilter, String dirmode = "release")
     {
         hmmTestCommand = """
                             HSA_XNACK=0 GTEST_LISTENER=NO_PASS_LINE_IN_LOG  ./rocsparse-test  --rocsparse-enable-debug --rocsparse-clients-enable-test-debug-arguments --gtest_output=xml:test_detail_hmm_xnack_off.xml --gtest_color=yes --gtest_filter=${gfilter}-*known_bug*
+                            HSA_XNACK=1 GTEST_LISTENER=NO_PASS_LINE_IN_LOG ./rocsparse-test --gtest_output=xml:test_detail_hmm_xnack_on.xml --gtest_color=yes --gtest_filter=${gfilter}-*known_bug*
                          """
     }
 

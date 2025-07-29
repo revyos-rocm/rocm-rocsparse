@@ -30,7 +30,7 @@
 #include "rocsparse_csrgemm.hpp"
 #include "utility.h"
 
-#include <rocprim/rocprim.hpp>
+#include "rocsparse_primitives.h"
 
 namespace rocsparse
 {
@@ -490,23 +490,16 @@ rocsparse_status rocsparse::csrgemm_calc_template(rocsparse_handle          hand
 #undef CSRGEMM_DIM
 
         // Exclusive sum to obtain group offsets
-        RETURN_IF_HIP_ERROR(rocprim::exclusive_scan(nullptr,
-                                                    rocprim_size,
-                                                    d_group_size,
-                                                    d_group_offset,
-                                                    0,
-                                                    CSRGEMM_MAXGROUPS,
-                                                    rocprim::plus<J>(),
-                                                    stream));
         rocprim_buffer = reinterpret_cast<void*>(buffer);
-        RETURN_IF_HIP_ERROR(rocprim::exclusive_scan(rocprim_buffer,
-                                                    rocprim_size,
-                                                    d_group_size,
-                                                    d_group_offset,
-                                                    0,
-                                                    CSRGEMM_MAXGROUPS,
-                                                    rocprim::plus<J>(),
-                                                    stream));
+        RETURN_IF_ROCSPARSE_ERROR((rocsparse::primitives::exclusive_scan_buffer_size<J, J>(
+            handle, static_cast<J>(0), CSRGEMM_MAXGROUPS, &rocprim_size)));
+        RETURN_IF_ROCSPARSE_ERROR(rocsparse::primitives::exclusive_scan(handle,
+                                                                        d_group_size,
+                                                                        d_group_offset,
+                                                                        static_cast<J>(0),
+                                                                        CSRGEMM_MAXGROUPS,
+                                                                        rocprim_size,
+                                                                        rocprim_buffer));
 
         // Copy group sizes to host
         RETURN_IF_HIP_ERROR(hipMemcpyAsync(&h_group_size,
@@ -522,15 +515,15 @@ rocsparse_status rocsparse::csrgemm_calc_template(rocsparse_handle          hand
         RETURN_IF_ROCSPARSE_ERROR(
             rocsparse::create_identity_permutation_template(handle, m, tmp_perm));
 
-        rocprim::double_buffer<int> d_keys(tmp_groups, tmp_keys);
-        rocprim::double_buffer<J>   d_vals(tmp_perm, tmp_vals);
+        rocsparse::primitives::double_buffer<int> d_keys(tmp_groups, tmp_keys);
+        rocsparse::primitives::double_buffer<J>   d_vals(tmp_perm, tmp_vals);
 
         // Sort pairs (by groups)
-        RETURN_IF_HIP_ERROR(
-            rocprim::radix_sort_pairs(nullptr, rocprim_size, d_keys, d_vals, m, 0, 3, stream));
         rocprim_buffer = reinterpret_cast<void*>(buffer);
-        RETURN_IF_HIP_ERROR(rocprim::radix_sort_pairs(
-            rocprim_buffer, rocprim_size, d_keys, d_vals, m, 0, 3, stream));
+        RETURN_IF_ROCSPARSE_ERROR((rocsparse::primitives::radix_sort_pairs_buffer_size<int, J>(
+            handle, m, 0, 3, &rocprim_size)));
+        RETURN_IF_ROCSPARSE_ERROR(rocsparse::primitives::radix_sort_pairs(
+            handle, d_keys, d_vals, m, 0, 3, rocprim_size, rocprim_buffer));
 
         d_perm = d_vals.current();
 
@@ -808,7 +801,6 @@ rocsparse_status rocsparse::csrgemm_calc_template(rocsparse_handle          hand
 #undef CSRGEMM_DIM
     }
 
-#ifndef rocsparse_ILP64
     // Group 6: 2049 - 4096 non-zeros per row
     if(h_group_size[6] > 0 && !exceeding_smem)
     {
@@ -840,7 +832,6 @@ rocsparse_status rocsparse::csrgemm_calc_template(rocsparse_handle          hand
                                                               info_C->csrgemm_info->mul,
                                                               info_C->csrgemm_info->add));
     }
-#endif
 
     // Group 7: more than 4096 non-zeros per row
     if(h_group_size[7] > 0)
@@ -853,9 +844,6 @@ rocsparse_status rocsparse::csrgemm_calc_template(rocsparse_handle          hand
             return rocsparse_status_requires_sorted_storage;
         }
 
-#define CSRGEMM_DIM 512
-#define CSRGEMM_SUB 16
-#define CSRGEMM_CHUNKSIZE 2048
         I* workspace_B = nullptr;
 
         if(info_C->csrgemm_info->mul == true)
@@ -865,6 +853,9 @@ rocsparse_status rocsparse::csrgemm_calc_template(rocsparse_handle          hand
                 rocsparse_hipMallocAsync((void**)&workspace_B, sizeof(I) * nnz_A, handle->stream));
         }
 
+#define CSRGEMM_DIM 512
+#define CSRGEMM_SUB 16
+#define CSRGEMM_CHUNKSIZE 2048
         RETURN_IF_HIPLAUNCHKERNELGGL_ERROR(
             (rocsparse::
                  csrgemm_fill_block_per_row_multipass<CSRGEMM_DIM, CSRGEMM_SUB, CSRGEMM_CHUNKSIZE>),
@@ -896,14 +887,14 @@ rocsparse_status rocsparse::csrgemm_calc_template(rocsparse_handle          hand
             base_D,
             info_C->csrgemm_info->mul,
             info_C->csrgemm_info->add);
+#undef CSRGEMM_CHUNKSIZE
+#undef CSRGEMM_SUB
+#undef CSRGEMM_DIM
 
         if(info_C->csrgemm_info->mul == true)
         {
             RETURN_IF_HIP_ERROR(rocsparse_hipFreeAsync(workspace_B, handle->stream));
         }
-#undef CSRGEMM_CHUNKSIZE
-#undef CSRGEMM_SUB
-#undef CSRGEMM_DIM
     }
 
     return rocsparse_status_success;

@@ -1,6 +1,6 @@
 /*! \file */
 /* ************************************************************************
- * Copyright (C) 2023 Advanced Micro Devices, Inc. All rights Reserved.
+ * Copyright (C) 2023-2024 Advanced Micro Devices, Inc. All rights Reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the Software), to deal
@@ -36,7 +36,7 @@ extern "C" {
 *  \brief Scale a sparse vector and add it to a scaled dense vector.
 *
 *  \details
-*  \ref rocsparse_axpby multiplies the sparse vector \f$x\f$ with scalar \f$\alpha\f$ and
+*  \p rocsparse_axpby multiplies the sparse vector \f$x\f$ with scalar \f$\alpha\f$ and
 *  adds the result to the dense vector \f$y\f$ that is multiplied with scalar
 *  \f$\beta\f$, such that
 *
@@ -45,11 +45,28 @@ extern "C" {
 *  \f]
 *
 *  \code{.c}
+*      for(i = 0; i < size; ++i)
+*      {
+*          y[i] = beta * y[i]
+*      }
 *      for(i = 0; i < nnz; ++i)
 *      {
-*          y[x_ind[i]] = alpha * x_val[i] + beta * y[x_ind[i]]
+*          y[x_ind[i]] += alpha * x_val[i]
 *      }
 *  \endcode
+*
+*  \p rocsparse_axpby supports the following uniform precision data types for the sparse and dense vectors x and 
+*  y and compute types for the scalars \f$\alpha\f$ and \f$\beta\f$.
+*
+*  \par Uniform Precisions:
+*  <table>
+*  <caption id="axpby_uniform">Uniform Precisions</caption>
+*  <tr><th>X / Y / compute_type
+*  <tr><td>rocsparse_datatype_f32_r
+*  <tr><td>rocsparse_datatype_f64_r
+*  <tr><td>rocsparse_datatype_f32_c
+*  <tr><td>rocsparse_datatype_f64_c
+*  </table>
 *
 *  \note
 *  This function is non blocking and executed asynchronously with respect to the host.

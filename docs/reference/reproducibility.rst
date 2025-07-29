@@ -53,6 +53,7 @@ Function name                                                                 ye
 :cpp:func:`rocsparse_csritsv_zero_pivot`                                      x
 :cpp:func:`rocsparse_csritsv_clear`                                           x
 :cpp:func:`rocsparse_Xcsritsv_solve() <rocsparse_scsritsv_solve>`                 x
+:cpp:func:`rocsparse_Xcsritsv_solve_ex() <rocsparse_scsritsv_solve_ex>`           x
 :cpp:func:`rocsparse_Xgemvi_buffer_size() <rocsparse_sgemvi_buffer_size>`     x
 :cpp:func:`rocsparse_Xgemvi() <rocsparse_sgemvi>`                             x
 ============================================================================= === ==
@@ -176,6 +177,7 @@ Function name                                                                   
 :cpp:func:`rocsparse_csritilu0_buffer_size`                                                                           x
 :cpp:func:`rocsparse_csritilu0_preprocess`                                                                                x
 :cpp:func:`rocsparse_Xcsritilu0_compute() <rocsparse_scsritilu0_compute>`                                                 x
+:cpp:func:`rocsparse_Xcsritilu0_compute_ex() <rocsparse_scsritilu0_compute_ex>`                                           x
 :cpp:func:`rocsparse_Xcsritilu0_history() <rocsparse_scsritilu0_history>`                                                 x
 :cpp:func:`rocsparse_Xgtsv_buffer_size() <rocsparse_sgtsv_buffer_size>`                                               x
 :cpp:func:`rocsparse_Xgtsv() <rocsparse_sgtsv>`                                                                       x
@@ -304,6 +306,8 @@ Function name                                        yes no
 :cpp:func:`rocsparse_sddmm()`                        x
 :cpp:func:`rocsparse_sparse_to_sparse_buffer_size()` x
 :cpp:func:`rocsparse_sparse_to_sparse()`             x
+:cpp:func:`rocsparse_extract_buffer_size()`          x
+:cpp:func:`rocsparse_extract()`                      x
 ==================================================== === ==
 
 The reproducibility of :cpp:func:`rocsparse_spmv()` is more complicated because this generic routine

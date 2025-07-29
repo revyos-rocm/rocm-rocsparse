@@ -78,6 +78,7 @@ static constexpr std::size_t countof2(T (&)[N])
   TRANSFORM_ROCSPARSE_TEST_ENUM(csric0)					\
   TRANSFORM_ROCSPARSE_TEST_ENUM(csricsv)				\
   TRANSFORM_ROCSPARSE_TEST_ENUM(csritilu0)				\
+  TRANSFORM_ROCSPARSE_TEST_ENUM(csritilu0_ex)				\
   TRANSFORM_ROCSPARSE_TEST_ENUM(csrsldu)				\
   TRANSFORM_ROCSPARSE_TEST_ENUM(csrilu0)				\
   TRANSFORM_ROCSPARSE_TEST_ENUM(csrilusv)				\
@@ -133,10 +134,13 @@ static constexpr std::size_t countof2(T (&)[N])
   TRANSFORM_ROCSPARSE_TEST_ENUM(sparse_to_dense_csc)			\
   TRANSFORM_ROCSPARSE_TEST_ENUM(sparse_to_dense_csr)			\
   TRANSFORM_ROCSPARSE_TEST_ENUM(sparse_to_sparse)			\
+  TRANSFORM_ROCSPARSE_TEST_ENUM(extract)			\
   TRANSFORM_ROCSPARSE_TEST_ENUM(spgemm_bsr)				\
   TRANSFORM_ROCSPARSE_TEST_ENUM(spgemm_csr)				\
+  TRANSFORM_ROCSPARSE_TEST_ENUM(spgemm_reuse_csr)				\
   TRANSFORM_ROCSPARSE_TEST_ENUM(spmat_descr)				\
   TRANSFORM_ROCSPARSE_TEST_ENUM(spmm_bell)				\
+  TRANSFORM_ROCSPARSE_TEST_ENUM(spmm_bsr)				\
   TRANSFORM_ROCSPARSE_TEST_ENUM(spmm_coo)				\
   TRANSFORM_ROCSPARSE_TEST_ENUM(spmm_csc)				\
   TRANSFORM_ROCSPARSE_TEST_ENUM(spmm_csr)				\

@@ -30,7 +30,6 @@
 #include "common.h"
 #include "control.h"
 #include "utility.h"
-#include <rocprim/rocprim.hpp>
 
 namespace rocsparse
 {
@@ -39,21 +38,26 @@ namespace rocsparse
     template <uint32_t HASHVAL, uint32_t HASHSIZE, typename I>
     ROCSPARSE_DEVICE_ILF bool insert_key(I key, I* __restrict__ table)
     {
+        constexpr I empty = -1;
+
         // Compute hash
         I hash = (key * HASHVAL) & (HASHSIZE - 1);
 
         // Loop until key has been inserted
         while(true)
         {
-            if(table[hash] == key)
+            // Load table[hash] exactly once in case it gets set by another thread
+            const I temp = table[hash];
+
+            if(temp == key)
             {
                 // Element already present
                 return false;
             }
-            else if(table[hash] == -1)
+            else if(temp == empty)
             {
                 // If empty, add element with atomic
-                if(rocsparse::atomic_cas(&table[hash], -1, key) == -1)
+                if(rocsparse::atomic_cas(&table[hash], empty, key) == empty)
                 {
                     // Increment number of insertions
                     return true;
@@ -75,20 +79,25 @@ namespace rocsparse
     ROCSPARSE_DEVICE_ILF bool
         insert_key(J key, I* __restrict__ table, I* __restrict__ local_idxs, I local_idx)
     {
+        constexpr I empty = -1;
+
         // Compute hash
         I hash = (key * HASHVAL) & (HASHSIZE - 1);
         // Loop until key has been inserted
         while(true)
         {
-            if(table[hash] == key)
+            // Load table[hash] exactly once in case it gets set by another thread
+            const I temp = table[hash];
+
+            if(temp == key)
             {
                 // Element already present
                 return false;
             }
-            else if(table[hash] == -1)
+            else if(temp == empty)
             {
-                rocsparse::atomic_cas(&table[hash], -1, key);
-                rocsparse::atomic_cas(&local_idxs[hash], -1, local_idx);
+                rocsparse::atomic_cas(&table[hash], empty, key);
+                rocsparse::atomic_cas(&local_idxs[hash], empty, local_idx);
                 return true;
             }
             else
@@ -110,13 +119,16 @@ namespace rocsparse
         // Loop until pair has been inserted
         while(true)
         {
-            if(table[hash] == key)
+            // Load table[hash] exactly once in case it gets set by another thread
+            const I temp = table[hash];
+
+            if(temp == key)
             {
                 // Element already present, add value to exsiting entry
                 rocsparse::atomic_add(&data[hash], val);
                 break;
             }
-            else if(table[hash] == empty)
+            else if(temp == empty)
             {
                 // If empty, add element with atomic
                 if(rocsparse::atomic_cas(&table[hash], empty, key) == empty)
@@ -1449,7 +1461,6 @@ rocsparse_status rocsparse::csrgemm_numeric_calc_template(rocsparse_handle    ha
 #undef CSRGEMM_DIM
     }
 
-#ifndef rocsparse_ILP64
     // Group 6: 2049 - 4096 non-zeros per row
     if(h_group_size[6] > 0 && !exceeding_smem)
     {
@@ -1482,7 +1493,6 @@ rocsparse_status rocsparse::csrgemm_numeric_calc_template(rocsparse_handle    ha
                                                                       info_C->csrgemm_info->mul,
                                                                       info_C->csrgemm_info->add));
     }
-#endif
 
     // Group 7: more than 4096 non-zeros per row
     if(h_group_size[7] > 0)

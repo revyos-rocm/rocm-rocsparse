@@ -125,6 +125,8 @@ struct Arguments
     rocsparse_int unit_check;
     rocsparse_int timing;
     rocsparse_int iters;
+    rocsparse_int nfreeiter;
+    rocsparse_int nmaxiter;
 
     int64_t       denseld;
     rocsparse_int batch_count;
@@ -146,7 +148,7 @@ struct Arguments
 
     bool graph_test;
     bool skip_reproducibility;
-
+    bool sparsity_pattern_statistics;
     char filename[128];
     char function[64];
     char name[64];
@@ -266,6 +268,8 @@ struct Arguments
         ROCSPARSE_FORMAT_CHECK(unit_check);
         ROCSPARSE_FORMAT_CHECK(timing);
         ROCSPARSE_FORMAT_CHECK(iters);
+        ROCSPARSE_FORMAT_CHECK(nfreeiter);
+        ROCSPARSE_FORMAT_CHECK(nmaxiter);
         ROCSPARSE_FORMAT_CHECK(denseld);
         ROCSPARSE_FORMAT_CHECK(batch_count);
         ROCSPARSE_FORMAT_CHECK(batch_count_A);
@@ -282,6 +286,7 @@ struct Arguments
         ROCSPARSE_FORMAT_CHECK(tolm);
         ROCSPARSE_FORMAT_CHECK(graph_test);
         ROCSPARSE_FORMAT_CHECK(skip_reproducibility);
+        ROCSPARSE_FORMAT_CHECK(sparsity_pattern_statistics);
         ROCSPARSE_FORMAT_CHECK(filename);
         ROCSPARSE_FORMAT_CHECK(function);
         ROCSPARSE_FORMAT_CHECK(name);
@@ -493,6 +498,7 @@ private:
         print("tolm", arg.tolm);
         print("graph_test", arg.graph_test);
         print("skip_reproducibility", arg.skip_reproducibility);
+        print("sparsity_pattern_statistics", arg.sparsity_pattern_statistics);
         print("name", arg.name);
         print("category", arg.category);
         print("hardware", arg.hardware);
@@ -501,6 +507,8 @@ private:
         print("unit_check", arg.unit_check);
         print("timing", arg.timing);
         print("iters", arg.iters);
+        print("nfreeiter", arg.nfreeiter);
+        print("nmaxiter", arg.nmaxiter);
         print("denseld", arg.denseld);
         print("batch_count", arg.batch_count);
         print("batch_count_A", arg.batch_count_A);

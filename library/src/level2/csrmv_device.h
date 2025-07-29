@@ -88,19 +88,6 @@ namespace rocsparse
         }
     }
 
-    template <typename J, typename Y, typename T>
-    ROCSPARSE_DEVICE_ILF void csrmvt_scale_device(J size, T scalar, Y* data)
-    {
-        const J idx = blockIdx.x * blockDim.x + threadIdx.x;
-
-        if(idx >= size)
-        {
-            return;
-        }
-
-        data[idx] *= scalar;
-    }
-
     template <uint32_t BLOCKSIZE,
               uint32_t WF_SIZE,
               typename I,
@@ -161,6 +148,42 @@ namespace rocsparse
                     const A val = rocsparse::conj_val(csr_val[j], conj);
                     rocsparse::atomic_add(&y[col], row_val * val);
                 }
+            }
+        }
+    }
+
+    // Scales y by beta in the range [0, first_row) and [last_row, m)
+    template <uint32_t WG_SIZE, typename J, typename Y, typename T>
+    ROCSPARSE_DEVICE_ILF void partial_scale_y_device(J m, J first_row, J last_row, T beta, Y* y)
+    {
+        const J gid              = hipBlockIdx_x * WG_SIZE + hipThreadIdx_x;
+        const J required_threads = (first_row - 0) + (m - last_row);
+
+        if(gid >= required_threads)
+        {
+            return;
+        }
+
+        if(gid < first_row)
+        {
+            if(beta == static_cast<T>(0))
+            {
+                y[gid] = static_cast<Y>(0);
+            }
+            else
+            {
+                y[gid] *= beta;
+            }
+        }
+        else
+        {
+            if(beta == static_cast<T>(0))
+            {
+                y[last_row + (gid - first_row)] = static_cast<Y>(0);
+            }
+            else
+            {
+                y[last_row + (gid - first_row)] *= beta;
             }
         }
     }
@@ -474,16 +497,23 @@ namespace rocsparse
                 // To force the compiler to stick to the order of operations, we need acquire/release fences.
                 // Workgroup scope is sufficient for this purpose, to only invalidate L1 and avoid L2
                 // invalidations.
+#if defined(__gfx1200__) || defined(__gfx1201__)
+#define __gfx12__
+#endif
+#if defined(__gfx12__)
+                __threadfence();
+#else
                 __builtin_amdgcn_fence(__ATOMIC_RELEASE, "workgroup");
                 __builtin_amdgcn_s_waitcnt(0);
+#endif
 
                 // Release other workgroups
                 atomicXor(&wg_flags[first_wg_in_row], 1U);
             }
 
             const I vecStart = (I)wg * (I)BLOCK_MULTIPLIER * BLOCKSIZE + row_offset - idx_base;
-            const I vecEnd
-                = min(csr_row_ptr[row + 1] - idx_base, vecStart + BLOCK_MULTIPLIER * BLOCKSIZE);
+            const I vecEnd   = rocsparse::min(csr_row_ptr[row + 1] - idx_base,
+                                            vecStart + I(BLOCK_MULTIPLIER * BLOCKSIZE));
 
             // Load in a bunch of partial results into your register space, rather than LDS (no
             // contention)
@@ -1017,8 +1047,15 @@ namespace rocsparse
             // To force the compiler to stick to the order of operations, we need acquire/release fences.
             // Workgroup scope is sufficient for this purpose, to only invalidate L1 and avoid L2
             // invalidations.
+#if defined(__gfx1200__) || defined(__gfx1201__)
+#define __gfx12__
+#endif
+#if defined(__gfx12__)
+            __threadfence();
+#else
             __builtin_amdgcn_fence(__ATOMIC_RELEASE, "workgroup");
             __builtin_amdgcn_s_waitcnt(0);
+#endif
 
             // Release other workgroups
             atomicXor(&wg_flags[first_wg_in_row], 1U);

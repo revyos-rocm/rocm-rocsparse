@@ -1,6 +1,6 @@
 /*! \file */
 /* ************************************************************************
-* Copyright (C) 2021-2023 Advanced Micro Devices, Inc. All rights Reserved.
+* Copyright (C) 2021-2024 Advanced Micro Devices, Inc. All rights Reserved.
 *
 * Permission is hereby granted, free of charge, to any person obtaining a copy
 * of this software and associated documentation files (the "Software"), to deal
@@ -237,6 +237,7 @@ constexpr const char* rocsparse_routine::to_string() const
 #include "testing_spmm_batched_csc.hpp"
 #include "testing_spmm_batched_csr.hpp"
 #include "testing_spmm_bell.hpp"
+#include "testing_spmm_bsr.hpp"
 #include "testing_spmm_coo.hpp"
 #include "testing_spmm_csc.hpp"
 #include "testing_spmm_csr.hpp"
@@ -251,6 +252,7 @@ constexpr const char* rocsparse_routine::to_string() const
 #include "testing_csrgemm_reuse.hpp"
 #include "testing_spgemm_bsr.hpp"
 #include "testing_spgemm_csr.hpp"
+#include "testing_spgemm_reuse_csr.hpp"
 
 // Preconditioner
 #include "testing_bsric0.hpp"
@@ -258,6 +260,7 @@ constexpr const char* rocsparse_routine::to_string() const
 #include "testing_csric0.hpp"
 #include "testing_csrilu0.hpp"
 #include "testing_csritilu0.hpp"
+#include "testing_csritilu0_ex.hpp"
 #include "testing_gpsv_interleaved_batch.hpp"
 #include "testing_gtsv.hpp"
 #include "testing_gtsv_interleaved_batch.hpp"
@@ -287,6 +290,7 @@ constexpr const char* rocsparse_routine::to_string() const
 #include "testing_dense_to_sparse_csc.hpp"
 #include "testing_dense_to_sparse_csr.hpp"
 #include "testing_ell2csr.hpp"
+#include "testing_extract.hpp"
 #include "testing_gebsr2csr.hpp"
 #include "testing_gebsr2gebsc.hpp"
 #include "testing_gebsr2gebsr.hpp"
@@ -373,6 +377,7 @@ rocsparse_status rocsparse_routine::dispatch_call(const Arguments& arg)
             return status;                    \
         }                                     \
     }
+#define DEFINE_CASE_IABCT_X(value, testingf) DEFINE_CASE_IAXYT_X(value, testingf)
 
 #define DEFINE_CASE_IJAXYT_X(value, testingf) \
     case value:                               \
@@ -387,12 +392,15 @@ rocsparse_status rocsparse_routine::dispatch_call(const Arguments& arg)
             return status;                    \
         }                                     \
     }
+#define DEFINE_CASE_IJABCT_X(value, testingf) DEFINE_CASE_IJAXYT_X(value, testingf)
 
 #define DEFINE_CASE_IT(value) DEFINE_CASE_IT_X(value, testing_##value)
 #define DEFINE_CASE_IJT(value) DEFINE_CASE_IJT_X(value, testing_##value)
 #define DEFINE_CASE_IXYT(value) DEFINE_CASE_IXYT_X(value, testing_##value)
 #define DEFINE_CASE_IAXYT(value) DEFINE_CASE_IAXYT_X(value, testing_##value)
 #define DEFINE_CASE_IJAXYT(value) DEFINE_CASE_IJAXYT_X(value, testing_##value)
+#define DEFINE_CASE_IABCT(value) DEFINE_CASE_IABCT_X(value, testing_##value)
+#define DEFINE_CASE_IJABCT(value) DEFINE_CASE_IJABCT_X(value, testing_##value)
 #define IS_T_REAL (std::is_same<T, double>() || std::is_same<T, float>())
 #define IS_T_COMPLEX \
     (std::is_same<T, rocsparse_double_complex>() || std::is_same<T, rocsparse_float_complex>())
@@ -487,7 +495,6 @@ rocsparse_status rocsparse_routine::dispatch_call(const Arguments& arg)
         DEFINE_CASE_T(bsrgeam);
         DEFINE_CASE_T(bsric0);
         DEFINE_CASE_T(bsrilu0);
-        DEFINE_CASE_T(bsrmm);
         DEFINE_CASE_T(bsrsm);
         DEFINE_CASE_T(bsrsv);
         DEFINE_CASE_T(bsrxmv);
@@ -499,8 +506,8 @@ rocsparse_status rocsparse_routine::dispatch_call(const Arguments& arg)
         DEFINE_CASE_T(check_matrix_gebsc);
         DEFINE_CASE_T(check_matrix_ell);
         DEFINE_CASE_T(check_matrix_hyb);
-        DEFINE_CASE_IT_X(coomm, testing_spmm_coo);
-        DEFINE_CASE_IT_X(coomm_batched, testing_spmm_batched_coo);
+        DEFINE_CASE_IABCT_X(coomm, testing_spmm_coo);
+        DEFINE_CASE_IABCT_X(coomm_batched, testing_spmm_batched_coo);
         DEFINE_CASE_IAXYT_X(coomv, testing_spmv_coo);
         DEFINE_CASE_T_FLOAT_ONLY(coosort);
         DEFINE_CASE_IT_X(coosv, testing_spsv_coo);
@@ -514,18 +521,20 @@ rocsparse_status rocsparse_routine::dispatch_call(const Arguments& arg)
         DEFINE_CASE_T(csric0);
         DEFINE_CASE_T(csrilu0);
         DEFINE_CASE_T(csritilu0);
+        DEFINE_CASE_T(csritilu0_ex);
         DEFINE_CASE_T(csrgeam);
         DEFINE_CASE_IJT_X(bsrgemm, testing_spgemm_bsr);
         DEFINE_CASE_IJT_X(csrgemm, testing_spgemm_csr);
-        DEFINE_CASE_T(csrgemm_reuse);
+        DEFINE_CASE_IJT_X(csrgemm_reuse, testing_spgemm_reuse_csr);
         DEFINE_CASE_IJAXYT_X(bsrmv, testing_spmv_bsr);
         DEFINE_CASE_IJAXYT_X(csrmv, testing_spmv_csr);
         DEFINE_CASE_T(csrmv_managed);
+        DEFINE_CASE_IJABCT_X(bsrmm, testing_spmm_bsr);
         DEFINE_CASE_IJAXYT_X(cscmv, testing_spmv_csc);
-        DEFINE_CASE_IJT_X(csrmm, testing_spmm_csr);
-        DEFINE_CASE_IJT_X(csrmm_batched, testing_spmm_batched_csr);
-        DEFINE_CASE_IJT_X(cscmm, testing_spmm_csc);
-        DEFINE_CASE_IJT_X(cscmm_batched, testing_spmm_batched_csc);
+        DEFINE_CASE_IJABCT_X(csrmm, testing_spmm_csr);
+        DEFINE_CASE_IJABCT_X(csrmm_batched, testing_spmm_batched_csr);
+        DEFINE_CASE_IJABCT_X(cscmm, testing_spmm_csc);
+        DEFINE_CASE_IJABCT_X(cscmm_batched, testing_spmm_batched_csc);
         DEFINE_CASE_IJT_X(csrsm, testing_spsm_csr);
         DEFINE_CASE_T_FLOAT_ONLY(csrsort);
         DEFINE_CASE_IJT_X(csrsv, testing_spsv_csr);
@@ -579,6 +588,7 @@ rocsparse_status rocsparse_routine::dispatch_call(const Arguments& arg)
         DEFINE_CASE_IJT(sparse_to_dense_csc);
         DEFINE_CASE_IJT(sparse_to_dense_csr);
         DEFINE_CASE_IJT(sparse_to_sparse);
+        DEFINE_CASE_IJT(extract);
     }
 
 #undef DEFINE_CASE_IT_X
