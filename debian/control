@@ -16,8 +16,8 @@ Build-Depends:
  rocm-rocprim-dev,
 Standards-Version: 4.7.0
 Homepage: https://github.com/ROCm/rocSPARSE
-Vcs-Browser: https://github.com/r-rocm/rocm-rocsparse
-Vcs-Git: https://github.com/r-rocm/rocm-rocsparse.git
+Vcs-Browser: https://github.com/revyos-rocm/rocm-rocsparse
+Vcs-Git: https://github.com/revyos-rocm/rocm-rocsparse.git
 
 Package: rocm-rocsparse
 Architecture: any

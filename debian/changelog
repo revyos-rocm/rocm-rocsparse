@@ -1,3 +1,9 @@
+rocm-rocsparse (6.4.2-1) trixie; urgency=medium
+
+  * Release 6.4.2-1
+
+ --  <chenxuan@iscas.ac.cn>  Tue, 29 Jul 2025 10:32:53 +0800
+
 rocm-rocsparse (6.2.4-2) unstable; urgency=medium
 
   * Update GPU targets.
