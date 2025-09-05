@@ -1,6 +1,7 @@
 rocm-rocsparse (6.4.3-1) trixie; urgency=medium
 
   * Release 6.4.3-1
+  * Only gfx1100 enabled
 
  -- CHEN Xuan <chenxuan@iscas.ac.cn>  Fri, 05 Sep 2025 09:02:26 +0800
 
