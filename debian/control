@@ -12,11 +12,11 @@ Build-Depends:
  python3,
  rocm-cmake,
  rocm-core,
- rocm-env,
+ rocm-env (>= 7.0.0),
  rocm-hip-on-rocclr-dev,
  rocm-rocminfo,
  rocm-rocr-dev,
- rocm-llvm,
+ rocm-llvm (>= 7.0.0),
  rocm-rocprim-dev,
 Standards-Version: 4.7.0
 Homepage: https://github.com/ROCm/rocSPARSE
@@ -29,7 +29,7 @@ Depends:
  ${shlibs:Depends},
  ${misc:Depends},
  rocm-core,
- rocm-env,
+ rocm-env (>= 7.0.0),
 Description: Next generation SPARSE implementation for ROCm platform - Binary
  rocSPARSE exposes a common interface that provides Basic Linear Algebra
  Subroutines (BLAS) for sparse computation. It's implemented on top of AMD ROCm

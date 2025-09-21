@@ -1,3 +1,9 @@
+rocm-rocsparse (7.0.1-1) trixie; urgency=medium
+
+  * Release 7.0.1-1
+
+ -- CHEN Xuan <chenxuan@iscas.ac.cn>  Sun, 21 Sep 2025 20:40:05 +0800
+
 rocm-rocsparse (6.4.3-1) trixie; urgency=medium
 
   * Release 6.4.3-1
