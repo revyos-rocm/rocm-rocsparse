@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (C) 2023-2024 Advanced Micro Devices, Inc. All rights Reserved.
+ * Copyright (C) 2023-2025 Advanced Micro Devices, Inc. All rights Reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -22,7 +22,67 @@
  * ************************************************************************ */
 
 #include "rocsparse_sparse_to_sparse.hpp"
-#include "utility.h"
+#include "rocsparse_utility.hpp"
+
+template <>
+const char* rocsparse::enum_utils::to_string(rocsparse_sparse_to_sparse_alg value)
+{
+#define CASE(C) \
+    case C:     \
+        return #C
+    switch(value)
+    {
+        CASE(rocsparse_sparse_to_sparse_alg_default);
+#undef CASE
+    }
+    // LCOV_EXCL_START
+    THROW_IF_ROCSPARSE_ERROR(rocsparse_status_invalid_value);
+    // LCOV_EXCL_STOP
+}
+
+template <>
+const char* rocsparse::enum_utils::to_string(rocsparse_sparse_to_sparse_stage value)
+{
+#define CASE(C) \
+    case C:     \
+        return #C
+    switch(value)
+    {
+        CASE(rocsparse_sparse_to_sparse_stage_analysis);
+        CASE(rocsparse_sparse_to_sparse_stage_compute);
+#undef CASE
+    }
+    // LCOV_EXCL_START
+    THROW_IF_ROCSPARSE_ERROR(rocsparse_status_invalid_value);
+    // LCOV_EXCL_STOP
+}
+
+template <>
+bool rocsparse::enum_utils::is_invalid(rocsparse_sparse_to_sparse_stage value)
+{
+    switch(value)
+    {
+    case rocsparse_sparse_to_sparse_stage_analysis:
+    case rocsparse_sparse_to_sparse_stage_compute:
+    {
+        return false;
+    }
+    }
+    return true;
+}
+
+template <>
+bool rocsparse::enum_utils::is_invalid(rocsparse_sparse_to_sparse_alg value)
+{
+    switch(value)
+    {
+    case rocsparse_sparse_to_sparse_alg_default:
+    {
+        return false;
+    }
+    }
+    return true;
+}
 
 extern "C" rocsparse_status
     rocsparse_create_sparse_to_sparse_descr(rocsparse_sparse_to_sparse_descr* descr,
@@ -30,6 +90,8 @@ extern "C" rocsparse_status
                                             rocsparse_spmat_descr             target,
                                             rocsparse_sparse_to_sparse_alg    alg)
 {
+    ROCSPARSE_ROUTINE_TRACE;
+
     ROCSPARSE_CHECKARG_POINTER(0, descr);
     ROCSPARSE_CHECKARG_POINTER(1, source);
     ROCSPARSE_CHECKARG_POINTER(2, target);
@@ -69,6 +131,8 @@ extern "C" rocsparse_status
 extern "C" rocsparse_status
     rocsparse_sparse_to_sparse_permissive(rocsparse_sparse_to_sparse_descr descr)
 {
+    ROCSPARSE_ROUTINE_TRACE;
+
     ROCSPARSE_CHECKARG_POINTER(0, descr);
     descr->m_permissive = true;
     return rocsparse_status_success;
@@ -78,6 +142,8 @@ extern "C" rocsparse_status
     rocsparse_destroy_sparse_to_sparse_descr(rocsparse_sparse_to_sparse_descr descr)
 try
 {
+    ROCSPARSE_ROUTINE_TRACE;
+
     if(descr)
     {
         if(descr->m_intermediate != nullptr)
@@ -119,11 +185,13 @@ try
     }
 
     return rocsparse_status_success;
+    // LCOV_EXCL_START
 }
 catch(...)
 {
     RETURN_ROCSPARSE_EXCEPTION();
 }
+// LCOV_EXCL_STOP
 namespace rocsparse
 {
     static rocsparse_status sparse_to_sparse_core(rocsparse_handle                 handle,
@@ -134,6 +202,8 @@ namespace rocsparse
                                                   size_t buffer_size_in_bytes,
                                                   void*  buffer)
     {
+        ROCSPARSE_ROUTINE_TRACE;
+
         static constexpr const bool compute_buffer_size_in_bytes = false;
         RETURN_IF_ROCSPARSE_ERROR(
             rocsparse::internal_sparse_to_sparse(handle,
@@ -155,6 +225,7 @@ namespace rocsparse
                                                          size_t buffer_size_in_bytes,
                                                          void*  buffer)
     {
+        ROCSPARSE_ROUTINE_TRACE;
         return rocsparse_status_continue;
     }
 
@@ -166,6 +237,8 @@ namespace rocsparse
                                                       size_t buffer_size_in_bytes, //5
                                                       void*  buffer) //6
     {
+        ROCSPARSE_ROUTINE_TRACE;
+
         ROCSPARSE_CHECKARG_HANDLE(0, handle);
         ROCSPARSE_CHECKARG_POINTER(1, descr);
         ROCSPARSE_CHECKARG_POINTER(2, source);
@@ -187,6 +260,8 @@ namespace rocsparse
     template <typename... P>
     static rocsparse_status sparse_to_sparse_impl(P&&... p)
     {
+        ROCSPARSE_ROUTINE_TRACE;
+
         const rocsparse_status status = rocsparse::sparse_to_sparse_checkarg(p...);
         if(status != rocsparse_status_continue)
         {
@@ -208,11 +283,15 @@ extern "C" rocsparse_status rocsparse_sparse_to_sparse(rocsparse_handle         
                                                        void*  buffer)
 try
 {
+    ROCSPARSE_ROUTINE_TRACE;
+
     RETURN_IF_ROCSPARSE_ERROR(rocsparse::sparse_to_sparse_impl(
         handle, descr, source, target, stage, buffer_size_in_bytes, buffer));
     return rocsparse_status_success;
+    // LCOV_EXCL_START
 }
 catch(...)
 {
     RETURN_ROCSPARSE_EXCEPTION();
 }
+// LCOV_EXCL_STOP

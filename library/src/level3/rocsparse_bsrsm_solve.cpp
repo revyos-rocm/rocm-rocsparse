@@ -1,6 +1,6 @@
 /*! \file */
 /* ************************************************************************
- * Copyright (C) 2021-2024 Advanced Micro Devices, Inc. All rights Reserved.
+ * Copyright (C) 2021-2025 Advanced Micro Devices, Inc. All rights Reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -25,11 +25,11 @@
 #include "../level2/rocsparse_bsrsv.hpp"
 #include "internal/level3/rocsparse_bsrsm.h"
 #include "rocsparse_bsrsm.hpp"
-#include "utility.h"
+#include "rocsparse_utility.hpp"
 
 namespace rocsparse
 {
-    template <typename T, typename U>
+    template <typename T>
     rocsparse_status bsrsm_solve_template_large(rocsparse_handle          handle,
                                                 rocsparse_direction       dir,
                                                 rocsparse_operation       trans_A,
@@ -37,7 +37,7 @@ namespace rocsparse
                                                 rocsparse_int             mb,
                                                 rocsparse_int             nrhs,
                                                 rocsparse_int             nnzb,
-                                                U                         alpha,
+                                                const T*                  alpha,
                                                 const rocsparse_mat_descr descr,
                                                 const T*                  bsr_val,
                                                 const rocsparse_int*      bsr_row_ptr,
@@ -50,7 +50,7 @@ namespace rocsparse
                                                 int64_t                   ldx,
                                                 void*                     temp_buffer);
 
-    template <typename T, typename U>
+    template <typename T>
     static rocsparse_status bsrsm_solve_template_dispatch(rocsparse_handle          handle,
                                                           rocsparse_direction       dir,
                                                           rocsparse_operation       trans_A,
@@ -58,7 +58,7 @@ namespace rocsparse
                                                           rocsparse_int             mb,
                                                           rocsparse_int             nrhs,
                                                           rocsparse_int             nnzb,
-                                                          U                         alpha,
+                                                          const T*                  alpha,
                                                           const rocsparse_mat_descr descr,
                                                           const T*                  bsr_val,
                                                           const rocsparse_int*      bsr_row_ptr,
@@ -72,6 +72,8 @@ namespace rocsparse
                                                           rocsparse_solve_policy    policy,
                                                           void*                     temp_buffer)
     {
+        ROCSPARSE_ROUTINE_TRACE;
+
         RETURN_IF_ROCSPARSE_ERROR(rocsparse::bsrsm_solve_template_large(handle,
                                                                         dir,
                                                                         trans_A,
@@ -116,6 +118,8 @@ rocsparse_status rocsparse::bsrsm_solve_quickreturn(rocsparse_handle          ha
                                                     rocsparse_solve_policy    policy,
                                                     void*                     temp_buffer)
 {
+    ROCSPARSE_ROUTINE_TRACE;
+
     if(mb == 0 || nrhs == 0)
     {
         return rocsparse_status_success;
@@ -146,6 +150,8 @@ namespace rocsparse
                                                  rocsparse_solve_policy    policy, //18
                                                  void*                     temp_buffer) //19
     {
+        ROCSPARSE_ROUTINE_TRACE;
+
         ROCSPARSE_CHECKARG_HANDLE(0, handle);
         ROCSPARSE_CHECKARG_ENUM(1, dir);
         ROCSPARSE_CHECKARG_ENUM(2, trans_A);
@@ -247,55 +253,29 @@ rocsparse_status rocsparse::bsrsm_solve_core(rocsparse_handle          handle,
                                              rocsparse_solve_policy    policy,
                                              void*                     temp_buffer)
 {
+    ROCSPARSE_ROUTINE_TRACE;
 
-    if(handle->pointer_mode == rocsparse_pointer_mode_device)
-    {
-        RETURN_IF_ROCSPARSE_ERROR(rocsparse::bsrsm_solve_template_dispatch(handle,
-                                                                           dir,
-                                                                           trans_A,
-                                                                           trans_X,
-                                                                           mb,
-                                                                           nrhs,
-                                                                           nnzb,
-                                                                           alpha,
-                                                                           descr,
-                                                                           bsr_val,
-                                                                           bsr_row_ptr,
-                                                                           bsr_col_ind,
-                                                                           block_dim,
-                                                                           info,
-                                                                           B,
-                                                                           ldb,
-                                                                           X,
-                                                                           ldx,
-                                                                           policy,
-                                                                           temp_buffer));
-        return rocsparse_status_success;
-    }
-    else
-    {
-        RETURN_IF_ROCSPARSE_ERROR(rocsparse::bsrsm_solve_template_dispatch(handle,
-                                                                           dir,
-                                                                           trans_A,
-                                                                           trans_X,
-                                                                           mb,
-                                                                           nrhs,
-                                                                           nnzb,
-                                                                           *alpha,
-                                                                           descr,
-                                                                           bsr_val,
-                                                                           bsr_row_ptr,
-                                                                           bsr_col_ind,
-                                                                           block_dim,
-                                                                           info,
-                                                                           B,
-                                                                           ldb,
-                                                                           X,
-                                                                           ldx,
-                                                                           policy,
-                                                                           temp_buffer));
-        return rocsparse_status_success;
-    }
+    RETURN_IF_ROCSPARSE_ERROR(rocsparse::bsrsm_solve_template_dispatch(handle,
+                                                                       dir,
+                                                                       trans_A,
+                                                                       trans_X,
+                                                                       mb,
+                                                                       nrhs,
+                                                                       nnzb,
+                                                                       alpha,
+                                                                       descr,
+                                                                       bsr_val,
+                                                                       bsr_row_ptr,
+                                                                       bsr_col_ind,
+                                                                       block_dim,
+                                                                       info,
+                                                                       B,
+                                                                       ldb,
+                                                                       X,
+                                                                       ldx,
+                                                                       policy,
+                                                                       temp_buffer));
+    return rocsparse_status_success;
 }
 
 namespace rocsparse
@@ -322,6 +302,7 @@ namespace rocsparse
                                       rocsparse_solve_policy    policy,
                                       void*                     temp_buffer)
     {
+        ROCSPARSE_ROUTINE_TRACE;
 
         rocsparse::log_trace(handle,
                              rocsparse::replaceX<T>("rocsparse_Xbsrsm_solve"),
@@ -424,6 +405,7 @@ namespace rocsparse
                                      void*                     temp_buffer)  \
     try                                                                      \
     {                                                                        \
+        ROCSPARSE_ROUTINE_TRACE;                                             \
         RETURN_IF_ROCSPARSE_ERROR(rocsparse::bsrsm_solve_impl(handle,        \
                                                               dir,           \
                                                               trans_A,       \

@@ -1,6 +1,6 @@
 /*! \file */
 /* ************************************************************************
-* Copyright (C) 2022-2024 Advanced Micro Devices, Inc. All rights Reserved.
+* Copyright (C) 2022-2025 Advanced Micro Devices, Inc. All rights Reserved.
 *
 * Permission is hereby granted, free of charge, to any person obtaining a copy
 * of this software and associated documentation files (the "Software"), to deal
@@ -24,8 +24,8 @@
 
 #include "rocsparse_cscmm.hpp"
 
-#include "control.h"
-#include "utility.h"
+#include "rocsparse_control.hpp"
+#include "rocsparse_utility.hpp"
 
 template <typename T, typename I, typename J, typename A>
 rocsparse_status rocsparse::cscmm_buffer_size_template(rocsparse_handle          handle,
@@ -41,6 +41,8 @@ rocsparse_status rocsparse::cscmm_buffer_size_template(rocsparse_handle         
                                                        const J*                  csc_row_ind,
                                                        size_t*                   buffer_size)
 {
+    ROCSPARSE_ROUTINE_TRACE;
+
     switch(trans_A)
     {
     case rocsparse_operation_none:
@@ -96,6 +98,8 @@ rocsparse_status rocsparse::cscmm_analysis_template(rocsparse_handle          ha
                                                     const J*                  csc_row_ind,
                                                     void*                     temp_buffer)
 {
+    ROCSPARSE_ROUTINE_TRACE;
+
     switch(trans_A)
     {
     case rocsparse_operation_none:
@@ -167,6 +171,8 @@ rocsparse_status rocsparse::cscmm_template(rocsparse_handle          handle,
                                            rocsparse_order           order_C,
                                            void*                     temp_buffer)
 {
+    ROCSPARSE_ROUTINE_TRACE;
+
     switch(trans_A)
     {
     case rocsparse_operation_none:
@@ -303,6 +309,9 @@ INSTANTIATE_BUFFER_SIZE(rocsparse_double_complex, int64_t, int32_t, rocsparse_do
 INSTANTIATE_BUFFER_SIZE(rocsparse_double_complex, int64_t, int64_t, rocsparse_double_complex);
 
 // Mixed precisions
+INSTANTIATE_BUFFER_SIZE(float, int32_t, int32_t, _Float16);
+INSTANTIATE_BUFFER_SIZE(float, int64_t, int32_t, _Float16);
+INSTANTIATE_BUFFER_SIZE(float, int64_t, int64_t, _Float16);
 INSTANTIATE_BUFFER_SIZE(int32_t, int32_t, int32_t, int8_t);
 INSTANTIATE_BUFFER_SIZE(int32_t, int64_t, int32_t, int8_t);
 INSTANTIATE_BUFFER_SIZE(int32_t, int64_t, int64_t, int8_t);
@@ -341,6 +350,9 @@ INSTANTIATE_ANALYSIS(rocsparse_double_complex, int64_t, int32_t, rocsparse_doubl
 INSTANTIATE_ANALYSIS(rocsparse_double_complex, int64_t, int64_t, rocsparse_double_complex);
 
 // Mixed precisions
+INSTANTIATE_ANALYSIS(float, int32_t, int32_t, _Float16);
+INSTANTIATE_ANALYSIS(float, int64_t, int32_t, _Float16);
+INSTANTIATE_ANALYSIS(float, int64_t, int64_t, _Float16);
 INSTANTIATE_ANALYSIS(int32_t, int32_t, int32_t, int8_t);
 INSTANTIATE_ANALYSIS(int32_t, int64_t, int32_t, int8_t);
 INSTANTIATE_ANALYSIS(int32_t, int64_t, int64_t, int8_t);
@@ -424,6 +436,9 @@ INSTANTIATE(rocsparse_double_complex,
             rocsparse_double_complex);
 
 // Mixed precisions
+INSTANTIATE(float, int32_t, int32_t, _Float16, _Float16, float);
+INSTANTIATE(float, int64_t, int32_t, _Float16, _Float16, float);
+INSTANTIATE(float, int64_t, int64_t, _Float16, _Float16, float);
 INSTANTIATE(int32_t, int32_t, int32_t, int8_t, int8_t, int32_t);
 INSTANTIATE(int32_t, int64_t, int32_t, int8_t, int8_t, int32_t);
 INSTANTIATE(int32_t, int64_t, int64_t, int8_t, int8_t, int32_t);

@@ -1,6 +1,6 @@
 /*! \file */
 /* ************************************************************************
- * Copyright (C) 2023-2024 Advanced Micro Devices, Inc. All rights Reserved.
+ * Copyright (C) 2023-2025 Advanced Micro Devices, Inc. All rights Reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -25,15 +25,15 @@
 #include "rocsparse_bsrgemm_multadd.hpp"
 #include "../conversion/rocsparse_identity.hpp"
 #include "bsrgemm_device.h"
-#include "control.h"
 #include "csrgemm_device.h"
 #include "internal/extra/rocsparse_bsrgemm.h"
 #include "rocsparse_bsrgemm.hpp"
 #include "rocsparse_bsrgemm_calc.hpp"
 #include "rocsparse_bsrgemm_mult.hpp"
 #include "rocsparse_bsrgemm_scal.hpp"
+#include "rocsparse_control.hpp"
 #include "rocsparse_csrgemm.hpp"
-#include "utility.h"
+#include "rocsparse_utility.hpp"
 
 rocsparse_status rocsparse::bsrgemm_multadd_quickreturn(rocsparse_handle          handle,
                                                         rocsparse_direction       dir,
@@ -67,6 +67,8 @@ rocsparse_status rocsparse::bsrgemm_multadd_quickreturn(rocsparse_handle        
                                                         const rocsparse_mat_info  info_C,
                                                         void*                     temp_buffer)
 {
+    ROCSPARSE_ROUTINE_TRACE;
+
     if(mb == 0 || nb == 0)
     {
         return rocsparse_status_success;
@@ -168,76 +170,40 @@ rocsparse_status rocsparse::bsrgemm_multadd_core(rocsparse_handle          handl
                                                  const rocsparse_mat_info  info_C,
                                                  void*                     temp_buffer)
 {
-    if(handle->pointer_mode == rocsparse_pointer_mode_device)
-    {
-        RETURN_IF_ROCSPARSE_ERROR(rocsparse::bsrgemm_calc_template_dispatch(handle,
-                                                                            dir,
-                                                                            trans_A,
-                                                                            trans_B,
-                                                                            mb,
-                                                                            nb,
-                                                                            kb,
-                                                                            block_dim,
-                                                                            alpha,
-                                                                            descr_A,
-                                                                            nnzb_A,
-                                                                            bsr_val_A,
-                                                                            bsr_row_ptr_A,
-                                                                            bsr_col_ind_A,
-                                                                            descr_B,
-                                                                            nnzb_B,
-                                                                            bsr_val_B,
-                                                                            bsr_row_ptr_B,
-                                                                            bsr_col_ind_B,
-                                                                            beta,
-                                                                            descr_D,
-                                                                            nnzb_D,
-                                                                            bsr_val_D,
-                                                                            bsr_row_ptr_D,
-                                                                            bsr_col_ind_D,
-                                                                            descr_C,
-                                                                            bsr_val_C,
-                                                                            bsr_row_ptr_C,
-                                                                            bsr_col_ind_C,
-                                                                            info_C,
-                                                                            temp_buffer));
-        return rocsparse_status_success;
-    }
-    else
-    {
-        RETURN_IF_ROCSPARSE_ERROR(rocsparse::bsrgemm_calc_template_dispatch(handle,
-                                                                            dir,
-                                                                            trans_A,
-                                                                            trans_B,
-                                                                            mb,
-                                                                            nb,
-                                                                            kb,
-                                                                            block_dim,
-                                                                            *alpha,
-                                                                            descr_A,
-                                                                            nnzb_A,
-                                                                            bsr_val_A,
-                                                                            bsr_row_ptr_A,
-                                                                            bsr_col_ind_A,
-                                                                            descr_B,
-                                                                            nnzb_B,
-                                                                            bsr_val_B,
-                                                                            bsr_row_ptr_B,
-                                                                            bsr_col_ind_B,
-                                                                            *beta,
-                                                                            descr_D,
-                                                                            nnzb_D,
-                                                                            bsr_val_D,
-                                                                            bsr_row_ptr_D,
-                                                                            bsr_col_ind_D,
-                                                                            descr_C,
-                                                                            bsr_val_C,
-                                                                            bsr_row_ptr_C,
-                                                                            bsr_col_ind_C,
-                                                                            info_C,
-                                                                            temp_buffer));
-        return rocsparse_status_success;
-    }
+    ROCSPARSE_ROUTINE_TRACE;
+
+    RETURN_IF_ROCSPARSE_ERROR(rocsparse::bsrgemm_calc_template_dispatch(handle,
+                                                                        dir,
+                                                                        trans_A,
+                                                                        trans_B,
+                                                                        mb,
+                                                                        nb,
+                                                                        kb,
+                                                                        block_dim,
+                                                                        alpha,
+                                                                        descr_A,
+                                                                        nnzb_A,
+                                                                        bsr_val_A,
+                                                                        bsr_row_ptr_A,
+                                                                        bsr_col_ind_A,
+                                                                        descr_B,
+                                                                        nnzb_B,
+                                                                        bsr_val_B,
+                                                                        bsr_row_ptr_B,
+                                                                        bsr_col_ind_B,
+                                                                        beta,
+                                                                        descr_D,
+                                                                        nnzb_D,
+                                                                        bsr_val_D,
+                                                                        bsr_row_ptr_D,
+                                                                        bsr_col_ind_D,
+                                                                        descr_C,
+                                                                        bsr_val_C,
+                                                                        bsr_row_ptr_C,
+                                                                        bsr_col_ind_C,
+                                                                        info_C,
+                                                                        temp_buffer));
+    return rocsparse_status_success;
 }
 
 #define INSTANTIATE(I, J, T)                                                                       \

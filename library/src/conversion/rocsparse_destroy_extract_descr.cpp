@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (C) 2024 Advanced Micro Devices, Inc. All rights Reserved.
+ * Copyright (C) 2024-2025 Advanced Micro Devices, Inc. All rights Reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -22,11 +22,13 @@
  * ************************************************************************ */
 
 #include "rocsparse_extract.hpp"
-#include "utility.h"
+#include "rocsparse_utility.hpp"
 
 extern "C" rocsparse_status rocsparse_destroy_extract_descr(rocsparse_extract_descr descr)
 try
 {
+    ROCSPARSE_ROUTINE_TRACE;
+
     if(descr)
     {
         switch(descr->alg())
@@ -39,8 +41,10 @@ try
     }
 
     return rocsparse_status_success;
+    // LCOV_EXCL_START
 }
 catch(...)
 {
     RETURN_ROCSPARSE_EXCEPTION();
 }
+// LCOV_EXCL_STOP

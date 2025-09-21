@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (C) 2020-2024 Advanced Micro Devices, Inc. All rights Reserved.
+ * Copyright (C) 2020-2025 Advanced Micro Devices, Inc. All rights Reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -22,9 +22,9 @@
  * ************************************************************************ */
 
 #include "internal/generic/rocsparse_spvv.h"
-#include "control.h"
-#include "handle.h"
-#include "utility.h"
+#include "rocsparse_control.hpp"
+#include "rocsparse_handle.hpp"
+#include "rocsparse_utility.hpp"
 
 #include "rocsparse_dotci.hpp"
 #include "rocsparse_doti.hpp"
@@ -41,6 +41,8 @@ namespace rocsparse
                                         size_t*                     buffer_size,
                                         void*                       temp_buffer)
     {
+        ROCSPARSE_ROUTINE_TRACE;
+
         // If temp_buffer is nullptr, return buffer_size
         if(temp_buffer == nullptr)
         {
@@ -64,7 +66,9 @@ namespace rocsparse
             return rocsparse_status_success;
         }
 
+        // LCOV_EXCL_START
         RETURN_IF_ROCSPARSE_ERROR(rocsparse_status_not_implemented);
+        // LCOV_EXCL_STOP
     }
 
     template <typename T, typename I, typename X, typename Y>
@@ -77,6 +81,8 @@ namespace rocsparse
                                            size_t*                     buffer_size,
                                            void*                       temp_buffer)
     {
+        ROCSPARSE_ROUTINE_TRACE;
+
         // If temp_buffer is nullptr, return buffer_size
         if(temp_buffer == nullptr)
         {
@@ -115,7 +121,9 @@ namespace rocsparse
             }
         }
 
+        // LCOV_EXCL_START
         RETURN_IF_ROCSPARSE_ERROR(rocsparse_status_not_implemented);
+        // LCOV_EXCL_STOP
     }
 }
 
@@ -135,6 +143,8 @@ extern "C" rocsparse_status rocsparse_spvv(rocsparse_handle            handle,
                                            void*                       temp_buffer)
 try
 {
+    ROCSPARSE_ROUTINE_TRACE;
+
     // Check for invalid handle
     ROCSPARSE_CHECKARG_HANDLE(0, handle);
 
@@ -180,6 +190,14 @@ try
 #define PARAMS handle, trans, x, y, result, compute_type, buffer_size, temp_buffer
 
     if(ctype == rocsparse_datatype_f32_r && itype == rocsparse_indextype_i32
+       && xtype == rocsparse_datatype_f16_r && ytype == rocsparse_datatype_f16_r)
+    {
+        RETURN_IF_ROCSPARSE_ERROR(
+            (rocsparse::spvv_template_real<float, int32_t, _Float16, _Float16>(PARAMS)));
+        return rocsparse_status_success;
+    }
+
+    if(ctype == rocsparse_datatype_f32_r && itype == rocsparse_indextype_i32
        && xtype == rocsparse_datatype_f32_r && ytype == rocsparse_datatype_f32_r)
     {
         RETURN_IF_ROCSPARSE_ERROR(
@@ -195,6 +213,13 @@ try
         return rocsparse_status_success;
     }
 
+    if(ctype == rocsparse_datatype_f32_r && itype == rocsparse_indextype_i64
+       && xtype == rocsparse_datatype_f16_r && ytype == rocsparse_datatype_f16_r)
+    {
+        RETURN_IF_ROCSPARSE_ERROR(
+            (rocsparse::spvv_template_real<float, int64_t, _Float16, _Float16>(PARAMS)));
+        return rocsparse_status_success;
+    }
     if(ctype == rocsparse_datatype_f32_r && itype == rocsparse_indextype_i64
        && xtype == rocsparse_datatype_f32_r && ytype == rocsparse_datatype_f32_r)
     {
@@ -283,9 +308,11 @@ try
     }
 #undef PARAMS
 
+    // LCOV_EXCL_START
     RETURN_IF_ROCSPARSE_ERROR(rocsparse_status_not_implemented);
 }
 catch(...)
 {
     RETURN_ROCSPARSE_EXCEPTION();
 }
+// LCOV_EXCL_STOP

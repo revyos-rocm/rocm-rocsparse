@@ -1,6 +1,6 @@
 /*! \file */
 /* ************************************************************************
- * Copyright (C) 2022-2024 Advanced Micro Devices, Inc. All rights Reserved.
+ * Copyright (C) 2022-2025 Advanced Micro Devices, Inc. All rights Reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -23,10 +23,10 @@
  * ************************************************************************ */
 #include "internal/util/rocsparse_check_matrix_gebsr.h"
 #include "rocsparse_check_matrix_gebsr.hpp"
-#include "to_string.hpp"
-#include "utility.h"
+#include "rocsparse_enum_utils.hpp"
+#include "rocsparse_utility.hpp"
 
-#include "rocsparse_primitives.h"
+#include "rocsparse_primitives.hpp"
 
 #include "check_matrix_gebsr_device.h"
 
@@ -48,6 +48,8 @@ rocsparse_status rocsparse::check_matrix_gebsr_core(rocsparse_handle       handl
                                                     rocsparse_data_status* data_status,
                                                     void*                  temp_buffer)
 {
+    ROCSPARSE_ROUTINE_TRACE;
+
     *data_status = rocsparse_data_status_success;
 
     I start = 0;
@@ -60,8 +62,10 @@ rocsparse_status rocsparse::check_matrix_gebsr_core(rocsparse_handle       handl
 
     if(nnzb != (end - start))
     {
+        // LCOV_EXCL_START
         rocsparse::log_debug(handle, "GEBSR row pointer array does not match nnzb.");
         RETURN_IF_ROCSPARSE_ERROR(rocsparse_status_invalid_value);
+        // LCOV_EXCL_STOP
     }
 
     // Temporary buffer entry points
@@ -91,7 +95,7 @@ rocsparse_status rocsparse::check_matrix_gebsr_core(rocsparse_handle       handl
 
     if(*data_status != rocsparse_data_status_success)
     {
-        rocsparse::log_debug(handle, rocsparse::to_string(*data_status));
+        rocsparse::log_debug(handle, rocsparse::enum_utils::to_string(*data_status));
 
         return rocsparse_status_success;
     }
@@ -164,7 +168,7 @@ rocsparse_status rocsparse::check_matrix_gebsr_core(rocsparse_handle       handl
 
     if(*data_status != rocsparse_data_status_success)
     {
-        rocsparse::log_debug(handle, rocsparse::to_string(*data_status));
+        rocsparse::log_debug(handle, rocsparse::enum_utils::to_string(*data_status));
     }
 
     return rocsparse_status_success;
@@ -190,6 +194,8 @@ namespace rocsparse
                                                            rocsparse_data_status* data_status,
                                                            void*                  temp_buffer)
     {
+        ROCSPARSE_ROUTINE_TRACE;
+
         return rocsparse_status_continue;
     }
 }
@@ -212,6 +218,7 @@ rocsparse_status rocsparse::check_matrix_gebsr_checkarg(rocsparse_handle       h
                                                         rocsparse_data_status* data_status, //14
                                                         void*                  temp_buffer) //15
 {
+    ROCSPARSE_ROUTINE_TRACE;
 
     ROCSPARSE_CHECKARG_HANDLE(0, handle);
     ROCSPARSE_CHECKARG_ENUM(1, dir);
@@ -241,7 +248,7 @@ rocsparse_status rocsparse::check_matrix_gebsr_checkarg(rocsparse_handle       h
         {
             rocsparse::log_debug(handle,
                                  ("Matrix was specified to be "
-                                  + std::string(rocsparse::to_string(matrix_type))
+                                  + std::string(rocsparse::enum_utils::to_string(matrix_type))
                                   + " but (row_block_dim != col_block_dim || mb != nb)"));
         }
     }
@@ -346,6 +353,7 @@ INSTANTIATE(int64_t, int64_t, rocsparse_double_complex);
                                      void*                  temp_buffer)                         \
     try                                                                                          \
     {                                                                                            \
+        ROCSPARSE_ROUTINE_TRACE;                                                                 \
         RETURN_IF_ROCSPARSE_ERROR(                                                               \
             (rocsparse::check_matrix_gebsr_impl<T, rocsparse_int, rocsparse_int>(handle,         \
                                                                                  dir,            \

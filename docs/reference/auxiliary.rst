@@ -1,6 +1,6 @@
 .. meta::
-  :description: rocSPARSE documentation and API reference library
-  :keywords: rocSPARSE, ROCm, API, documentation
+  :description: rocSPARSE auxiliary functions API documentation
+  :keywords: rocSPARSE, ROCm, API, documentation, auxiliary functions
 
 .. _rocsparse_auxiliary_functions_:
 
@@ -8,11 +8,10 @@
 Sparse auxiliary functions
 ********************************************************************
 
-This module holds all sparse auxiliary functions.
+This module contains all sparse auxiliary functions.
 
 The functions that are contained in the auxiliary module describe all available helper functions that are required for subsequent library calls.
-
-The functions in this module do not support execution in a hipGraph context.
+These functions do not support execution in a ``hipGraph`` context.
 
 .. _rocsparse_create_handle_:
 
@@ -59,6 +58,16 @@ rocsparse_get_git_rev()
 -----------------------
 
 .. doxygenfunction:: rocsparse_get_git_rev
+
+rocsparse_destroy_error()
+-------------------------
+
+.. doxygenfunction:: rocsparse_destroy_error
+
+rocsparse_error_get_message()
+-----------------------------
+
+.. doxygenfunction:: rocsparse_error_get_message
 
 rocsparse_create_mat_descr()
 ----------------------------
@@ -288,6 +297,41 @@ rocsparse_destroy_extract_descr
 -------------------------------
 
 .. doxygenfunction:: rocsparse_destroy_extract_descr
+
+rocsparse_create_spgeam_descr
+-----------------------------
+
+.. doxygenfunction:: rocsparse_create_spgeam_descr
+
+rocsparse_destroy_spgeam_descr
+------------------------------
+
+.. doxygenfunction:: rocsparse_destroy_spgeam_descr
+
+rocsparse_spgeam_set_input
+--------------------------
+
+.. doxygenfunction:: rocsparse_spgeam_set_input
+
+rocsparse_spgeam_get_output
+---------------------------
+
+.. doxygenfunction:: rocsparse_spgeam_get_output
+
+rocsparse_create_spmv_descr
+---------------------------
+
+.. doxygenfunction:: rocsparse_create_spmv_descr
+
+rocsparse_destroy_spmv_descr
+----------------------------
+
+.. doxygenfunction:: rocsparse_destroy_spmv_descr
+
+rocsparse_spmv_set_input
+------------------------
+
+.. doxygenfunction:: rocsparse_spmv_set_input
 
 rocsparse_coo_get
 -----------------

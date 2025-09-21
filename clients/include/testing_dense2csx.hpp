@@ -1,6 +1,6 @@
 /*! \file */
 /* ************************************************************************
- * Copyright (C) 2019-2024 Advanced Micro Devices, Inc. All rights Reserved.
+ * Copyright (C) 2019-2025 Advanced Micro Devices, Inc. All rights Reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -24,7 +24,7 @@
 
 #pragma once
 
-#include <rocsparse.hpp>
+#include "rocsparse.hpp"
 
 #include "auto_testing_bad_arg.hpp"
 #include "gbyte.hpp"
@@ -225,41 +225,19 @@ void testing_dense2csx(const Arguments& arg, FUNC& dense2csx)
 
     if(arg.timing)
     {
-        int number_cold_calls = 2;
-        int number_hot_calls  = arg.iters;
 
-        // Warm-up
-        for(int iter = 0; iter < number_cold_calls; ++iter)
-        {
-            CHECK_ROCSPARSE_ERROR(dense2csx(handle,
-                                            M,
-                                            N,
-                                            descr,
-                                            d_dense_val,
-                                            LD,
-                                            d_nnz_per_row_columns,
-                                            (T*)d_csx_val,
-                                            d_csx_row_col_ptr,
-                                            d_csx_col_row_ind));
-        }
-
-        double gpu_time_used = get_time_us();
-
-        // Performance run
-        for(int iter = 0; iter < number_hot_calls; ++iter)
-        {
-            CHECK_ROCSPARSE_ERROR(dense2csx(handle,
-                                            M,
-                                            N,
-                                            descr,
-                                            d_dense_val,
-                                            LD,
-                                            d_nnz_per_row_columns,
-                                            (T*)d_csx_val,
-                                            d_csx_row_col_ptr,
-                                            d_csx_col_row_ind));
-        }
-        gpu_time_used = (get_time_us() - gpu_time_used) / number_hot_calls;
+        const double gpu_time_used = rocsparse_clients::run_benchmark(arg,
+                                                                      dense2csx,
+                                                                      handle,
+                                                                      M,
+                                                                      N,
+                                                                      descr,
+                                                                      d_dense_val,
+                                                                      LD,
+                                                                      d_nnz_per_row_columns,
+                                                                      (T*)d_csx_val,
+                                                                      d_csx_row_col_ptr,
+                                                                      d_csx_col_row_ind);
 
         double gbyte_count = dense2csx_gbyte_count<DIRA, T>(M, N, nnz);
         double gpu_gbyte   = get_gpu_gbyte(gpu_time_used, gbyte_count);

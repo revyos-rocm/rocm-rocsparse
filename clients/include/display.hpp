@@ -1,6 +1,6 @@
 /*! \file */
 /* ************************************************************************
- * Copyright (C) 2022-2024 Advanced Micro Devices, Inc. All rights Reserved.
+ * Copyright (C) 2022-2025 Advanced Micro Devices, Inc. All rights Reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -36,6 +36,12 @@
 #include <sstream>
 #include <vector>
 
+#include "utility.hpp"
+
+static constexpr const char* s_timing_info_perf      = "GFlop/s";
+static constexpr const char* s_timing_info_bandwidth = "GB/s";
+static constexpr const char* s_timing_info_time      = "msec";
+
 struct display_key_t
 {
     //
@@ -55,6 +61,7 @@ struct display_key_t
         batch_count_C,
         batch_stride,
         iters,
+        iters_inner,
         nfreeiter,
         nmaxiter,
         function,
@@ -97,7 +104,6 @@ struct display_key_t
         cbdim_A,
         rbdim_C,
         cbdim_C,
-        analysis_ms,
         order,
         diag_type,
         fill_mode,
@@ -110,6 +116,7 @@ struct display_key_t
         threshold,
         percentage,
         pivot,
+        singular_pivot,
 
         min_nnz_per_row,
         max_nnz_per_row,
@@ -183,9 +190,9 @@ struct display_key_t
             return "pivot";
         }
 
-        case analysis_ms:
+        case singular_pivot:
         {
-            return "analysis";
+            return "singular_pivot";
         }
 
         case fill_mode:
@@ -336,7 +343,7 @@ struct display_key_t
 
         case analysis_time_ms:
         {
-            return s_analysis_timing_info_time;
+            return "analysis_msec";
         }
 
         case alpha:
@@ -412,6 +419,10 @@ struct display_key_t
         case iters:
         {
             return "iter";
+        }
+        case iters_inner:
+        {
+            return "iters_inner";
         }
         case nfreeiter:
         {
@@ -752,6 +763,8 @@ inline void rocsparse_get_matrixname(const char* f, char* name)
         display_timing_info_main(__VA_ARGS__,                                                \
                                  display_key_t::iters,                                       \
                                  arg.iters,                                                  \
+                                 display_key_t::iters_inner,                                 \
+                                 arg.iters_inner,                                            \
                                  "verified",                                                 \
                                  (arg.unit_check ? "yes" : "no"),                            \
                                  display_key_t::function,                                    \

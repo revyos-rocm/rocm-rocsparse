@@ -1,6 +1,6 @@
 /*! \file */
 /* ************************************************************************
-* Copyright (C) 2022-2024 Advanced Micro Devices, Inc. All rights Reserved.
+* Copyright (C) 2022-2025 Advanced Micro Devices, Inc. All rights Reserved.
 *
 * Permission is hereby granted, free of charge, to any person obtaining a copy
 * of this software and associated documentation files (the "Software"), to deal
@@ -171,7 +171,10 @@ namespace
                     size_t available_memory;
                     size_t total_memory;
 
-                    hipDeviceSynchronize();
+                    if(hipDeviceSynchronize() != hipSuccess)
+                    {
+                        return false;
+                    }
 
                     if(hipMemGetInfo(&available_memory, &total_memory) != hipSuccess)
                     {
@@ -226,13 +229,17 @@ namespace
                 }
 
                 case rocsparse_test_dispatch_enum::it:
-                case rocsparse_test_dispatch_enum::it_plus_int8:
+                case rocsparse_test_dispatch_enum::it_sparse_to_dense:
+                case rocsparse_test_dispatch_enum::it_dense_to_sparse:
+                case rocsparse_test_dispatch_enum::it_plus_int8_float16:
                 {
                     s << rocsparse_indextype2string(arg.index_type_I) << '_'
                       << rocsparse_datatype2string(arg.compute_type);
                     break;
                 }
                 case rocsparse_test_dispatch_enum::ijt:
+                case rocsparse_test_dispatch_enum::ijt_sparse_to_dense:
+                case rocsparse_test_dispatch_enum::ijt_dense_to_sparse:
                 {
                     s << rocsparse_indextype2string(arg.index_type_I) << '_'
                       << rocsparse_indextype2string(arg.index_type_J) << '_'
@@ -240,6 +247,7 @@ namespace
                     break;
                 }
                 case rocsparse_test_dispatch_enum::ixyt:
+                case rocsparse_test_dispatch_enum::ixyt_axpby:
                 {
                     s << rocsparse_indextype2string(arg.index_type_I) << '_'
                       << rocsparse_datatype2string(arg.x_type) << '_'
@@ -276,6 +284,7 @@ namespace
                     break;
                 }
                 case rocsparse_test_dispatch_enum::ijabct:
+                case rocsparse_test_dispatch_enum::ijabct_sddmm:
                 {
                     s << rocsparse_indextype2string(arg.index_type_I) << '_'
                       << rocsparse_indextype2string(arg.index_type_J) << '_'
@@ -454,30 +463,6 @@ namespace
                          T,
                          typename std::enable_if<check_t::template is_type_valid<I, J, T>()>::type>
             : rocsparse_test_template<ROUTINE>::template test_call_proxy<I, J, T>
-        {
-        };
-
-        struct test : rocsparse_test_template<ROUTINE>::template test_proxy<test, test_call>
-        {
-        };
-    };
-
-    template <rocsparse_test_enum::value_type ROUTINE>
-    struct rocsparse_test_it_plus_int8_template
-    {
-        using check_t = rocsparse_test_check<ROUTINE>;
-        //
-        template <typename T, typename I = int32_t, typename = void>
-        struct test_call : rocsparse_test_invalid
-        {
-        };
-
-        //
-        template <typename I, typename T>
-        struct test_call<I,
-                         T,
-                         typename std::enable_if<check_t::template is_type_valid<I, T>()>::type>
-            : rocsparse_test_template<ROUTINE>::template test_call_proxy<I, T>
         {
         };
 

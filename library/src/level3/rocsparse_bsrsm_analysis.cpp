@@ -1,6 +1,6 @@
 /*! \file */
 /* ************************************************************************
- * Copyright (C) 2021-2024 Advanced Micro Devices, Inc. All rights Reserved.
+ * Copyright (C) 2021-2025 Advanced Micro Devices, Inc. All rights Reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -22,9 +22,9 @@
  *
  * ************************************************************************ */
 
-#include "control.h"
 #include "internal/level3/rocsparse_bsrsm.h"
-#include "utility.h"
+#include "rocsparse_control.hpp"
+#include "rocsparse_utility.hpp"
 
 #include "../level2/rocsparse_csrsv.hpp"
 #include "rocsparse_bsrsm.hpp"
@@ -46,6 +46,7 @@ rocsparse_status rocsparse::bsrsm_analysis_quickreturn(rocsparse_handle         
                                                        rocsparse_solve_policy    solve,
                                                        void*                     temp_buffer)
 {
+    ROCSPARSE_ROUTINE_TRACE;
 
     if(mb == 0 || nrhs == 0)
     {
@@ -74,6 +75,8 @@ namespace rocsparse
                                                     rocsparse_solve_policy    solve, //14
                                                     void*                     temp_buffer) //15
     {
+        ROCSPARSE_ROUTINE_TRACE;
+
         ROCSPARSE_CHECKARG_HANDLE(0, handle);
         ROCSPARSE_CHECKARG_ENUM(1, dir);
         ROCSPARSE_CHECKARG_ENUM(2, trans_A);
@@ -145,6 +148,7 @@ rocsparse_status rocsparse::bsrsm_analysis_core(rocsparse_handle          handle
                                                 rocsparse_solve_policy    solve,
                                                 void*                     temp_buffer)
 {
+    ROCSPARSE_ROUTINE_TRACE;
 
     // Switch between lower and upper triangular analysis
     if(descr->fill_mode == rocsparse_fill_mode_upper)
@@ -186,15 +190,11 @@ rocsparse_status rocsparse::bsrsm_analysis_core(rocsparse_handle          handle
         // User is explicitly asking to force a re-analysis, or no valid data has been
         // found to be re-used
 
-        // Clear bsrsm info
-        RETURN_IF_ROCSPARSE_ERROR(rocsparse::destroy_trm_info((trans_A == rocsparse_operation_none)
-                                                                  ? info->bsrsm_upper_info
-                                                                  : info->bsrsmt_upper_info));
+        rocsparse::trm_info_t** p_trm_info = (trans_A == rocsparse_operation_none)
+                                                 ? &info->bsrsm_upper_info
+                                                 : &info->bsrsmt_upper_info;
 
-        // Create bsrsm info
-        RETURN_IF_ROCSPARSE_ERROR(rocsparse::create_trm_info((trans_A == rocsparse_operation_none)
-                                                                 ? &info->bsrsm_upper_info
-                                                                 : &info->bsrsmt_upper_info));
+        rocsparse::trm_info_t::recreate(p_trm_info);
 
         // Perform analysis
         RETURN_IF_ROCSPARSE_ERROR(rocsparse::trm_analysis(handle,
@@ -205,9 +205,7 @@ rocsparse_status rocsparse::bsrsm_analysis_core(rocsparse_handle          handle
                                                           bsr_val,
                                                           bsr_row_ptr,
                                                           bsr_col_ind,
-                                                          (trans_A == rocsparse_operation_none)
-                                                              ? info->bsrsm_upper_info
-                                                              : info->bsrsmt_upper_info,
+                                                          p_trm_info[0],
                                                           (rocsparse_int**)&info->zero_pivot,
                                                           temp_buffer));
     }
@@ -262,15 +260,11 @@ rocsparse_status rocsparse::bsrsm_analysis_core(rocsparse_handle          handle
         // User is explicitly asking to force a re-analysis, or no valid data has been
         // found to be re-used
 
-        // Clear bsrsm info
-        RETURN_IF_ROCSPARSE_ERROR(rocsparse::destroy_trm_info((trans_A == rocsparse_operation_none)
-                                                                  ? info->bsrsm_lower_info
-                                                                  : info->bsrsmt_lower_info));
+        rocsparse::trm_info_t** p_trm_info = (trans_A == rocsparse_operation_none)
+                                                 ? &info->bsrsm_lower_info
+                                                 : &info->bsrsmt_lower_info;
 
-        // Create bsrsm info
-        RETURN_IF_ROCSPARSE_ERROR(rocsparse::create_trm_info((trans_A == rocsparse_operation_none)
-                                                                 ? &info->bsrsm_lower_info
-                                                                 : &info->bsrsmt_lower_info));
+        rocsparse::trm_info_t::recreate(p_trm_info);
 
         // Perform analysis
         RETURN_IF_ROCSPARSE_ERROR(rocsparse::trm_analysis(handle,
@@ -281,9 +275,7 @@ rocsparse_status rocsparse::bsrsm_analysis_core(rocsparse_handle          handle
                                                           bsr_val,
                                                           bsr_row_ptr,
                                                           bsr_col_ind,
-                                                          (trans_A == rocsparse_operation_none)
-                                                              ? info->bsrsm_lower_info
-                                                              : info->bsrsmt_lower_info,
+                                                          p_trm_info[0],
                                                           (rocsparse_int**)&info->zero_pivot,
                                                           temp_buffer));
     }
@@ -296,6 +288,8 @@ namespace rocsparse
     template <typename... P>
     static rocsparse_status bsrsm_analysis_impl(P&&... p)
     {
+        ROCSPARSE_ROUTINE_TRACE;
+
         rocsparse::log_trace("rocsparse_Xbsrsm_analysis", p...);
 
         const rocsparse_status status = rocsparse::bsrsm_analysis_checkarg(p...);
@@ -336,6 +330,7 @@ namespace rocsparse
                                      void*                     temp_buffer)     \
     try                                                                         \
     {                                                                           \
+        ROCSPARSE_ROUTINE_TRACE;                                                \
         RETURN_IF_ROCSPARSE_ERROR(rocsparse::bsrsm_analysis_impl(handle,        \
                                                                  dir,           \
                                                                  trans_A,       \

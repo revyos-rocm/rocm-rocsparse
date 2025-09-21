@@ -1,6 +1,6 @@
 /*! \file */
 /* ************************************************************************
- * Copyright (C) 2020-2024 Advanced Micro Devices, Inc. All rights Reserved.
+ * Copyright (C) 2020-2025 Advanced Micro Devices, Inc. All rights Reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -29,8 +29,8 @@
 
 #include "../level2/rocsparse_csrsv.hpp"
 #include "bsric0_device.h"
-#include "control.h"
-#include "utility.h"
+#include "rocsparse_control.hpp"
+#include "rocsparse_utility.hpp"
 
 #define LAUNCH_BSRIC_2_8_UNROLLED(T, block_size, maz_nnzb, bsr_block_dim)             \
     THROW_IF_HIPLAUNCHKERNELGGL_ERROR(                                                \
@@ -45,9 +45,9 @@
         bsr_row_ptr,                                                                  \
         bsr_col_ind,                                                                  \
         bsr_val,                                                                      \
-        (rocsparse_int*)info->bsric0_info->trm_diag_ind,                              \
+        (const rocsparse_int*)info->bsric0_info->get_diag_ind(),                      \
         done_array,                                                                   \
-        (rocsparse_int*)info->bsric0_info->row_map,                                   \
+        (const rocsparse_int*)info->bsric0_info->get_row_map(),                       \
         (rocsparse_int*)info->zero_pivot,                                             \
         base);
 
@@ -64,9 +64,9 @@
         bsr_row_ptr,                                                         \
         bsr_col_ind,                                                         \
         bsr_val,                                                             \
-        (rocsparse_int*)info->bsric0_info->trm_diag_ind,                     \
+        (const rocsparse_int*)info->bsric0_info->get_diag_ind(),             \
         done_array,                                                          \
-        (rocsparse_int*)info->bsric0_info->row_map,                          \
+        (const rocsparse_int*)info->bsric0_info->get_row_map(),              \
         (rocsparse_int*)info->zero_pivot,                                    \
         base);
 
@@ -83,9 +83,9 @@
         bsr_row_ptr,                                                          \
         bsr_col_ind,                                                          \
         bsr_val,                                                              \
-        (rocsparse_int*)info->bsric0_info->trm_diag_ind,                      \
+        (const rocsparse_int*)info->bsric0_info->get_diag_ind(),              \
         done_array,                                                           \
-        (rocsparse_int*)info->bsric0_info->row_map,                           \
+        (const rocsparse_int*)info->bsric0_info->get_row_map(),               \
         (rocsparse_int*)info->zero_pivot,                                     \
         base);
 
@@ -102,9 +102,9 @@
         bsr_row_ptr,                                                           \
         bsr_col_ind,                                                           \
         bsr_val,                                                               \
-        (rocsparse_int*)info->bsric0_info->trm_diag_ind,                       \
+        (const rocsparse_int*)info->bsric0_info->get_diag_ind(),               \
         done_array,                                                            \
-        (rocsparse_int*)info->bsric0_info->row_map,                            \
+        (const rocsparse_int*)info->bsric0_info->get_row_map(),                \
         (rocsparse_int*)info->zero_pivot,                                      \
         base);
 
@@ -121,9 +121,9 @@
         bsr_row_ptr,                                                      \
         bsr_col_ind,                                                      \
         bsr_val,                                                          \
-        (rocsparse_int*)info->bsric0_info->trm_diag_ind,                  \
+        (const rocsparse_int*)info->bsric0_info->get_diag_ind(),          \
         done_array,                                                       \
-        (rocsparse_int*)info->bsric0_info->row_map,                       \
+        (const rocsparse_int*)info->bsric0_info->get_row_map(),           \
         (rocsparse_int*)info->zero_pivot,                                 \
         base);
 
@@ -142,6 +142,7 @@ rocsparse_status rocsparse::bsric0_analysis_template(rocsparse_handle          h
                                                      rocsparse_solve_policy    solve, //11
                                                      void*                     temp_buffer) //12
 {
+    ROCSPARSE_ROUTINE_TRACE;
 
     ROCSPARSE_CHECKARG_HANDLE(0, handle);
 
@@ -218,12 +219,7 @@ rocsparse_status rocsparse::bsric0_analysis_template(rocsparse_handle          h
 
     // User is explicitly asking to force a re-analysis, or no valid data has been
     // found to be re-used.
-
-    // Clear bsric0 info
-    RETURN_IF_ROCSPARSE_ERROR(rocsparse::destroy_trm_info(info->bsric0_info));
-
-    // Create bsric0 info
-    RETURN_IF_ROCSPARSE_ERROR(rocsparse::create_trm_info(&info->bsric0_info));
+    rocsparse::trm_info_t::recreate(&info->bsric0_info);
 
     // Perform analysis
     RETURN_IF_ROCSPARSE_ERROR(rocsparse::trm_analysis(handle,
@@ -256,6 +252,8 @@ namespace rocsparse
                                 rocsparse_mat_info   info,
                                 int*                 done_array)
     {
+        ROCSPARSE_ROUTINE_TRACE;
+
         dim3 bsric0_blocks(mb);
 
         if(handle->wavefront_size == 32)
@@ -380,6 +378,8 @@ rocsparse_status rocsparse::bsric0_template(rocsparse_handle          handle,
                                             rocsparse_solve_policy    policy,
                                             void*                     temp_buffer)
 {
+    ROCSPARSE_ROUTINE_TRACE;
+
     ROCSPARSE_CHECKARG_HANDLE(0, handle);
 
     rocsparse::log_trace(handle,
@@ -439,7 +439,7 @@ rocsparse_status rocsparse::bsric0_template(rocsparse_handle          handle,
     RETURN_IF_HIP_ERROR(hipMemsetAsync(d_done_array, 0, sizeof(int) * mb, stream));
 
     // Max nnz blocks per row
-    rocsparse_int max_nnzb = info->bsric0_info->max_nnz;
+    const rocsparse_int max_nnzb = info->bsric0_info->get_max_nnz();
 
     rocsparse::bsric0_launcher<T>(handle,
                                   dir,
@@ -471,6 +471,8 @@ namespace rocsparse
                                                  rocsparse_mat_info        info,
                                                  size_t*                   buffer_size)
     {
+        ROCSPARSE_ROUTINE_TRACE;
+
         RETURN_IF_ROCSPARSE_ERROR(rocsparse::csrsv_buffer_size_template(handle,
                                                                         rocsparse_operation_none,
                                                                         mb,
@@ -497,6 +499,8 @@ namespace rocsparse
                                              rocsparse_mat_info        info, //9
                                              size_t*                   buffer_size)
     {
+        ROCSPARSE_ROUTINE_TRACE;
+
         ROCSPARSE_CHECKARG_HANDLE(0, handle);
 
         rocsparse::log_trace(handle,
@@ -562,6 +566,7 @@ namespace rocsparse
                                      size_t*                   buffer_size)         \
     try                                                                             \
     {                                                                               \
+        ROCSPARSE_ROUTINE_TRACE;                                                    \
         RETURN_IF_ROCSPARSE_ERROR(rocsparse::bsric0_buffer_size_impl(handle,        \
                                                                      dir,           \
                                                                      mb,            \
@@ -602,6 +607,7 @@ CIMPL(rocsparse_zbsric0_buffer_size, rocsparse_double_complex);
                                      void*                     temp_buffer)          \
     try                                                                              \
     {                                                                                \
+        ROCSPARSE_ROUTINE_TRACE;                                                     \
         RETURN_IF_ROCSPARSE_ERROR(rocsparse::bsric0_analysis_template(handle,        \
                                                                       dir,           \
                                                                       mb,            \
@@ -643,6 +649,7 @@ CIMPL(rocsparse_zbsric0_analysis, rocsparse_double_complex);
                                      void*                     temp_buffer) \
     try                                                                     \
     {                                                                       \
+        ROCSPARSE_ROUTINE_TRACE;                                            \
         RETURN_IF_ROCSPARSE_ERROR(rocsparse::bsric0_template(handle,        \
                                                              dir,           \
                                                              mb,            \
@@ -671,6 +678,8 @@ CIMPL(rocsparse_zbsric0, rocsparse_double_complex);
 extern "C" rocsparse_status rocsparse_bsric0_clear(rocsparse_handle handle, rocsparse_mat_info info)
 try
 {
+    ROCSPARSE_ROUTINE_TRACE;
+
     ROCSPARSE_CHECKARG_HANDLE(0, handle);
 
     rocsparse::log_trace(handle, "rocsparse_bsric0_clear", (const void*&)info);
@@ -679,23 +688,27 @@ try
 
     if(!rocsparse::check_trm_shared(info, info->bsric0_info))
     {
-        RETURN_IF_ROCSPARSE_ERROR(rocsparse::destroy_trm_info(info->bsric0_info));
+        rocsparse::trm_info_t::destroy(info->bsric0_info);
     }
 
     info->bsric0_info = nullptr;
 
     return rocsparse_status_success;
+    // LCOV_EXCL_START
 }
 catch(...)
 {
     RETURN_ROCSPARSE_EXCEPTION();
 }
+// LCOV_EXCL_STOP
 
 extern "C" rocsparse_status rocsparse_bsric0_zero_pivot(rocsparse_handle   handle,
                                                         rocsparse_mat_info info,
                                                         rocsparse_int*     position)
 try
 {
+    ROCSPARSE_ROUTINE_TRACE;
+
     ROCSPARSE_CHECKARG_HANDLE(0, handle);
 
     // Logging
@@ -770,8 +783,10 @@ try
     }
 
     return rocsparse_status_success;
+    // LCOV_EXCL_START
 }
 catch(...)
 {
     RETURN_ROCSPARSE_EXCEPTION();
 }
+// LCOV_EXCL_STOP

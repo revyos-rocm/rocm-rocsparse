@@ -1,5 +1,5 @@
 # ########################################################################
-# Copyright (C) 2018-2024 Advanced Micro Devices, Inc. All rights Reserved.
+# Copyright (C) 2018-2025 Advanced Micro Devices, Inc. All rights Reserved.
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -156,6 +156,12 @@ set(ROCSPARSE_TEST_SOURCES
   test_spmv_csr.cpp
   test_spmv_csc.cpp
   test_spmv_ell.cpp
+  test_v2_spmv_bsr.cpp
+  test_v2_spmv_coo.cpp
+  test_v2_spmv_coo_aos.cpp
+  test_v2_spmv_csr.cpp
+  test_v2_spmv_csc.cpp
+  test_v2_spmv_ell.cpp
   test_spsv_csr.cpp
   test_spitsv_csr.cpp
   test_spsv_coo.cpp
@@ -182,6 +188,10 @@ set(ROCSPARSE_TEST_SOURCES
   test_spgemm_bsr.cpp
   test_spgemm_csr.cpp
   test_spgemm_reuse_csr.cpp
+  test_spgeam_csr.cpp
+  test_spgeam_reuse_csr.cpp
+  test_spgeam_csr_2.cpp
+  test_spgeam_reuse_csr_2.cpp
   test_gtsv.cpp
   test_gemvi.cpp
   test_sddmm.cpp
@@ -288,6 +298,12 @@ set(ROCSPARSE_CLIENTS_TESTINGS
 ../testings/testing_spmv_csr.cpp
 ../testings/testing_spmv_csc.cpp
 ../testings/testing_spmv_ell.cpp
+../testings/testing_v2_spmv_coo.cpp
+../testings/testing_v2_spmv_coo_aos.cpp
+../testings/testing_v2_spmv_csr.cpp
+../testings/testing_v2_spmv_bsr.cpp
+../testings/testing_v2_spmv_csc.cpp
+../testings/testing_v2_spmv_ell.cpp
 ../testings/testing_spsv_csr.cpp
 ../testings/testing_spitsv_csr.cpp
 ../testings/testing_spsv_coo.cpp
@@ -314,6 +330,10 @@ set(ROCSPARSE_CLIENTS_TESTINGS
 ../testings/testing_spgemm_bsr.cpp
 ../testings/testing_spgemm_csr.cpp
 ../testings/testing_spgemm_reuse_csr.cpp
+../testings/testing_spgeam_csr.cpp
+../testings/testing_spgeam_reuse_csr.cpp
+../testings/testing_spgeam_csr_2.cpp
+../testings/testing_spgeam_reuse_csr_2.cpp
 ../testings/testing_gtsv.cpp
 ../testings/testing_gemvi.cpp
 ../testings/testing_sddmm.cpp
@@ -382,18 +402,24 @@ target_compile_options(rocsparse-test PRIVATE -ffp-contract=on -mfma -Wno-deprec
 # Internal common header
 target_include_directories(rocsparse-test PRIVATE $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../include>)
 
-# Target link libraries
-target_link_libraries(rocsparse-test PRIVATE GTest::GTest roc::rocsparse hip::host hip::device)
-
 # Add OpenMP if available
-if(OPENMP_FOUND)
+apply_omp_settings(rocsparse-test)
+
+# Target link libraries
+target_link_libraries(rocsparse-test PRIVATE GTest::gtest roc::rocsparse hip::host hip::device ${ROCSPARSE_CLIENT_LIBS})
+
 if (NOT WIN32)
-   target_link_libraries(rocsparse-test PRIVATE OpenMP::OpenMP_CXX -Wl,-rpath=${HIP_CLANG_ROOT}/lib)
-  else()
-   target_link_libraries(rocsparse-test PRIVATE libomp)
+  if (BUILD_WITH_ROCTX)
+    if(ROCTRACER_INCLUDE_DIR AND ROCTX_LIBRARY)
+      # Add the include directory
+      target_include_directories(rocsparse-test PRIVATE ${ROCTRACER_INCLUDE_DIR})
+
+      # Link the rocTx lib
+      target_link_libraries(rocsparse-test PRIVATE ${ROCTX_LIBRARY})
+      target_compile_definitions( rocsparse-test PRIVATE ROCSPARSE_CLIENTS_WITH_ROCTX )
+    endif()
   endif()
 endif()
-
 
 # Set test output directory
 set_target_properties(rocsparse-test PROPERTIES RUNTIME_OUTPUT_DIRECTORY "${PROJECT_BINARY_DIR}/staging")
@@ -405,7 +431,7 @@ string(REGEX REPLACE ".cpp" ".yaml" ROCSPARSE_TEST_YAMLS "${ROCSPARSE_TEST_SOURC
 # Prepare testing data
 set(ROCSPARSE_TEST_DATA "${PROJECT_BINARY_DIR}/staging/rocsparse_test.data")
 add_custom_command(OUTPUT "${ROCSPARSE_TEST_DATA}"
-                   COMMAND ${python} ../common/rocsparse_gentest.py -m ${PROJECT_BINARY_DIR}/matrices -I ../include rocsparse_test.yaml -o "${ROCSPARSE_TEST_DATA}"
+                   COMMAND ${Python3_EXECUTABLE} ../common/rocsparse_gentest.py -m ${PROJECT_BINARY_DIR}/matrices -I ../include rocsparse_test.yaml -o "${ROCSPARSE_TEST_DATA}"
                    DEPENDS ../common/rocsparse_gentest.py rocsparse_test.yaml ../include/rocsparse_common.yaml ${ROCSPARSE_TEST_YAMLS}
                    WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}")
 add_custom_target(rocsparse-test-data

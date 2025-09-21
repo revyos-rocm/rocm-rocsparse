@@ -1,6 +1,6 @@
 /*! \file */
 /* ************************************************************************
- * Copyright (C) 2019-2024 Advanced Micro Devices, Inc. All rights Reserved.
+ * Copyright (C) 2019-2025 Advanced Micro Devices, Inc. All rights Reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -26,7 +26,7 @@
 #ifndef ROCSPARSE_DATATYPE2STRING_HPP
 #define ROCSPARSE_DATATYPE2STRING_HPP
 
-#include <rocsparse.h>
+#include "rocsparse.h"
 #include <string>
 
 #include <algorithm>
@@ -128,6 +128,8 @@ constexpr auto rocsparse_datatype2string(rocsparse_datatype type)
         return "i32_r";
     case rocsparse_datatype_u32_r:
         return "u32_r";
+    case rocsparse_datatype_f16_r:
+        return "f16_r";
     }
     return "invalid";
 }
@@ -353,8 +355,8 @@ constexpr auto rocsparse_spmvalg2string(rocsparse_spmv_alg alg)
         return "coo";
     case rocsparse_spmv_alg_csr_adaptive:
         return "csradaptive";
-    case rocsparse_spmv_alg_csr_stream:
-        return "csrstream";
+    case rocsparse_spmv_alg_csr_rowsplit:
+        return "csrrowsplit";
     case rocsparse_spmv_alg_ell:
         return "ell";
     case rocsparse_spmv_alg_coo_atomic:
@@ -428,6 +430,16 @@ constexpr auto rocsparse_spgemmalg2string(rocsparse_spgemm_alg alg)
     switch(alg)
     {
     case rocsparse_spgemm_alg_default:
+        return "default";
+    }
+    return "invalid";
+}
+
+constexpr auto rocsparse_spgeamalg2string(rocsparse_spgeam_alg alg)
+{
+    switch(alg)
+    {
+    case rocsparse_spgeam_alg_default:
         return "default";
     }
     return "invalid";

@@ -1,6 +1,6 @@
 .. meta::
-  :description: rocSPARSE documentation and API reference library
-  :keywords: rocSPARSE, ROCm, API, documentation
+  :description: rocSPARSE level 2 functions API documentation
+  :keywords: rocSPARSE, ROCm, API, documentation, level 2 functions
 
 .. _rocsparse_level2_functions_:
 
@@ -8,36 +8,20 @@
 Sparse level 2 functions
 ********************************************************************
 
-This module holds all sparse level 2 routines.
+This module contains all sparse level 2 routines.
 
 The sparse level 2 routines describe operations between a matrix in sparse format and a vector in dense format.
 
-rocsparse_bsrmv_ex_analysis()
------------------------------
-
-.. doxygenfunction:: rocsparse_sbsrmv_ex_analysis
-  :outline:
-.. doxygenfunction:: rocsparse_dbsrmv_ex_analysis
-  :outline:
-.. doxygenfunction:: rocsparse_cbsrmv_ex_analysis
-  :outline:
-.. doxygenfunction:: rocsparse_zbsrmv_ex_analysis
-
-rocsparse_bsrmv_ex()
---------------------
-
-.. doxygenfunction:: rocsparse_sbsrmv_ex
-  :outline:
-.. doxygenfunction:: rocsparse_dbsrmv_ex
-  :outline:
-.. doxygenfunction:: rocsparse_cbsrmv_ex
-  :outline:
-.. doxygenfunction:: rocsparse_zbsrmv_ex
-
-rocsparse_bsrmv_ex_clear()
+rocsparse_bsrmv_analysis()
 --------------------------
 
-.. doxygenfunction:: rocsparse_bsrmv_ex_clear
+.. doxygenfunction:: rocsparse_sbsrmv_analysis
+  :outline:
+.. doxygenfunction:: rocsparse_dbsrmv_analysis
+  :outline:
+.. doxygenfunction:: rocsparse_cbsrmv_analysis
+  :outline:
+.. doxygenfunction:: rocsparse_zbsrmv_analysis
 
 rocsparse_bsrmv()
 -----------------
@@ -49,6 +33,11 @@ rocsparse_bsrmv()
 .. doxygenfunction:: rocsparse_cbsrmv
   :outline:
 .. doxygenfunction:: rocsparse_zbsrmv
+
+rocsparse_bsrmv_clear()
+-----------------------
+
+.. doxygenfunction:: rocsparse_bsrmv_clear
 
 rocsparse_bsrxmv()
 ------------------

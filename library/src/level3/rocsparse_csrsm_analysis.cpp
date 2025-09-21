@@ -1,6 +1,6 @@
 /*! \file */
 /* ************************************************************************
- * Copyright (C) 2020-2024 Advanced Micro Devices, Inc. All rights Reserved.
+ * Copyright (C) 2020-2025 Advanced Micro Devices, Inc. All rights Reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -25,9 +25,9 @@
 #include "rocsparse_csrsm.hpp"
 
 #include "../level2/rocsparse_csrsv.hpp"
-#include "common.h"
-#include "control.h"
-#include "utility.h"
+#include "rocsparse_common.hpp"
+#include "rocsparse_control.hpp"
+#include "rocsparse_utility.hpp"
 
 template <typename I, typename J, typename T>
 rocsparse_status rocsparse::csrsm_analysis_core(rocsparse_handle          handle,
@@ -48,6 +48,7 @@ rocsparse_status rocsparse::csrsm_analysis_core(rocsparse_handle          handle
                                                 rocsparse_solve_policy    solve,
                                                 void*                     temp_buffer)
 {
+    ROCSPARSE_ROUTINE_TRACE;
 
     if(nrhs == 1)
     {
@@ -122,15 +123,11 @@ rocsparse_status rocsparse::csrsm_analysis_core(rocsparse_handle          handle
         // User is explicitly asking to force a re-analysis, or no valid data has been
         // found to be re-used
 
-        // Clear csrsm info
-        RETURN_IF_ROCSPARSE_ERROR(rocsparse::destroy_trm_info((trans_A == rocsparse_operation_none)
-                                                                  ? info->csrsm_upper_info
-                                                                  : info->csrsmt_upper_info));
+        rocsparse::trm_info_t** p_trm_info = (trans_A == rocsparse_operation_none)
+                                                 ? &info->csrsm_upper_info
+                                                 : &info->csrsmt_upper_info;
 
-        // Create csrsm info
-        RETURN_IF_ROCSPARSE_ERROR(rocsparse::create_trm_info((trans_A == rocsparse_operation_none)
-                                                                 ? &info->csrsm_upper_info
-                                                                 : &info->csrsmt_upper_info));
+        rocsparse::trm_info_t::recreate(p_trm_info);
 
         // Perform analysis
         RETURN_IF_ROCSPARSE_ERROR(rocsparse::trm_analysis(handle,
@@ -141,9 +138,7 @@ rocsparse_status rocsparse::csrsm_analysis_core(rocsparse_handle          handle
                                                           csr_val,
                                                           csr_row_ptr,
                                                           csr_col_ind,
-                                                          (trans_A == rocsparse_operation_none)
-                                                              ? info->csrsm_upper_info
-                                                              : info->csrsmt_upper_info,
+                                                          p_trm_info[0],
                                                           (J**)&info->zero_pivot,
                                                           temp_buffer));
     }
@@ -211,15 +206,11 @@ rocsparse_status rocsparse::csrsm_analysis_core(rocsparse_handle          handle
         // User is explicitly asking to force a re-analysis, or no valid data has been
         // found to be re-used
 
-        // Clear csrsm info
-        RETURN_IF_ROCSPARSE_ERROR(rocsparse::destroy_trm_info((trans_A == rocsparse_operation_none)
-                                                                  ? info->csrsm_lower_info
-                                                                  : info->csrsmt_lower_info));
+        rocsparse::trm_info_t** p_trm_info = (trans_A == rocsparse_operation_none)
+                                                 ? &info->csrsm_lower_info
+                                                 : &info->csrsmt_lower_info;
 
-        // Create csrsm info
-        RETURN_IF_ROCSPARSE_ERROR(rocsparse::create_trm_info((trans_A == rocsparse_operation_none)
-                                                                 ? &info->csrsm_lower_info
-                                                                 : &info->csrsmt_lower_info));
+        rocsparse::trm_info_t::recreate(p_trm_info);
 
         // Perform analysis
         RETURN_IF_ROCSPARSE_ERROR(rocsparse::trm_analysis(handle,
@@ -230,9 +221,7 @@ rocsparse_status rocsparse::csrsm_analysis_core(rocsparse_handle          handle
                                                           csr_val,
                                                           csr_row_ptr,
                                                           csr_col_ind,
-                                                          (trans_A == rocsparse_operation_none)
-                                                              ? info->csrsm_lower_info
-                                                              : info->csrsmt_lower_info,
+                                                          p_trm_info[0],
                                                           (J**)&info->zero_pivot,
                                                           temp_buffer));
     }
@@ -258,6 +247,8 @@ rocsparse_status rocsparse::csrsm_analysis_quickreturn(rocsparse_handle         
                                                        rocsparse_solve_policy    solve,
                                                        void*                     temp_buffer)
 {
+    ROCSPARSE_ROUTINE_TRACE;
+
     if(m == 0 || nrhs == 0)
     {
         return rocsparse_status_success;
@@ -286,6 +277,8 @@ namespace rocsparse
                                                     rocsparse_solve_policy    solve, //15
                                                     void*                     temp_buffer) //16
     {
+        ROCSPARSE_ROUTINE_TRACE;
+
         ROCSPARSE_CHECKARG_HANDLE(0, handle);
         ROCSPARSE_CHECKARG_ENUM(1, trans_A);
         ROCSPARSE_CHECKARG_ENUM(2, trans_B);
@@ -370,6 +363,7 @@ namespace rocsparse
                                                 rocsparse_solve_policy    solve,
                                                 void*                     temp_buffer)
     {
+        ROCSPARSE_ROUTINE_TRACE;
 
         // Logging
         rocsparse::log_trace(handle,
@@ -494,6 +488,7 @@ INSTANTIATE(int64_t, int64_t, rocsparse_double_complex);
                                      void*                     temp_buffer)     \
     try                                                                         \
     {                                                                           \
+        ROCSPARSE_ROUTINE_TRACE;                                                \
         RETURN_IF_ROCSPARSE_ERROR(rocsparse::csrsm_analysis_impl(handle,        \
                                                                  trans_A,       \
                                                                  trans_B,       \

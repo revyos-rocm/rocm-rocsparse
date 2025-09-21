@@ -1,6 +1,6 @@
 /*! \file */
 /* ************************************************************************
- * Copyright (C) 2024 Advanced Micro Devices, Inc. All rights Reserved.
+ * Copyright (C) 2024-2025 Advanced Micro Devices, Inc. All rights Reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -48,6 +48,7 @@ inline constexpr int token_count(F f, P... p)
 DEF(rocsparse_indextype, rocsparse_indextype_u16, rocsparse_indextype_i32, rocsparse_indextype_i64);
 
 DEF(rocsparse_datatype,
+    rocsparse_datatype_f16_r,
     rocsparse_datatype_f32_r,
     rocsparse_datatype_f64_r,
     rocsparse_datatype_f32_c,
@@ -114,7 +115,7 @@ DEF(rocsparse_spmv_alg,
     rocsparse_spmv_alg_bsr,
     rocsparse_spmv_alg_coo,
     rocsparse_spmv_alg_csr_adaptive,
-    rocsparse_spmv_alg_csr_stream,
+    rocsparse_spmv_alg_csr_rowsplit,
     rocsparse_spmv_alg_ell,
     rocsparse_spmv_alg_coo_atomic,
     rocsparse_spmv_alg_csr_lrb);
@@ -137,6 +138,8 @@ DEF(rocsparse_spmm_alg,
     rocsparse_spmm_alg_csr_merge);
 
 DEF(rocsparse_spgemm_alg, rocsparse_spgemm_alg_default);
+
+DEF(rocsparse_spgeam_alg, rocsparse_spgeam_alg_default);
 
 DEF(rocsparse_sparse_to_dense_alg, rocsparse_sparse_to_dense_alg_default);
 
@@ -185,6 +188,7 @@ bool rocsparse_datatype_from_name(rocsparse_datatype value, const char* name)
     {
         switch(v)
         {
+            CASE(rocsparse_datatype_f16_r);
             CASE(rocsparse_datatype_f32_r);
             CASE(rocsparse_datatype_f64_r);
             CASE(rocsparse_datatype_f32_c);
@@ -414,7 +418,7 @@ bool rocsparse_spmv_alg_from_name(rocsparse_spmv_alg value, const char* name)
             CASE(rocsparse_spmv_alg_bsr);
             CASE(rocsparse_spmv_alg_coo);
             CASE(rocsparse_spmv_alg_csr_adaptive);
-            CASE(rocsparse_spmv_alg_csr_stream);
+            CASE(rocsparse_spmv_alg_csr_rowsplit);
             CASE(rocsparse_spmv_alg_ell);
             CASE(rocsparse_spmv_alg_coo_atomic);
             CASE(rocsparse_spmv_alg_csr_lrb);
@@ -487,6 +491,18 @@ bool rocsparse_spgemm_alg_from_name(rocsparse_spgemm_alg value, const char* name
         switch(v)
         {
             CASE(rocsparse_spgemm_alg_default);
+        }
+    }
+    return false;
+}
+
+bool rocsparse_spgeam_alg_from_name(rocsparse_spgeam_alg value, const char* name)
+{
+    for(auto v : rocsparse_spgeam_alg_st::all)
+    {
+        switch(v)
+        {
+            CASE(rocsparse_spgeam_alg_default);
         }
     }
     return false;
@@ -589,6 +605,7 @@ bool convert(int& v, const char* enum_type, const char* value)
     DEF(rocsparse_spsm_alg);
     DEF(rocsparse_spmm_alg);
     DEF(rocsparse_spgemm_alg);
+    DEF(rocsparse_spgeam_alg);
     DEF(rocsparse_sparse_to_dense_alg);
     DEF(rocsparse_dense_to_sparse_alg);
     DEF(rocsparse_gtsv_interleaved_alg);
@@ -633,6 +650,7 @@ bool get_size(uint64_t& v, const char* enum_type)
     DEF(rocsparse_spsm_alg);
     DEF(rocsparse_spmm_alg);
     DEF(rocsparse_spgemm_alg);
+    DEF(rocsparse_spgeam_alg);
     DEF(rocsparse_sparse_to_dense_alg);
     DEF(rocsparse_dense_to_sparse_alg);
     DEF(rocsparse_gtsv_interleaved_alg);
@@ -676,6 +694,7 @@ const char* get_name(const char* enum_type, uint64_t index)
     DEF(rocsparse_spsm_alg);
     DEF(rocsparse_spmm_alg);
     DEF(rocsparse_spgemm_alg);
+    DEF(rocsparse_spgeam_alg);
     DEF(rocsparse_sparse_to_dense_alg);
     DEF(rocsparse_dense_to_sparse_alg);
     DEF(rocsparse_gtsv_interleaved_alg);

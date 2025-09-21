@@ -1,5 +1,5 @@
 /* ************************************************************************
-* Copyright (C) 2022-2024 Advanced Micro Devices, Inc. All rights Reserved.
+* Copyright (C) 2022-2025 Advanced Micro Devices, Inc. All rights Reserved.
 *
 * Permission is hereby granted, free of charge, to any person obtaining a copy
 * of this software and associated documentation files (the "Software"), to deal
@@ -378,50 +378,24 @@ void testing_spmm_batched_coo(const Arguments& arg)
 
     if(arg.timing)
     {
-        int number_cold_calls = 2;
-        int number_hot_calls  = arg.iters;
 
         CHECK_ROCSPARSE_ERROR(rocsparse_set_pointer_mode(handle, rocsparse_pointer_mode_host));
 
-        // Warm up
-        for(int iter = 0; iter < number_cold_calls; ++iter)
-        {
-            CHECK_ROCSPARSE_ERROR(rocsparse_spmm(handle,
-                                                 trans_A,
-                                                 trans_B,
-                                                 &halpha,
-                                                 mat_A,
-                                                 mat_B,
-                                                 &hbeta,
-                                                 mat_C1,
-                                                 ttype,
-                                                 alg,
-                                                 rocsparse_spmm_stage_compute,
-                                                 &buffer_size,
-                                                 dbuffer));
-        }
-
-        double gpu_time_used = get_time_us();
-
-        // Performance run
-        for(int iter = 0; iter < number_hot_calls; ++iter)
-        {
-            CHECK_ROCSPARSE_ERROR(rocsparse_spmm(handle,
-                                                 trans_A,
-                                                 trans_B,
-                                                 &halpha,
-                                                 mat_A,
-                                                 mat_B,
-                                                 &hbeta,
-                                                 mat_C1,
-                                                 ttype,
-                                                 alg,
-                                                 rocsparse_spmm_stage_compute,
-                                                 &buffer_size,
-                                                 dbuffer));
-        }
-
-        gpu_time_used = (get_time_us() - gpu_time_used) / number_hot_calls;
+        const double gpu_time_used = rocsparse_clients::run_benchmark(arg,
+                                                                      rocsparse_spmm,
+                                                                      handle,
+                                                                      trans_A,
+                                                                      trans_B,
+                                                                      &halpha,
+                                                                      mat_A,
+                                                                      mat_B,
+                                                                      &hbeta,
+                                                                      mat_C1,
+                                                                      ttype,
+                                                                      alg,
+                                                                      rocsparse_spmm_stage_compute,
+                                                                      &buffer_size,
+                                                                      dbuffer);
 
         double gflop_count
             = batch_count_C
@@ -491,5 +465,7 @@ INSTANTIATE_MIXED(int32_t, int8_t, int8_t, int32_t, int32_t);
 INSTANTIATE_MIXED(int64_t, int8_t, int8_t, int32_t, int32_t);
 INSTANTIATE_MIXED(int32_t, int8_t, int8_t, float, float);
 INSTANTIATE_MIXED(int64_t, int8_t, int8_t, float, float);
+INSTANTIATE_MIXED(int32_t, _Float16, _Float16, float, float);
+INSTANTIATE_MIXED(int64_t, _Float16, _Float16, float, float);
 
 void testing_spmm_batched_coo_extra(const Arguments& arg) {}

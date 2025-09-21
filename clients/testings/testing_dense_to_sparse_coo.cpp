@@ -1,6 +1,6 @@
 /*! \file */
 /* ************************************************************************
- * Copyright (C) 2020-2023 Advanced Micro Devices, Inc. All rights Reserved.
+ * Copyright (C) 2020-2025 Advanced Micro Devices, Inc. All rights Reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -277,35 +277,16 @@ void testing_dense_to_sparse_coo(const Arguments& arg)
 
     if(arg.timing)
     {
-        int number_cold_calls = 2;
-        int number_hot_calls  = arg.iters;
 
-        // Warm-up
-        for(int iter = 0; iter < number_cold_calls; ++iter)
-        {
-            CHECK_ROCSPARSE_ERROR(rocsparse_dense_to_sparse(handle,
-                                                            mat_dense,
-                                                            mat_sparse,
-                                                            rocsparse_dense_to_sparse_alg_default,
-                                                            &buffer_size,
-                                                            d_temp_buffer));
-        }
-
-        double gpu_time_used = get_time_us();
-        {
-            // Performance run
-            for(int iter = 0; iter < number_hot_calls; ++iter)
-            {
-                CHECK_ROCSPARSE_ERROR(
-                    rocsparse_dense_to_sparse(handle,
-                                              mat_dense,
-                                              mat_sparse,
-                                              rocsparse_dense_to_sparse_alg_default,
-                                              &buffer_size,
-                                              d_temp_buffer));
-            }
-        }
-        gpu_time_used = (get_time_us() - gpu_time_used) / number_hot_calls;
+        const double gpu_time_used
+            = rocsparse_clients::run_benchmark(arg,
+                                               rocsparse_dense_to_sparse,
+                                               handle,
+                                               mat_dense,
+                                               mat_sparse,
+                                               rocsparse_dense_to_sparse_alg_default,
+                                               &buffer_size,
+                                               d_temp_buffer);
 
         double gbyte_count = dense2coo_gbyte_count<T>(m, n, (I)nnz);
         double gpu_gbyte   = get_gpu_gbyte(gpu_time_used, gbyte_count);
@@ -324,18 +305,18 @@ void testing_dense_to_sparse_coo(const Arguments& arg)
                             gpu_gbyte,
                             display_key_t::time_ms,
                             get_gpu_time_msec(gpu_time_used));
-
-        // clang-format on
     }
 }
 
 #define INSTANTIATE(ITYPE, TYPE)                                                          \
     template void testing_dense_to_sparse_coo_bad_arg<ITYPE, TYPE>(const Arguments& arg); \
     template void testing_dense_to_sparse_coo<ITYPE, TYPE>(const Arguments& arg)
+INSTANTIATE(int32_t, _Float16);
 INSTANTIATE(int32_t, float);
 INSTANTIATE(int32_t, double);
 INSTANTIATE(int32_t, rocsparse_float_complex);
 INSTANTIATE(int32_t, rocsparse_double_complex);
+INSTANTIATE(int64_t, _Float16);
 INSTANTIATE(int64_t, float);
 INSTANTIATE(int64_t, double);
 INSTANTIATE(int64_t, rocsparse_float_complex);

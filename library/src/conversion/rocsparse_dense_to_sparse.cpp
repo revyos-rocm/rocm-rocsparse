@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (C) 2020-2024 Advanced Micro Devices, Inc. All rights Reserved.
+ * Copyright (C) 2020-2025 Advanced Micro Devices, Inc. All rights Reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -22,13 +22,42 @@
  * ************************************************************************ */
 
 #include "internal/generic/rocsparse_dense_to_sparse.h"
-#include "control.h"
-#include "handle.h"
-#include "utility.h"
+#include "rocsparse_control.hpp"
+#include "rocsparse_handle.hpp"
+#include "rocsparse_utility.hpp"
 
 #include "rocsparse_dense2coo.hpp"
 #include "rocsparse_dense2csx_impl.hpp"
 #include "rocsparse_nnz_impl.hpp"
+
+template <>
+const char* rocsparse::enum_utils::to_string(rocsparse_dense_to_sparse_alg value_)
+{
+#define CASE(C) \
+    case C:     \
+        return #C
+    switch(value_)
+    {
+        CASE(rocsparse_dense_to_sparse_alg_default);
+#undef CASE
+    }
+    // LCOV_EXCL_START
+    THROW_IF_ROCSPARSE_ERROR(rocsparse_status_invalid_value);
+    // LCOV_EXCL_STOP
+}
+
+template <>
+bool rocsparse::enum_utils::is_invalid(rocsparse_dense_to_sparse_alg value_)
+{
+    switch(value_)
+    {
+    case rocsparse_dense_to_sparse_alg_default:
+    {
+        return false;
+    }
+    }
+    return true;
+}
 
 namespace rocsparse
 {
@@ -46,6 +75,15 @@ namespace rocsparse
                                           rocsparse_datatype  ctype,
                                           P... p)
     {
+        ROCSPARSE_ROUTINE_TRACE;
+
+        if(itype == rocsparse_indextype_i32 && jtype == rocsparse_indextype_i32
+           && ctype == rocsparse_datatype_f16_r)
+        {
+            RETURN_IF_ROCSPARSE_ERROR(
+                (rocsparse::dense_to_sparse_template<int32_t, int32_t, _Float16>(p...)));
+            return rocsparse_status_success;
+        }
         if(itype == rocsparse_indextype_i32 && jtype == rocsparse_indextype_i32
            && ctype == rocsparse_datatype_f32_r)
         {
@@ -77,6 +115,13 @@ namespace rocsparse
             return rocsparse_status_success;
         }
         if(itype == rocsparse_indextype_i64 && jtype == rocsparse_indextype_i32
+           && ctype == rocsparse_datatype_f16_r)
+        {
+            RETURN_IF_ROCSPARSE_ERROR(
+                (rocsparse::dense_to_sparse_template<int64_t, int32_t, _Float16>(p...)));
+            return rocsparse_status_success;
+        }
+        if(itype == rocsparse_indextype_i64 && jtype == rocsparse_indextype_i32
            && ctype == rocsparse_datatype_f32_r)
         {
             RETURN_IF_ROCSPARSE_ERROR(
@@ -104,6 +149,13 @@ namespace rocsparse
             RETURN_IF_ROCSPARSE_ERROR(
                 (rocsparse::dense_to_sparse_template<int64_t, int32_t, rocsparse_double_complex>(
                     p...)));
+            return rocsparse_status_success;
+        }
+        if(itype == rocsparse_indextype_i64 && jtype == rocsparse_indextype_i64
+           && ctype == rocsparse_datatype_f16_r)
+        {
+            RETURN_IF_ROCSPARSE_ERROR(
+                (rocsparse::dense_to_sparse_template<int64_t, int64_t, _Float16>(p...)));
             return rocsparse_status_success;
         }
         if(itype == rocsparse_indextype_i64 && jtype == rocsparse_indextype_i64
@@ -147,6 +199,7 @@ namespace rocsparse
                                               size_t*                       buffer_size,
                                               void*                         temp_buffer)
     {
+        ROCSPARSE_ROUTINE_TRACE;
 
         if(temp_buffer == nullptr)
         {
@@ -285,6 +338,8 @@ extern "C" rocsparse_status rocsparse_dense_to_sparse(rocsparse_handle          
                                                       void*                         temp_buffer)
 try
 {
+    ROCSPARSE_ROUTINE_TRACE;
+
     // Logging
     rocsparse::log_trace(handle,
                          "rocsparse_dense_sparse",
@@ -333,8 +388,10 @@ try
                                                               buffer_size,
                                                               temp_buffer));
     return rocsparse_status_success;
+    // LCOV_EXCL_START
 }
 catch(...)
 {
     RETURN_ROCSPARSE_EXCEPTION();
 }
+// LCOV_EXCL_STOP

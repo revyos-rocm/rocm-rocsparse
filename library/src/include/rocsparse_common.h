@@ -1,6 +1,6 @@
 /*! \file */
 /* ************************************************************************
- * Copyright (C) 2024 Advanced Micro Devices, Inc. All rights Reserved.
+ * Copyright (C) 2024-2025 Advanced Micro Devices, Inc. All rights Reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -52,17 +52,30 @@ namespace rocsparse
     rocsparse_status valset_2d(
         rocsparse_handle handle, I m, I n, int64_t ld, T value, T* array, rocsparse_order order);
 
-    template <typename I, typename T, typename U>
-    rocsparse_status scale_array(rocsparse_handle handle, I length, U scalar_device_host, T* array);
+    template <typename I, typename A, typename T>
+    rocsparse_status
+        scale_array(rocsparse_handle handle, I length, const T* scalar_device_host, A* array);
 
-    template <typename I, typename T, typename U>
+    template <typename I, typename T>
     rocsparse_status scale_2d_array(rocsparse_handle handle,
                                     I                m,
                                     I                n,
                                     int64_t          ld,
                                     int64_t          batch_count,
                                     int64_t          stride,
-                                    U                scalar_device_host,
+                                    const T*         scalar_device_host,
                                     T*               array,
                                     rocsparse_order  order);
+
+    template <typename I, typename J>
+    rocsparse_status copy(rocsparse_handle     handle,
+                          int64_t              length,
+                          const I*             in,
+                          J*                   out,
+                          rocsparse_index_base idx_base_in,
+                          rocsparse_index_base idx_base_out);
+
+    template <typename T>
+    rocsparse_status copy_and_scale(
+        rocsparse_handle handle, int64_t length, const T* in, T* out, const T* scalar_device_host);
 }

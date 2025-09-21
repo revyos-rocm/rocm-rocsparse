@@ -1,6 +1,6 @@
 /*! \file */
 /* ************************************************************************
- * Copyright (C) 2023-2024 Advanced Micro Devices, Inc. All rights Reserved.
+ * Copyright (C) 2023-2025 Advanced Micro Devices, Inc. All rights Reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -25,24 +25,25 @@
 #include "rocsparse_bsrgemm_scal.hpp"
 #include "../conversion/rocsparse_identity.hpp"
 #include "bsrgemm_device.h"
-#include "control.h"
 #include "csrgemm_device.h"
 #include "internal/extra/rocsparse_bsrgemm.h"
 #include "rocsparse_bsrgemm.hpp"
 #include "rocsparse_bsrgemm_calc.hpp"
+#include "rocsparse_control.hpp"
 #include "rocsparse_csrgemm.hpp"
-#include "utility.h"
+#include "rocsparse_utility.hpp"
 
 namespace rocsparse
 {
-    template <uint32_t BLOCKSIZE, typename I, typename T, typename U>
+    template <uint32_t BLOCKSIZE, typename I, typename T>
     ROCSPARSE_KERNEL(BLOCKSIZE)
     void bsrgemm_copy_scale(I size,
-                            U beta_device_host,
+                            ROCSPARSE_DEVICE_HOST_SCALAR_PARAMS(T, beta),
                             const T* __restrict__ in,
-                            T* __restrict__ out)
+                            T* __restrict__ out,
+                            bool is_host_mode)
     {
-        auto beta = rocsparse::load_scalar_device_host(beta_device_host);
+        ROCSPARSE_DEVICE_HOST_SCALAR_GET(beta);
         rocsparse::bsrgemm_copy_scale_device<BLOCKSIZE>(size, beta, in, out);
     }
 }
@@ -64,6 +65,8 @@ rocsparse_status rocsparse::bsrgemm_scal_quickreturn(rocsparse_handle          h
                                                      const rocsparse_mat_info  info_C,
                                                      void*                     temp_buffer)
 {
+    ROCSPARSE_ROUTINE_TRACE;
+
     if(mb == 0 || nb == 0 || nnzb_D == 0)
     {
         return rocsparse_status_success;
@@ -89,6 +92,8 @@ rocsparse_status rocsparse::bsrgemm_scal_core(rocsparse_handle          handle,
                                               const rocsparse_mat_info  info_C,
                                               void*                     temp_buffer)
 {
+    ROCSPARSE_ROUTINE_TRACE;
+
     // Stream
     hipStream_t stream = handle->stream;
 
@@ -108,32 +113,16 @@ rocsparse_status rocsparse::bsrgemm_scal_core(rocsparse_handle          handle,
                                            descr_C->base);
     }
 
-    if(handle->pointer_mode == rocsparse_pointer_mode_device)
-    {
-        RETURN_IF_HIPLAUNCHKERNELGGL_ERROR(
-            (rocsparse::bsrgemm_copy_scale<BSRGEMM_DIM>),
-            dim3((block_dim * block_dim * nnzb_D - 1) / BSRGEMM_DIM + 1),
-            dim3(BSRGEMM_DIM),
-            0,
-            stream,
-            block_dim * block_dim * nnzb_D,
-            beta,
-            bsr_val_D,
-            bsr_val_C);
-    }
-    else
-    {
-        RETURN_IF_HIPLAUNCHKERNELGGL_ERROR(
-            (rocsparse::bsrgemm_copy_scale<BSRGEMM_DIM>),
-            dim3((block_dim * block_dim * nnzb_D - 1) / BSRGEMM_DIM + 1),
-            dim3(BSRGEMM_DIM),
-            0,
-            stream,
-            block_dim * block_dim * nnzb_D,
-            *beta,
-            bsr_val_D,
-            bsr_val_C);
-    }
+    RETURN_IF_HIPLAUNCHKERNELGGL_ERROR((rocsparse::bsrgemm_copy_scale<BSRGEMM_DIM>),
+                                       dim3((block_dim * block_dim * nnzb_D - 1) / BSRGEMM_DIM + 1),
+                                       dim3(BSRGEMM_DIM),
+                                       0,
+                                       stream,
+                                       block_dim * block_dim * nnzb_D,
+                                       ROCSPARSE_DEVICE_HOST_SCALAR_ARGS(handle, beta),
+                                       bsr_val_D,
+                                       bsr_val_C,
+                                       handle->pointer_mode == rocsparse_pointer_mode_host);
 #undef BSRGEMM_DIM
 
     return rocsparse_status_success;

@@ -1,6 +1,6 @@
 /*! \file */
 /* ************************************************************************
- * Copyright (C) 2023 Advanced Micro Devices, Inc. All rights Reserved.
+ * Copyright (C) 2023-2025 Advanced Micro Devices, Inc. All rights Reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -254,10 +254,10 @@ public:
         {
             rocsparse_destroy_spmat_descr(this->descr);
         }
-        rocsparse_hipFree(this->row_data);
-        rocsparse_hipFree(this->col_data);
-        rocsparse_hipFree(this->ind_data);
-        rocsparse_hipFree(this->val_data);
+        std::ignore = rocsparse_hipFree(this->row_data);
+        std::ignore = rocsparse_hipFree(this->col_data);
+        std::ignore = rocsparse_hipFree(this->ind_data);
+        std::ignore = rocsparse_hipFree(this->val_data);
     }
 
     // Allow spmat to be used anywhere rocsparse_spmat_descr is expected
@@ -1419,7 +1419,107 @@ spmat spmat_create_A(const Arguments& arg, rocsparse_format format, rocsparse_in
     }
 }
 
-void testing_sparse_to_sparse_extra(const Arguments& arg) {}
+void testing_sparse_to_sparse_extra(const Arguments& arg)
+{
+    // 1 0 0 0
+    // 1 2 3 4
+    // 0 0 3 4
+    // 1 0 0 5
+    int                  m    = 4;
+    int                  n    = 4;
+    int                  nnz  = 9;
+    rocsparse_index_base base = rocsparse_index_base_zero;
+
+    host_csr_matrix<float, int, int> hcsr(m, n, nnz, base);
+    hcsr.ptr = {0, 1, 5, 7, 9};
+    hcsr.ind = {0, 0, 1, 2, 3, 2, 3, 0, 3};
+    hcsr.val = {1, 1, 2, 3, 4, 3, 4, 1, 5};
+
+    device_csr_matrix<float, int, int> dcsr(hcsr);
+
+    device_csr_matrix<float, int, int> dcsc(m, n, nnz, base);
+
+    rocsparse_handle handle;
+    CHECK_ROCSPARSE_ERROR(rocsparse_create_handle(&handle));
+
+    // Build Source
+    rocsparse_const_spmat_descr source;
+    CHECK_ROCSPARSE_ERROR(rocsparse_create_const_csr_descr(&source,
+                                                           dcsr.m,
+                                                           dcsr.n,
+                                                           dcsr.nnz,
+                                                           dcsr.ptr,
+                                                           dcsr.ind,
+                                                           (const float*)dcsr.val,
+                                                           rocsparse_indextype_i32,
+                                                           rocsparse_indextype_i32,
+                                                           dcsr.base,
+                                                           rocsparse_datatype_f32_r));
+
+    // Build target
+    rocsparse_spmat_descr target;
+    CHECK_ROCSPARSE_ERROR(rocsparse_create_csc_descr(&target,
+                                                     dcsc.m,
+                                                     dcsc.n,
+                                                     dcsc.nnz,
+                                                     dcsc.ptr,
+                                                     dcsc.ind,
+                                                     (float*)dcsc.val,
+                                                     rocsparse_indextype_i32,
+                                                     rocsparse_indextype_i32,
+                                                     dcsc.base,
+                                                     rocsparse_datatype_f32_r));
+
+    // Create descriptor
+    rocsparse_sparse_to_sparse_descr descr;
+    CHECK_ROCSPARSE_ERROR(rocsparse_create_sparse_to_sparse_descr(
+        &descr, source, target, rocsparse_sparse_to_sparse_alg_default));
+
+    size_t buffer_size;
+    void*  buffer;
+
+    // Analysis phase
+    CHECK_ROCSPARSE_ERROR(rocsparse_sparse_to_sparse_buffer_size(
+        handle, descr, source, target, rocsparse_sparse_to_sparse_stage_analysis, &buffer_size));
+    CHECK_HIP_ERROR(hipMalloc(&buffer, buffer_size));
+    CHECK_ROCSPARSE_ERROR(rocsparse_sparse_to_sparse(handle,
+                                                     descr,
+                                                     source,
+                                                     target,
+                                                     rocsparse_sparse_to_sparse_stage_analysis,
+                                                     buffer_size,
+                                                     buffer));
+    CHECK_HIP_ERROR(hipFree(buffer));
+
+    // Calculation phase
+    CHECK_ROCSPARSE_ERROR(rocsparse_sparse_to_sparse_buffer_size(
+        handle, descr, source, target, rocsparse_sparse_to_sparse_stage_compute, &buffer_size));
+    CHECK_HIP_ERROR(hipMalloc(&buffer, buffer_size));
+    CHECK_ROCSPARSE_ERROR(rocsparse_sparse_to_sparse(handle,
+                                                     descr,
+                                                     source,
+                                                     target,
+                                                     rocsparse_sparse_to_sparse_stage_compute,
+                                                     buffer_size,
+                                                     buffer));
+    CHECK_HIP_ERROR(hipFree(buffer));
+
+    host_csr_matrix<float, int, int> hcsc_solution(dcsc);
+
+    host_csr_matrix<float, int, int> hcsc_gold(m, n, nnz, base);
+    hcsc_gold.ptr = {0, 3, 4, 6, 9};
+    hcsc_gold.ind = {0, 1, 3, 1, 1, 2, 1, 2, 3};
+    hcsc_gold.val = {1, 1, 1, 2, 3, 3, 4, 4, 5};
+
+    unit_check_garray(rocsparse_indextype_i32, n + 1, hcsc_solution.ptr, hcsc_gold.ptr);
+    unit_check_garray(rocsparse_indextype_i32, nnz, hcsc_solution.ind, hcsc_gold.ind);
+    unit_check_garray(rocsparse_datatype_f32_r, nnz, hcsc_solution.val, hcsc_gold.val);
+
+    CHECK_ROCSPARSE_ERROR(rocsparse_destroy_spmat_descr(source));
+    CHECK_ROCSPARSE_ERROR(rocsparse_destroy_spmat_descr(target));
+
+    CHECK_ROCSPARSE_ERROR(rocsparse_destroy_handle(handle));
+}
 
 template <typename I, typename J, typename T>
 void testing_sparse_to_sparse_bad_arg(const Arguments& arg)
@@ -1905,14 +2005,17 @@ void testing_sparse_to_sparse(const Arguments& arg)
     template void testing_sparse_to_sparse_bad_arg<ITYPE, JTYPE, TYPE>(const Arguments& arg); \
     template void testing_sparse_to_sparse<ITYPE, JTYPE, TYPE>(const Arguments& arg)
 
+INSTANTIATE(int32_t, int32_t, _Float16);
 INSTANTIATE(int32_t, int32_t, float);
 INSTANTIATE(int32_t, int32_t, double);
 INSTANTIATE(int32_t, int32_t, rocsparse_float_complex);
 INSTANTIATE(int32_t, int32_t, rocsparse_double_complex);
+INSTANTIATE(int64_t, int32_t, _Float16);
 INSTANTIATE(int64_t, int32_t, float);
 INSTANTIATE(int64_t, int32_t, double);
 INSTANTIATE(int64_t, int32_t, rocsparse_float_complex);
 INSTANTIATE(int64_t, int32_t, rocsparse_double_complex);
+INSTANTIATE(int64_t, int64_t, _Float16);
 INSTANTIATE(int64_t, int64_t, float);
 INSTANTIATE(int64_t, int64_t, double);
 INSTANTIATE(int64_t, int64_t, rocsparse_float_complex);

@@ -1,6 +1,6 @@
 /*! \file */
 /* ************************************************************************
- * Copyright (C) 2023-2024 Advanced Micro Devices, Inc. All rights Reserved.
+ * Copyright (C) 2023-2025 Advanced Micro Devices, Inc. All rights Reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -23,10 +23,10 @@
  * ************************************************************************ */
 
 #include "rocsparse_csr2ell_strided_batched.hpp"
-#include "control.h"
 #include "internal/conversion/rocsparse_csr2ell.h"
+#include "rocsparse_control.hpp"
 #include "rocsparse_csr2ell.hpp"
-#include "utility.h"
+#include "rocsparse_utility.hpp"
 
 #include "csr2ell_device.h"
 
@@ -44,6 +44,8 @@ rocsparse_status rocsparse::csr2ell_strided_batched_quickreturn(rocsparse_handle
                                                                 int64_t ell_val_stride,
                                                                 void*   ell_col_ind)
 {
+    ROCSPARSE_ROUTINE_TRACE;
+
     if(m == 0 || ell_width == 0 || batch_count == 0)
     {
         return rocsparse_status_success;
@@ -68,6 +70,8 @@ namespace rocsparse
                                          int64_t                   ell_val_stride, //  11
                                          void*                     ell_col_ind) //  12
     {
+        ROCSPARSE_ROUTINE_TRACE;
+
         ROCSPARSE_CHECKARG_HANDLE(0, handle);
         ROCSPARSE_CHECKARG_SIZE(2, m);
         ROCSPARSE_CHECKARG_SIZE(9, ell_width);
@@ -138,6 +142,8 @@ rocsparse_status rocsparse::csr2ell_strided_batched_core(rocsparse_handle       
                                                          int64_t                   ell_val_stride,
                                                          J*                        ell_col_ind)
 {
+    ROCSPARSE_ROUTINE_TRACE;
+
     // Stream
     hipStream_t stream = handle->stream;
 
@@ -212,6 +218,8 @@ namespace rocsparse
     template <typename... P>
     static rocsparse_status csr2ell_strided_batched_impl(P&&... p)
     {
+        ROCSPARSE_ROUTINE_TRACE;
+
         rocsparse::log_trace("rocsparse_Xcsr2ell_strided_batched", p...);
         const rocsparse_status status = rocsparse::csr2ell_strided_batched_checkarg(p...);
         if(status != rocsparse_status_continue)
@@ -245,6 +253,8 @@ extern "C" rocsparse_status rocsparse_scsr2ell_strided_batched(rocsparse_handle 
                                                                rocsparse_int* ell_col_ind)
 try
 {
+    ROCSPARSE_ROUTINE_TRACE;
+
     RETURN_IF_ROCSPARSE_ERROR(rocsparse::csr2ell_strided_batched_impl(handle,
                                                                       batch_count,
                                                                       m,
@@ -259,11 +269,13 @@ try
                                                                       ell_val_stride,
                                                                       ell_col_ind));
     return rocsparse_status_success;
+    // LCOV_EXCL_START
 }
 catch(...)
 {
     RETURN_ROCSPARSE_EXCEPTION();
 }
+// LCOV_EXCL_STOP
 
 extern "C" rocsparse_status rocsparse_dcsr2ell_strided_batched(rocsparse_handle handle,
                                                                rocsparse_int    batch_count,
@@ -280,6 +292,8 @@ extern "C" rocsparse_status rocsparse_dcsr2ell_strided_batched(rocsparse_handle 
                                                                rocsparse_int* ell_col_ind)
 try
 {
+    ROCSPARSE_ROUTINE_TRACE;
+
     RETURN_IF_ROCSPARSE_ERROR(rocsparse::csr2ell_strided_batched_impl(handle,
                                                                       batch_count,
                                                                       m,
@@ -294,11 +308,13 @@ try
                                                                       ell_val_stride,
                                                                       ell_col_ind));
     return rocsparse_status_success;
+    // LCOV_EXCL_START
 }
 catch(...)
 {
     RETURN_ROCSPARSE_EXCEPTION();
 }
+// LCOV_EXCL_STOP
 
 extern "C" rocsparse_status
     rocsparse_ccsr2ell_strided_batched(rocsparse_handle               handle,
@@ -316,6 +332,8 @@ extern "C" rocsparse_status
                                        rocsparse_int*                 ell_col_ind)
 try
 {
+    ROCSPARSE_ROUTINE_TRACE;
+
     RETURN_IF_ROCSPARSE_ERROR(rocsparse::csr2ell_strided_batched_impl(handle,
                                                                       batch_count,
                                                                       m,
@@ -330,11 +348,13 @@ try
                                                                       ell_val_stride,
                                                                       ell_col_ind));
     return rocsparse_status_success;
+    // LCOV_EXCL_START
 }
 catch(...)
 {
     RETURN_ROCSPARSE_EXCEPTION();
 }
+// LCOV_EXCL_STOP
 
 extern "C" rocsparse_status
     rocsparse_zcsr2ell_strided_batched(rocsparse_handle                handle,
@@ -352,6 +372,8 @@ extern "C" rocsparse_status
                                        rocsparse_int*                  ell_col_ind)
 try
 {
+    ROCSPARSE_ROUTINE_TRACE;
+
     RETURN_IF_ROCSPARSE_ERROR(rocsparse::csr2ell_strided_batched_impl(handle,
                                                                       batch_count,
                                                                       m,
@@ -366,8 +388,10 @@ try
                                                                       ell_val_stride,
                                                                       ell_col_ind));
     return rocsparse_status_success;
+    // LCOV_EXCL_START
 }
 catch(...)
 {
     RETURN_ROCSPARSE_EXCEPTION();
 }
+// LCOV_EXCL_STOP

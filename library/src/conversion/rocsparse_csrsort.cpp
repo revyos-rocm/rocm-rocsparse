@@ -1,6 +1,6 @@
 /*! \file */
 /* ************************************************************************
- * Copyright (C) 2018-2024 Advanced Micro Devices, Inc. All rights Reserved.
+ * Copyright (C) 2018-2025 Advanced Micro Devices, Inc. All rights Reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -22,12 +22,12 @@
  *
  * ************************************************************************ */
 #include "internal/conversion/rocsparse_csrsort.h"
-#include "utility.h"
+#include "rocsparse_utility.hpp"
 
-#include "control.h"
 #include "csrsort_device.h"
+#include "rocsparse_control.hpp"
 
-#include "rocsparse_primitives.h"
+#include "rocsparse_primitives.hpp"
 
 extern "C" rocsparse_status rocsparse_csrsort_buffer_size(rocsparse_handle     handle,
                                                           rocsparse_int        m,
@@ -38,6 +38,8 @@ extern "C" rocsparse_status rocsparse_csrsort_buffer_size(rocsparse_handle     h
                                                           size_t*              buffer_size)
 try
 {
+    ROCSPARSE_ROUTINE_TRACE;
+
     // Logging
     rocsparse::log_trace(handle,
                          "rocsparse_csrsort_buffer_size",
@@ -91,11 +93,13 @@ try
     *buffer_size += ((sizeof(rocsparse_int) * m) / 256 + 1) * 256;
 
     return rocsparse_status_success;
+    // LCOV_EXCL_START
 }
 catch(...)
 {
     RETURN_ROCSPARSE_EXCEPTION();
 }
+// LCOV_EXCL_STOP
 
 extern "C" rocsparse_status rocsparse_csrsort(rocsparse_handle          handle,
                                               rocsparse_int             m,
@@ -108,6 +112,7 @@ extern "C" rocsparse_status rocsparse_csrsort(rocsparse_handle          handle,
                                               void*                     temp_buffer)
 try
 {
+    ROCSPARSE_ROUTINE_TRACE;
 
     // Logging
     rocsparse::log_trace(handle,
@@ -245,8 +250,10 @@ try
         }
     }
     return rocsparse_status_success;
+    // LCOV_EXCL_START
 }
 catch(...)
 {
     RETURN_ROCSPARSE_EXCEPTION();
 }
+// LCOV_EXCL_STOP

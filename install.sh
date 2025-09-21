@@ -1,4 +1,26 @@
 #!/usr/bin/env bash
+# ########################################################################
+# Copyright (C) 2018-2025 Advanced Micro Devices, Inc. All rights Reserved.
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in
+# all copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+# THE SOFTWARE.
+#
+# ########################################################################
 # Author: rocsparse-maintainer@amd.com
 
 #set -x #echo on
@@ -33,6 +55,7 @@ function display_help()
   echo "    [--matrices-dir-install] install client matrices directory"
   echo "    [--rm-legacy-include-dir] Remove legacy include dir Packaging added for file/folder reorg backward compatibility."
   echo "    [--no-rocblas] Disable building rocSPARSE with rocBLAS."
+  echo "    [--no-roctx] Disable building rocSPARSE with rocTX."
   echo "    [--cmake-arg] Forward the given argument to CMake when configuring the build."
 }
 
@@ -285,6 +308,7 @@ build_address_sanitizer=false
 build_memstat=false
 build_rocsparse_ILP64=false
 build_with_rocblas=true
+build_with_roctx=true
 build_with_offload_compress=true
 matrices_dir=
 matrices_dir_install=
@@ -300,7 +324,7 @@ declare -a cmake_client_options
 # check if we have a modern version of getopt that can handle whitespace and long parameters
 getopt -T
 if [[ $? -eq 4 ]]; then
- GETOPT_PARSE=$(getopt --name "${0}" --longoptions help,install,clients,dependencies,debug,hip-clang,static,relocatable,codecoverage,relwithdebinfo,memstat,rocsparse_ILP64,rocprim-path:,rocblas-path:,no-offload-compress,offload-compress,no-rocblas,address-sanitizer,matrices-dir:,matrices-dir-install:,architecture:,rm-legacy-include-dir,cmake-arg: --options hicdgrska: -- "$@")
+ GETOPT_PARSE=$(getopt --name "${0}" --longoptions help,install,clients,dependencies,debug,hip-clang,static,relocatable,codecoverage,relwithdebinfo,memstat,rocsparse_ILP64,rocprim-path:,rocblas-path:,no-offload-compress,offload-compress,no-rocblas,no-roctx,address-sanitizer,matrices-dir:,matrices-dir-install:,architecture:,rm-legacy-include-dir,cmake-arg: --options hicdgrska: -- "$@")
 
 else
   echo "Need a new version of getopt"
@@ -364,6 +388,9 @@ while true; do
             shift ;;
         --no-rocblas)
             build_with_rocblas=false
+            shift ;;
+        --no-roctx)
+            build_with_roctx=false
             shift ;;
         -k|--relwithdebinfo)
             build_release=false
@@ -566,6 +593,13 @@ pushd .
     cmake_common_options+=("-DBUILD_WITH_ROCBLAS=ON")
   else
     cmake_common_options+=("-DBUILD_WITH_ROCBLAS=OFF")
+  fi
+
+  # roctx
+  if [[ "${build_with_roctx}" == true ]]; then
+    cmake_common_options+=("-DBUILD_WITH_ROCTX=ON")
+  else
+    cmake_common_options+=("-DBUILD_WITH_ROCTX=OFF")
   fi
 
   # freorg backward compatible support enable

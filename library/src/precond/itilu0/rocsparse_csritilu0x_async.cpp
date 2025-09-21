@@ -1,6 +1,6 @@
 /*! \file */
 /* ************************************************************************
- * Copyright (C) 2022-2024 Advanced Micro Devices, Inc.
+ * Copyright (C) 2022-2025 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -24,8 +24,8 @@
 
 #include "../conversion/rocsparse_csr2csc.hpp"
 #include "../conversion/rocsparse_identity.hpp"
-#include "common.h"
 #include "common.hpp"
+#include "rocsparse_common.hpp"
 #include "rocsparse_csritilu0x_driver.hpp"
 #include <iomanip>
 
@@ -473,9 +473,9 @@ public:
                                     size_t buffer_size_,
                                     void* __restrict__ buffer_)
         {
-            RETURN_IF_ROCSPARSE_ERROR(
-                (rocsparse::csritilu0x_driver_t<rocsparse_itilu0_alg_sync_split_fusion>::
-                     history<T, J>::run(handle_, niter_, data_, buffer_size_, buffer_)));
+            RETURN_IF_ROCSPARSE_ERROR((
+                rocsparse::csritilu0x_driver_t<rocsparse_itilu0_alg_sync_split>::history<T, J>::run(
+                    handle_, niter_, data_, buffer_size_, buffer_)));
             return rocsparse_status_success;
         }
     };
@@ -541,6 +541,7 @@ public:
             case rocsparse_datatype_u8_r:
             case rocsparse_datatype_i32_r:
             case rocsparse_datatype_u32_r:
+            case rocsparse_datatype_f16_r:
             {
                 RETURN_IF_ROCSPARSE_ERROR(rocsparse_status_not_implemented);
             }

@@ -1,6 +1,6 @@
 /*! \file */
 /* ************************************************************************
-* Copyright (C) 2018-2024 Advanced Micro Devices, Inc. All rights Reserved.
+* Copyright (C) 2018-2025 Advanced Micro Devices, Inc. All rights Reserved.
 *
 * Permission is hereby granted, free of charge, to any person obtaining a copy
 * of this software and associated documentation files (the "Software"), to deal
@@ -27,8 +27,8 @@
 #include "../conversion/rocsparse_csr2coo.hpp"
 #include "rocsparse_csrmm.hpp"
 
-#include "control.h"
-#include "utility.h"
+#include "rocsparse_control.hpp"
+#include "rocsparse_utility.hpp"
 
 template <>
 inline bool rocsparse::enum_utils::is_invalid(rocsparse_csrmm_alg value_)
@@ -90,6 +90,8 @@ namespace rocsparse
                                                    const J*                  csr_col_ind,
                                                    size_t*                   buffer_size)
     {
+        ROCSPARSE_ROUTINE_TRACE;
+
         switch(alg)
         {
         case rocsparse_csrmm_alg_nnz_split:
@@ -134,7 +136,9 @@ namespace rocsparse
             return rocsparse_status_success;
         }
         }
+        // LCOV_EXCL_START
         RETURN_IF_ROCSPARSE_ERROR(rocsparse_status_invalid_value);
+        // LCOV_EXCL_STOP
     }
 
     template <typename T, typename I, typename J, typename A>
@@ -151,6 +155,8 @@ namespace rocsparse
                                                           const J*                  csr_col_ind,
                                                           size_t*                   buffer_size)
     {
+        ROCSPARSE_ROUTINE_TRACE;
+
         if(m == 0 || n == 0 || k == 0)
         {
             buffer_size[0] = 0;
@@ -173,6 +179,8 @@ namespace rocsparse
                                                        const J*                  csr_col_ind, //10
                                                        size_t*                   buffer_size) //11
     {
+        ROCSPARSE_ROUTINE_TRACE;
+
         ROCSPARSE_CHECKARG_HANDLE(0, handle);
         ROCSPARSE_CHECKARG_ENUM(1, trans_A);
         ROCSPARSE_CHECKARG_ENUM(2, alg);
@@ -232,6 +240,7 @@ rocsparse_status rocsparse::csrmm_buffer_size_template(rocsparse_handle         
                                                        const J*                  csr_col_ind,
                                                        size_t*                   buffer_size)
 {
+    ROCSPARSE_ROUTINE_TRACE;
 
     const rocsparse_status status = rocsparse::csrmm_buffer_size_quickreturn<T>(
         handle, trans_A, alg, m, n, k, nnz, descr, csr_val, csr_row_ptr, csr_col_ind, buffer_size);
@@ -264,6 +273,7 @@ namespace rocsparse
                                             const J*                  csr_col_ind,
                                             size_t*                   buffer_size)
     {
+        ROCSPARSE_ROUTINE_TRACE;
 
         rocsparse::log_trace(handle,
                              "rocsparse_csrmm_buffer_size",
@@ -344,6 +354,9 @@ INSTANTIATE_BUFFER_SIZE(rocsparse_double_complex, int64_t, int32_t, rocsparse_do
 INSTANTIATE_BUFFER_SIZE(rocsparse_double_complex, int64_t, int64_t, rocsparse_double_complex);
 
 // Mixed precisions
+INSTANTIATE_BUFFER_SIZE(float, int32_t, int32_t, _Float16);
+INSTANTIATE_BUFFER_SIZE(float, int64_t, int32_t, _Float16);
+INSTANTIATE_BUFFER_SIZE(float, int64_t, int64_t, _Float16);
 INSTANTIATE_BUFFER_SIZE(int32_t, int32_t, int32_t, int8_t);
 INSTANTIATE_BUFFER_SIZE(int32_t, int64_t, int32_t, int8_t);
 INSTANTIATE_BUFFER_SIZE(int32_t, int64_t, int64_t, int8_t);

@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (C) 2020-2024 Advanced Micro Devices, Inc. All rights Reserved.
+ * Copyright (C) 2020-2025 Advanced Micro Devices, Inc. All rights Reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -22,13 +22,79 @@
  * ************************************************************************ */
 
 #include "internal/generic/rocsparse_spgemm.h"
-#include "control.h"
-#include "utility.h"
+#include "rocsparse_control.hpp"
+#include "rocsparse_utility.hpp"
 
 #include "rocsparse_bsrgemm.hpp"
 #include "rocsparse_csrgemm.hpp"
 #include "rocsparse_csrgemm_numeric.hpp"
 #include "rocsparse_csrgemm_symbolic.hpp"
+
+template <>
+const char* rocsparse::enum_utils::to_string(rocsparse_spgemm_alg value_)
+{
+#define CASE(C) \
+    case C:     \
+        return #C
+    switch(value_)
+    {
+        CASE(rocsparse_spgemm_alg_default);
+#undef CASE
+    }
+    // LCOV_EXCL_START
+    THROW_IF_ROCSPARSE_ERROR(rocsparse_status_invalid_value);
+    // LCOV_EXCL_STOP
+}
+
+template <>
+const char* rocsparse::enum_utils::to_string(rocsparse_spgemm_stage value_)
+{
+#define CASE(C) \
+    case C:     \
+        return #C
+    switch(value_)
+    {
+        CASE(rocsparse_spgemm_stage_buffer_size);
+        CASE(rocsparse_spgemm_stage_nnz);
+        CASE(rocsparse_spgemm_stage_compute);
+        CASE(rocsparse_spgemm_stage_symbolic);
+        CASE(rocsparse_spgemm_stage_numeric);
+#undef CASE
+    }
+    // LCOV_EXCL_START
+    THROW_IF_ROCSPARSE_ERROR(rocsparse_status_invalid_value);
+    // LCOV_EXCL_STOP
+}
+
+template <>
+bool rocsparse::enum_utils::is_invalid(rocsparse_spgemm_alg value_)
+{
+    switch(value_)
+    {
+    case rocsparse_spgemm_alg_default:
+    {
+        return false;
+    }
+    }
+    return true;
+}
+
+template <>
+bool rocsparse::enum_utils::is_invalid(rocsparse_spgemm_stage value_)
+{
+    switch(value_)
+    {
+    case rocsparse_spgemm_stage_buffer_size:
+    case rocsparse_spgemm_stage_nnz:
+    case rocsparse_spgemm_stage_compute:
+    case rocsparse_spgemm_stage_symbolic:
+    case rocsparse_spgemm_stage_numeric:
+    {
+        return false;
+    }
+    }
+    return true;
+}
 
 namespace rocsparse
 {
@@ -47,6 +113,8 @@ namespace rocsparse
                                             size_t*                     buffer_size,
                                             void*                       temp_buffer)
     {
+        ROCSPARSE_ROUTINE_TRACE;
+
         const rocsparse_format format_A = A->format;
         switch(stage)
         {
@@ -407,6 +475,7 @@ namespace rocsparse
                                                      rocsparse_datatype  ctype,
                                                      Ts&&... params)
     {
+        ROCSPARSE_ROUTINE_TRACE;
 
         switch(itype)
         {
@@ -457,6 +526,7 @@ namespace rocsparse
                 case rocsparse_datatype_u8_r:
                 case rocsparse_datatype_i32_r:
                 case rocsparse_datatype_u32_r:
+                case rocsparse_datatype_f16_r:
                 {
                     RETURN_IF_ROCSPARSE_ERROR(rocsparse_status_not_implemented);
                 }
@@ -506,6 +576,7 @@ namespace rocsparse
                 case rocsparse_datatype_u8_r:
                 case rocsparse_datatype_i32_r:
                 case rocsparse_datatype_u32_r:
+                case rocsparse_datatype_f16_r:
                 {
                     RETURN_IF_ROCSPARSE_ERROR(rocsparse_status_not_implemented);
                 }
@@ -545,6 +616,7 @@ namespace rocsparse
                 case rocsparse_datatype_u8_r:
                 case rocsparse_datatype_i32_r:
                 case rocsparse_datatype_u32_r:
+                case rocsparse_datatype_f16_r:
                 {
                     RETURN_IF_ROCSPARSE_ERROR(rocsparse_status_not_implemented);
                 }
@@ -553,7 +625,9 @@ namespace rocsparse
             }
         }
         }
+        // LCOV_EXCL_START
         return rocsparse_status_invalid_value;
+        // LCOV_EXCL_STOP
     }
 
     static rocsparse_status spgemm_checkarg(rocsparse_handle            handle, //0
@@ -571,6 +645,8 @@ namespace rocsparse
                                             size_t*                     buffer_size, //12
                                             void*                       temp_buffer) //13
     {
+        ROCSPARSE_ROUTINE_TRACE;
+
         ROCSPARSE_CHECKARG_HANDLE(0, handle);
         ROCSPARSE_CHECKARG_ENUM(1, trans_A);
         ROCSPARSE_CHECKARG_ENUM(2, trans_B);
@@ -648,6 +724,7 @@ extern "C" rocsparse_status rocsparse_spgemm(rocsparse_handle            handle,
                                              void*                       temp_buffer)
 try
 {
+    ROCSPARSE_ROUTINE_TRACE;
 
     rocsparse::log_trace("rocsparse_spgemm",
                          handle,
@@ -704,8 +781,10 @@ try
                                                                   temp_buffer));
 
     return rocsparse_status_success;
+    // LCOV_EXCL_START
 }
 catch(...)
 {
     RETURN_ROCSPARSE_EXCEPTION();
 }
+// LCOV_EXCL_STOP

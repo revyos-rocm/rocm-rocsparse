@@ -1,13 +1,15 @@
 .. meta::
-  :description: rocSPARSE API reference library documentation
-  :keywords: rocSPARSE, ROCm, API, documentation
+  :description: rocSPARSE exported functions API documentation
+  :keywords: rocSPARSE, ROCm, API, documentation, exported functions
 
 .. _api:
 
 Exported rocSPARSE functions
 ============================
 
-Auxiliary Functions
+This topic provides a list of the exported rocSPARSE functions in various categories.
+
+Auxiliary functions
 -------------------
 
 +-----------------------------------------------------+
@@ -28,6 +30,10 @@ Auxiliary Functions
 |:cpp:func:`rocsparse_get_version`                    |
 +-----------------------------------------------------+
 |:cpp:func:`rocsparse_get_git_rev`                    |
++-----------------------------------------------------+
+|:cpp:func:`rocsparse_destroy_error`                  |
++-----------------------------------------------------+
+|:cpp:func:`rocsparse_error_get_message`              |
 +-----------------------------------------------------+
 |:cpp:func:`rocsparse_create_mat_descr`               |
 +-----------------------------------------------------+
@@ -119,6 +125,20 @@ Auxiliary Functions
 +-----------------------------------------------------+
 |:cpp:func:`rocsparse_sparse_to_sparse_permissive`    |
 +-----------------------------------------------------+
+|:cpp:func:`rocsparse_create_spgeam_descr`            |
++-----------------------------------------------------+
+|:cpp:func:`rocsparse_destroy_spgeam_descr`           |
++-----------------------------------------------------+
+|:cpp:func:`rocsparse_spgeam_set_input`               |
++-----------------------------------------------------+
+|:cpp:func:`rocsparse_spgeam_get_output`              |
++-----------------------------------------------------+
+|:cpp:func:`rocsparse_create_spmv_descr`              |
++-----------------------------------------------------+
+|:cpp:func:`rocsparse_destroy_spmv_descr`             |
++-----------------------------------------------------+
+|:cpp:func:`rocsparse_spmv_set_input`                 |
++-----------------------------------------------------+
 |:cpp:func:`rocsparse_coo_get`                        |
 +-----------------------------------------------------+
 |:cpp:func:`rocsparse_coo_aos_get`                    |
@@ -196,7 +216,7 @@ Auxiliary Functions
 |:cpp:func:`rocsparse_dnmat_set_strided_batch`        |
 +-----------------------------------------------------+
 
-Sparse Level 1 Functions
+Sparse level 1 functions
 ------------------------
 
 ================================================= ====== ====== ============== ==============
@@ -211,15 +231,14 @@ Function name                                     single double single complex d
 :cpp:func:`rocsparse_Xsctr() <rocsparse_ssctr>`   x      x      x              x
 ================================================= ====== ====== ============== ==============
 
-Sparse Level 2 Functions
+Sparse level 2 functions
 ------------------------
 
 ============================================================================= ====== ====== ============== ==============
 Function name                                                                 single double single complex double complex
 ============================================================================= ====== ====== ============== ==============
-:cpp:func:`rocsparse_Xbsrmv_ex_analysis() <rocsparse_sbsrmv_ex_analysis>`     x      x      x              x
-:cpp:func:`rocsparse_bsrmv_ex_clear`
-:cpp:func:`rocsparse_Xbsrmv_ex() <rocsparse_sbsrmv_ex>`                       x      x      x              x
+:cpp:func:`rocsparse_Xbsrmv_analysis() <rocsparse_sbsrmv_analysis>`           x      x      x              x
+:cpp:func:`rocsparse_bsrmv_clear`
 :cpp:func:`rocsparse_Xbsrmv() <rocsparse_sbsrmv>`                             x      x      x              x
 :cpp:func:`rocsparse_Xbsrxmv() <rocsparse_sbsrxmv>`                           x      x      x              x
 :cpp:func:`rocsparse_Xbsrsv_buffer_size() <rocsparse_sbsrsv_buffer_size>`     x      x      x              x
@@ -249,7 +268,7 @@ Function name                                                                 si
 :cpp:func:`rocsparse_Xgemvi() <rocsparse_sgemvi>`                             x      x      x              x
 ============================================================================= ====== ====== ============== ==============
 
-Sparse Level 3 Functions
+Sparse level 3 functions
 ------------------------
 
 ========================================================================= ====== ====== ============== ==============
@@ -271,7 +290,7 @@ Function name                                                             single
 :cpp:func:`rocsparse_Xgemmi() <rocsparse_sgemmi>`                         x      x      x              x
 ========================================================================= ====== ====== ============== ==============
 
-Sparse Extra Functions
+Sparse extra functions
 ----------------------
 
 ============================================================================= ====== ====== ============== ==============
@@ -291,7 +310,7 @@ Function name                                                                 si
 :cpp:func:`rocsparse_Xcsrgemm_numeric() <rocsparse_scsrgemm_numeric>`         x      x      x              x
 ============================================================================= ====== ====== ============== ==============
 
-Preconditioner Functions
+Preconditioner functions
 ------------------------
 
 ===================================================================================================================== ====== ====== ============== ==============
@@ -336,7 +355,7 @@ Function name                                                                   
 :cpp:func:`rocsparse_Xgpsv_interleaved_batch() <rocsparse_sgpsv_interleaved_batch>`                                   x      x      x              x
 ===================================================================================================================== ====== ====== ============== ==============
 
-Conversion Functions
+Conversion functions
 --------------------
 
 ========================================================================================================================= ====== ====== ============== ==============
@@ -398,7 +417,7 @@ Function name                                                                   
 :cpp:func:`rocsparse_Xbsrpad_value() <rocsparse_sbsrpad_value>`                                                           x      x      x              x
 ========================================================================================================================= ====== ====== ============== ==============
 
-Reordering Functions
+Reordering functions
 --------------------
 
 ======================================================= ====== ====== ============== ==============
@@ -407,7 +426,7 @@ Function name                                           single double single com
 :cpp:func:`rocsparse_Xcsrcolor() <rocsparse_scsrcolor>` x      x      x              x
 ======================================================= ====== ====== ============== ==============
 
-Utility Functions
+Utility functions
 -----------------
 
 =================================================================================================== ====== ====== ============== ==============
@@ -429,11 +448,11 @@ Function name                                                                   
 :cpp:func:`rocsparse_check_matrix_hyb() <rocsparse_check_matrix_hyb>`                               x      x      x              x
 =================================================================================================== ====== ====== ============== ==============
 
-Sparse Generic Functions
+Sparse generic functions
 ------------------------
 
-The generic API allows different combinations of data types and compute types to be used. See the specific routine 
-documentation for details on what data types and compute types are supported.
+The generic API allows different combinations of data types and compute types to be used. See the specific routine
+documentation for details about the supported data types and compute types.
 
 +-----------------------------------------------------+
 |Function name                                        |
@@ -454,7 +473,9 @@ documentation for details on what data types and compute types are supported.
 +-----------------------------------------------------+
 |:cpp:func:`rocsparse_spmv()`                         |
 +-----------------------------------------------------+
-|:cpp:func:`rocsparse_spmv_ex()`                      |
+|:cpp:func:`rocsparse_v2_spmv_buffer_size()`          |
++-----------------------------------------------------+
+|:cpp:func:`rocsparse_v2_spmv()`                      |
 +-----------------------------------------------------+
 |:cpp:func:`rocsparse_spsv()`                         |
 +-----------------------------------------------------+
@@ -463,6 +484,10 @@ documentation for details on what data types and compute types are supported.
 |:cpp:func:`rocsparse_spsm()`                         |
 +-----------------------------------------------------+
 |:cpp:func:`rocsparse_spgemm()`                       |
++-----------------------------------------------------+
+|:cpp:func:`rocsparse_spgeam_buffer_size()`           |
++-----------------------------------------------------+
+|:cpp:func:`rocsparse_spgeam()`                       |
 +-----------------------------------------------------+
 |:cpp:func:`rocsparse_sddmm_buffer_size()`            |
 +-----------------------------------------------------+

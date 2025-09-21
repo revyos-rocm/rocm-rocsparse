@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (C) 2023-2024 Advanced Micro Devices, Inc. All rights Reserved.
+ * Copyright (C) 2023-2025 Advanced Micro Devices, Inc. All rights Reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -22,7 +22,7 @@
  * ************************************************************************ */
 
 #include "rocsparse_sparse_to_sparse.hpp"
-#include "utility.h"
+#include "rocsparse_utility.hpp"
 
 namespace rocsparse
 {
@@ -34,6 +34,8 @@ namespace rocsparse
                                           rocsparse_sparse_to_sparse_stage stage,
                                           size_t*                          buffer_size_in_bytes)
     {
+        ROCSPARSE_ROUTINE_TRACE;
+
         buffer_size_in_bytes[0]                                  = 0;
         static constexpr const bool compute_buffer_size_in_bytes = true;
         RETURN_IF_ROCSPARSE_ERROR(
@@ -90,6 +92,8 @@ namespace rocsparse
     template <typename... P>
     static rocsparse_status sparse_to_sparse_buffer_size_impl(P&&... p)
     {
+        ROCSPARSE_ROUTINE_TRACE;
+
         const rocsparse_status status = rocsparse::sparse_to_sparse_buffer_size_checkarg(p...);
         if(status != rocsparse_status_continue)
         {
@@ -111,11 +115,15 @@ extern "C" rocsparse_status
                                            size_t*                          buffer_size_in_bytes)
 try
 {
+    ROCSPARSE_ROUTINE_TRACE;
+
     RETURN_IF_ROCSPARSE_ERROR(rocsparse::sparse_to_sparse_buffer_size_impl(
         handle, descr, source, target, stage, buffer_size_in_bytes));
     return rocsparse_status_success;
+    // LCOV_EXCL_START
 }
 catch(...)
 {
     RETURN_ROCSPARSE_EXCEPTION();
 }
+// LCOV_EXCL_STOP

@@ -1,6 +1,6 @@
 /*! \file */
 /* ************************************************************************
- * Copyright (C) 2020-2024 Advanced Micro Devices, Inc. All rights Reserved.
+ * Copyright (C) 2020-2025 Advanced Micro Devices, Inc. All rights Reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -28,9 +28,9 @@
 #include "internal/level2/rocsparse_csrsv.h"
 
 #include "../level2/rocsparse_csrsv.hpp"
-#include "control.h"
 #include "csric0_device.h"
-#include "utility.h"
+#include "rocsparse_control.hpp"
+#include "rocsparse_utility.hpp"
 
 template <typename T>
 rocsparse_status rocsparse::csric0_analysis_template(rocsparse_handle          handle, //0
@@ -45,6 +45,8 @@ rocsparse_status rocsparse::csric0_analysis_template(rocsparse_handle          h
                                                      rocsparse_solve_policy    solve, //9
                                                      void*                     temp_buffer) //10
 {
+    ROCSPARSE_ROUTINE_TRACE;
+
     ROCSPARSE_CHECKARG_HANDLE(0, handle);
 
     rocsparse::log_trace(handle,
@@ -137,12 +139,8 @@ rocsparse_status rocsparse::csric0_analysis_template(rocsparse_handle          h
 
     // User is explicitly asking to force a re-analysis, or no valid data has been
     // found to be re-used.
-
     // Clear csric0 info
-    RETURN_IF_ROCSPARSE_ERROR(rocsparse::destroy_trm_info(info->csric0_info));
-
-    // Create csric0 info
-    RETURN_IF_ROCSPARSE_ERROR(rocsparse::create_trm_info(&info->csric0_info));
+    rocsparse::trm_info_t::recreate(&info->csric0_info);
 
     // Perform analysis
     RETURN_IF_ROCSPARSE_ERROR(rocsparse::trm_analysis(handle,
@@ -162,7 +160,7 @@ rocsparse_status rocsparse::csric0_analysis_template(rocsparse_handle          h
         if(info->singular_pivot == nullptr)
         {
             RETURN_IF_HIP_ERROR(rocsparse_hipMallocAsync(
-                (void**)&(info->singular_pivot), sizeof(rocsparse_int), handle->stream));
+                &info->singular_pivot, sizeof(rocsparse_int), handle->stream));
         }
         RETURN_IF_HIP_ERROR(hipMemcpyAsync(info->singular_pivot,
                                            info->zero_pivot,
@@ -186,6 +184,8 @@ rocsparse_status rocsparse::csric0_template(rocsparse_handle          handle, //
                                             rocsparse_solve_policy    policy, //8
                                             void*                     temp_buffer)
 {
+    ROCSPARSE_ROUTINE_TRACE;
+
     ROCSPARSE_CHECKARG_HANDLE(0, handle);
 
     // Logging
@@ -240,7 +240,7 @@ rocsparse_status rocsparse::csric0_template(rocsparse_handle          handle, //
     RETURN_IF_HIP_ERROR(hipMemsetAsync(d_done_array, 0, sizeof(int) * m, stream));
 
     // Max nnz per row
-    rocsparse_int max_nnz = info->csric0_info->max_nnz;
+    const rocsparse_int max_nnz = info->csric0_info->get_max_nnz();
 
     // Determine gcnArch and ASIC revision
     const std::string gcn_arch_name = rocsparse::handle_get_arch_name(handle);
@@ -261,9 +261,9 @@ rocsparse_status rocsparse::csric0_template(rocsparse_handle          handle, //
             csr_row_ptr,
             csr_col_ind,
             csr_val,
-            (rocsparse_int*)info->csric0_info->trm_diag_ind,
+            (const rocsparse_int*)info->csric0_info->get_diag_ind(),
             d_done_array,
-            (rocsparse_int*)info->csric0_info->row_map,
+            (const rocsparse_int*)info->csric0_info->get_row_map(),
             (rocsparse_int*)info->zero_pivot,
             (rocsparse_int*)info->singular_pivot,
             info->singular_tol,
@@ -285,9 +285,9 @@ rocsparse_status rocsparse::csric0_template(rocsparse_handle          handle, //
                     csr_row_ptr,
                     csr_col_ind,
                     csr_val,
-                    (rocsparse_int*)info->csric0_info->trm_diag_ind,
+                    (const rocsparse_int*)info->csric0_info->get_diag_ind(),
                     d_done_array,
-                    (rocsparse_int*)info->csric0_info->row_map,
+                    (const rocsparse_int*)info->csric0_info->get_row_map(),
                     (rocsparse_int*)info->zero_pivot,
                     (rocsparse_int*)info->singular_pivot,
                     info->singular_tol,
@@ -305,9 +305,9 @@ rocsparse_status rocsparse::csric0_template(rocsparse_handle          handle, //
                     csr_row_ptr,
                     csr_col_ind,
                     csr_val,
-                    (rocsparse_int*)info->csric0_info->trm_diag_ind,
+                    (const rocsparse_int*)info->csric0_info->get_diag_ind(),
                     d_done_array,
-                    (rocsparse_int*)info->csric0_info->row_map,
+                    (const rocsparse_int*)info->csric0_info->get_row_map(),
                     (rocsparse_int*)info->zero_pivot,
                     (rocsparse_int*)info->singular_pivot,
                     info->singular_tol,
@@ -325,9 +325,9 @@ rocsparse_status rocsparse::csric0_template(rocsparse_handle          handle, //
                     csr_row_ptr,
                     csr_col_ind,
                     csr_val,
-                    (rocsparse_int*)info->csric0_info->trm_diag_ind,
+                    (const rocsparse_int*)info->csric0_info->get_diag_ind(),
                     d_done_array,
-                    (rocsparse_int*)info->csric0_info->row_map,
+                    (const rocsparse_int*)info->csric0_info->get_row_map(),
                     (rocsparse_int*)info->zero_pivot,
                     (rocsparse_int*)info->singular_pivot,
                     info->singular_tol,
@@ -345,9 +345,9 @@ rocsparse_status rocsparse::csric0_template(rocsparse_handle          handle, //
                     csr_row_ptr,
                     csr_col_ind,
                     csr_val,
-                    (rocsparse_int*)info->csric0_info->trm_diag_ind,
+                    (const rocsparse_int*)info->csric0_info->get_diag_ind(),
                     d_done_array,
-                    (rocsparse_int*)info->csric0_info->row_map,
+                    (const rocsparse_int*)info->csric0_info->get_row_map(),
                     (rocsparse_int*)info->zero_pivot,
                     (rocsparse_int*)info->singular_pivot,
                     info->singular_tol,
@@ -365,9 +365,9 @@ rocsparse_status rocsparse::csric0_template(rocsparse_handle          handle, //
                     csr_row_ptr,
                     csr_col_ind,
                     csr_val,
-                    (rocsparse_int*)info->csric0_info->trm_diag_ind,
+                    (const rocsparse_int*)info->csric0_info->get_diag_ind(),
                     d_done_array,
-                    (rocsparse_int*)info->csric0_info->row_map,
+                    (const rocsparse_int*)info->csric0_info->get_row_map(),
                     (rocsparse_int*)info->zero_pivot,
                     (rocsparse_int*)info->singular_pivot,
                     info->singular_tol,
@@ -385,9 +385,9 @@ rocsparse_status rocsparse::csric0_template(rocsparse_handle          handle, //
                     csr_row_ptr,
                     csr_col_ind,
                     csr_val,
-                    (rocsparse_int*)info->csric0_info->trm_diag_ind,
+                    (const rocsparse_int*)info->csric0_info->get_diag_ind(),
                     d_done_array,
-                    (rocsparse_int*)info->csric0_info->row_map,
+                    (const rocsparse_int*)info->csric0_info->get_row_map(),
                     (rocsparse_int*)info->zero_pivot,
                     (rocsparse_int*)info->singular_pivot,
                     info->singular_tol,
@@ -408,9 +408,9 @@ rocsparse_status rocsparse::csric0_template(rocsparse_handle          handle, //
                     csr_row_ptr,
                     csr_col_ind,
                     csr_val,
-                    (rocsparse_int*)info->csric0_info->trm_diag_ind,
+                    (const rocsparse_int*)info->csric0_info->get_diag_ind(),
                     d_done_array,
-                    (rocsparse_int*)info->csric0_info->row_map,
+                    (const rocsparse_int*)info->csric0_info->get_row_map(),
                     (rocsparse_int*)info->zero_pivot,
                     (rocsparse_int*)info->singular_pivot,
                     info->singular_tol,
@@ -428,9 +428,9 @@ rocsparse_status rocsparse::csric0_template(rocsparse_handle          handle, //
                     csr_row_ptr,
                     csr_col_ind,
                     csr_val,
-                    (rocsparse_int*)info->csric0_info->trm_diag_ind,
+                    (const rocsparse_int*)info->csric0_info->get_diag_ind(),
                     d_done_array,
-                    (rocsparse_int*)info->csric0_info->row_map,
+                    (const rocsparse_int*)info->csric0_info->get_row_map(),
                     (rocsparse_int*)info->zero_pivot,
                     (rocsparse_int*)info->singular_pivot,
                     info->singular_tol,
@@ -448,9 +448,9 @@ rocsparse_status rocsparse::csric0_template(rocsparse_handle          handle, //
                     csr_row_ptr,
                     csr_col_ind,
                     csr_val,
-                    (rocsparse_int*)info->csric0_info->trm_diag_ind,
+                    (const rocsparse_int*)info->csric0_info->get_diag_ind(),
                     d_done_array,
-                    (rocsparse_int*)info->csric0_info->row_map,
+                    (const rocsparse_int*)info->csric0_info->get_row_map(),
                     (rocsparse_int*)info->zero_pivot,
                     (rocsparse_int*)info->singular_pivot,
                     info->singular_tol,
@@ -468,9 +468,9 @@ rocsparse_status rocsparse::csric0_template(rocsparse_handle          handle, //
                     csr_row_ptr,
                     csr_col_ind,
                     csr_val,
-                    (rocsparse_int*)info->csric0_info->trm_diag_ind,
+                    (const rocsparse_int*)info->csric0_info->get_diag_ind(),
                     d_done_array,
-                    (rocsparse_int*)info->csric0_info->row_map,
+                    (const rocsparse_int*)info->csric0_info->get_row_map(),
                     (rocsparse_int*)info->zero_pivot,
                     (rocsparse_int*)info->singular_pivot,
                     info->singular_tol,
@@ -488,9 +488,9 @@ rocsparse_status rocsparse::csric0_template(rocsparse_handle          handle, //
                     csr_row_ptr,
                     csr_col_ind,
                     csr_val,
-                    (rocsparse_int*)info->csric0_info->trm_diag_ind,
+                    (const rocsparse_int*)info->csric0_info->get_diag_ind(),
                     d_done_array,
-                    (rocsparse_int*)info->csric0_info->row_map,
+                    (const rocsparse_int*)info->csric0_info->get_row_map(),
                     (rocsparse_int*)info->zero_pivot,
                     (rocsparse_int*)info->singular_pivot,
                     info->singular_tol,
@@ -508,9 +508,9 @@ rocsparse_status rocsparse::csric0_template(rocsparse_handle          handle, //
                     csr_row_ptr,
                     csr_col_ind,
                     csr_val,
-                    (rocsparse_int*)info->csric0_info->trm_diag_ind,
+                    (const rocsparse_int*)info->csric0_info->get_diag_ind(),
                     d_done_array,
-                    (rocsparse_int*)info->csric0_info->row_map,
+                    (const rocsparse_int*)info->csric0_info->get_row_map(),
                     (rocsparse_int*)info->zero_pivot,
                     (rocsparse_int*)info->singular_pivot,
                     info->singular_tol,
@@ -540,6 +540,8 @@ namespace rocsparse
                                                  rocsparse_mat_info        info,
                                                  size_t*                   buffer_size)
     {
+        ROCSPARSE_ROUTINE_TRACE;
+
         RETURN_IF_ROCSPARSE_ERROR(rocsparse::csrsv_buffer_size_template(handle,
                                                                         rocsparse_operation_none,
                                                                         m,
@@ -564,6 +566,8 @@ namespace rocsparse
                                              rocsparse_mat_info        info,
                                              size_t*                   buffer_size)
     {
+        ROCSPARSE_ROUTINE_TRACE;
+
         ROCSPARSE_CHECKARG_HANDLE(0, handle);
 
         rocsparse::log_trace(handle,
@@ -613,6 +617,7 @@ namespace rocsparse
                                      size_t*                   buffer_size)                \
     try                                                                                    \
     {                                                                                      \
+        ROCSPARSE_ROUTINE_TRACE;                                                           \
         RETURN_IF_ROCSPARSE_ERROR(rocsparse::csric0_buffer_size_impl(                      \
             handle, m, nnz, descr, csr_val, csr_row_ptr, csr_col_ind, info, buffer_size)); \
         return rocsparse_status_success;                                                   \
@@ -641,6 +646,8 @@ extern "C" rocsparse_status rocsparse_scsric0_analysis(rocsparse_handle         
                                                        void*                     temp_buffer)
 try
 {
+    ROCSPARSE_ROUTINE_TRACE;
+
     RETURN_IF_ROCSPARSE_ERROR(rocsparse::csric0_analysis_template(handle,
                                                                   m,
                                                                   nnz,
@@ -653,11 +660,13 @@ try
                                                                   solve,
                                                                   temp_buffer));
     return rocsparse_status_success;
+    // LCOV_EXCL_START
 }
 catch(...)
 {
     RETURN_ROCSPARSE_EXCEPTION();
 }
+// LCOV_EXCL_STOP
 
 extern "C" rocsparse_status rocsparse_dcsric0_analysis(rocsparse_handle          handle,
                                                        rocsparse_int             m,
@@ -672,6 +681,8 @@ extern "C" rocsparse_status rocsparse_dcsric0_analysis(rocsparse_handle         
                                                        void*                     temp_buffer)
 try
 {
+    ROCSPARSE_ROUTINE_TRACE;
+
     RETURN_IF_ROCSPARSE_ERROR(rocsparse::csric0_analysis_template(handle,
                                                                   m,
                                                                   nnz,
@@ -684,11 +695,13 @@ try
                                                                   solve,
                                                                   temp_buffer));
     return rocsparse_status_success;
+    // LCOV_EXCL_START
 }
 catch(...)
 {
     RETURN_ROCSPARSE_EXCEPTION();
 }
+// LCOV_EXCL_STOP
 
 extern "C" rocsparse_status rocsparse_ccsric0_analysis(rocsparse_handle               handle,
                                                        rocsparse_int                  m,
@@ -703,6 +716,8 @@ extern "C" rocsparse_status rocsparse_ccsric0_analysis(rocsparse_handle         
                                                        void*                          temp_buffer)
 try
 {
+    ROCSPARSE_ROUTINE_TRACE;
+
     RETURN_IF_ROCSPARSE_ERROR(rocsparse::csric0_analysis_template(handle,
                                                                   m,
                                                                   nnz,
@@ -715,11 +730,13 @@ try
                                                                   solve,
                                                                   temp_buffer));
     return rocsparse_status_success;
+    // LCOV_EXCL_START
 }
 catch(...)
 {
     RETURN_ROCSPARSE_EXCEPTION();
 }
+// LCOV_EXCL_STOP
 
 extern "C" rocsparse_status rocsparse_zcsric0_analysis(rocsparse_handle                handle,
                                                        rocsparse_int                   m,
@@ -734,6 +751,8 @@ extern "C" rocsparse_status rocsparse_zcsric0_analysis(rocsparse_handle         
                                                        void*                           temp_buffer)
 try
 {
+    ROCSPARSE_ROUTINE_TRACE;
+
     RETURN_IF_ROCSPARSE_ERROR(rocsparse::csric0_analysis_template(handle,
                                                                   m,
                                                                   nnz,
@@ -746,15 +765,19 @@ try
                                                                   solve,
                                                                   temp_buffer));
     return rocsparse_status_success;
+    // LCOV_EXCL_START
 }
 catch(...)
 {
     RETURN_ROCSPARSE_EXCEPTION();
 }
+// LCOV_EXCL_STOP
 
 extern "C" rocsparse_status rocsparse_csric0_clear(rocsparse_handle handle, rocsparse_mat_info info)
 try
 {
+    ROCSPARSE_ROUTINE_TRACE;
+
     ROCSPARSE_CHECKARG_HANDLE(0, handle);
 
     rocsparse::log_trace(handle, "rocsparse_csric0_clear", (const void*&)info);
@@ -764,17 +787,19 @@ try
     // If meta data is not shared, delete it
     if(!rocsparse::check_trm_shared(info, info->csric0_info))
     {
-        RETURN_IF_ROCSPARSE_ERROR(rocsparse::destroy_trm_info(info->csric0_info));
+        rocsparse::trm_info_t::destroy(info->csric0_info);
     }
 
     info->csric0_info = nullptr;
 
     return rocsparse_status_success;
+    // LCOV_EXCL_START
 }
 catch(...)
 {
     RETURN_ROCSPARSE_EXCEPTION();
 }
+// LCOV_EXCL_STOP
 
 extern "C" rocsparse_status rocsparse_scsric0(rocsparse_handle          handle,
                                               rocsparse_int             m,
@@ -788,14 +813,18 @@ extern "C" rocsparse_status rocsparse_scsric0(rocsparse_handle          handle,
                                               void*                     temp_buffer)
 try
 {
+    ROCSPARSE_ROUTINE_TRACE;
+
     RETURN_IF_ROCSPARSE_ERROR(rocsparse::csric0_template(
         handle, m, nnz, descr, csr_val, csr_row_ptr, csr_col_ind, info, policy, temp_buffer));
     return rocsparse_status_success;
+    // LCOV_EXCL_START
 }
 catch(...)
 {
     RETURN_ROCSPARSE_EXCEPTION();
 }
+// LCOV_EXCL_STOP
 
 extern "C" rocsparse_status rocsparse_dcsric0(rocsparse_handle          handle,
                                               rocsparse_int             m,
@@ -809,14 +838,18 @@ extern "C" rocsparse_status rocsparse_dcsric0(rocsparse_handle          handle,
                                               void*                     temp_buffer)
 try
 {
+    ROCSPARSE_ROUTINE_TRACE;
+
     RETURN_IF_ROCSPARSE_ERROR(rocsparse::csric0_template(
         handle, m, nnz, descr, csr_val, csr_row_ptr, csr_col_ind, info, policy, temp_buffer));
     return rocsparse_status_success;
+    // LCOV_EXCL_START
 }
 catch(...)
 {
     RETURN_ROCSPARSE_EXCEPTION();
 }
+// LCOV_EXCL_STOP
 
 extern "C" rocsparse_status rocsparse_ccsric0(rocsparse_handle          handle,
                                               rocsparse_int             m,
@@ -830,14 +863,18 @@ extern "C" rocsparse_status rocsparse_ccsric0(rocsparse_handle          handle,
                                               void*                     temp_buffer)
 try
 {
+    ROCSPARSE_ROUTINE_TRACE;
+
     RETURN_IF_ROCSPARSE_ERROR(rocsparse::csric0_template(
         handle, m, nnz, descr, csr_val, csr_row_ptr, csr_col_ind, info, policy, temp_buffer));
     return rocsparse_status_success;
+    // LCOV_EXCL_START
 }
 catch(...)
 {
     RETURN_ROCSPARSE_EXCEPTION();
 }
+// LCOV_EXCL_STOP
 
 extern "C" rocsparse_status rocsparse_zcsric0(rocsparse_handle          handle,
                                               rocsparse_int             m,
@@ -851,20 +888,26 @@ extern "C" rocsparse_status rocsparse_zcsric0(rocsparse_handle          handle,
                                               void*                     temp_buffer)
 try
 {
+    ROCSPARSE_ROUTINE_TRACE;
+
     RETURN_IF_ROCSPARSE_ERROR(rocsparse::csric0_template(
         handle, m, nnz, descr, csr_val, csr_row_ptr, csr_col_ind, info, policy, temp_buffer));
     return rocsparse_status_success;
+    // LCOV_EXCL_START
 }
 catch(...)
 {
     RETURN_ROCSPARSE_EXCEPTION();
 }
+// LCOV_EXCL_STOP
 
 extern "C" rocsparse_status rocsparse_csric0_zero_pivot(rocsparse_handle   handle,
                                                         rocsparse_mat_info info,
                                                         rocsparse_int*     position)
 try
 {
+    ROCSPARSE_ROUTINE_TRACE;
+
     ROCSPARSE_CHECKARG_HANDLE(0, handle);
 
     // Logging
@@ -941,17 +984,20 @@ try
     }
 
     return rocsparse_status_success;
+    // LCOV_EXCL_START
 }
 catch(...)
 {
     RETURN_ROCSPARSE_EXCEPTION();
 }
+// LCOV_EXCL_STOP
 
 extern "C" rocsparse_status rocsparse_csric0_singular_pivot(rocsparse_handle   handle,
                                                             rocsparse_mat_info info,
                                                             rocsparse_int*     position)
 try
 {
+    ROCSPARSE_ROUTINE_TRACE;
 
     ROCSPARSE_CHECKARG_HANDLE(0, handle);
 
@@ -1020,16 +1066,20 @@ try
     }
 
     return (rocsparse_status_success);
+    // LCOV_EXCL_START
 }
 catch(...)
 {
-    return rocsparse::exception_to_rocsparse_status();
+    RETURN_ROCSPARSE_EXCEPTION();
 }
+// LCOV_EXCL_STOP
 
 extern "C" rocsparse_status
     rocsparse_csric0_set_tolerance(rocsparse_handle handle, rocsparse_mat_info info, double tol)
 try
 {
+    ROCSPARSE_ROUTINE_TRACE;
+
     // Check for valid handle and matrix descriptor
     if(handle == nullptr)
     {
@@ -1043,7 +1093,9 @@ try
 
     if(tol < 0)
     {
+        // LCOV_EXCL_START
         return rocsparse_status_invalid_value;
+        // LCOV_EXCL_STOP
     }
 
     // Logging
@@ -1052,16 +1104,20 @@ try
     info->singular_tol = tol;
 
     return rocsparse_status_success;
+    // LCOV_EXCL_START
 }
 catch(...)
 {
-    return rocsparse::exception_to_rocsparse_status();
+    RETURN_ROCSPARSE_EXCEPTION();
 }
+// LCOV_EXCL_STOP
 
 extern "C" rocsparse_status
     rocsparse_csric0_get_tolerance(rocsparse_handle handle, rocsparse_mat_info info, double* tol)
 try
 {
+    ROCSPARSE_ROUTINE_TRACE;
+
     // Check for valid handle and matrix descriptor
     if(handle == nullptr)
     {
@@ -1084,8 +1140,10 @@ try
     *tol = info->singular_tol;
 
     return rocsparse_status_success;
+    // LCOV_EXCL_START
 }
 catch(...)
 {
-    return rocsparse::exception_to_rocsparse_status();
+    RETURN_ROCSPARSE_EXCEPTION();
 }
+// LCOV_EXCL_STOP

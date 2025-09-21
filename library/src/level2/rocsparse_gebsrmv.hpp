@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (C) 2020-2024 Advanced Micro Devices, Inc. All rights Reserved.
+ * Copyright (C) 2020-2025 Advanced Micro Devices, Inc. All rights Reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -23,18 +23,18 @@
 
 #pragma once
 
-#include "handle.h"
+#include "rocsparse_handle.hpp"
 
 namespace rocsparse
 {
-    template <typename T, typename U>
+    template <typename T>
     rocsparse_status gebsrmv_template_dispatch(rocsparse_handle          handle,
                                                rocsparse_direction       dir,
                                                rocsparse_operation       trans,
                                                rocsparse_int             mb,
                                                rocsparse_int             nb,
                                                rocsparse_int             nnzb,
-                                               U                         alpha,
+                                               const T*                  alpha,
                                                const rocsparse_mat_descr descr,
                                                const T*                  bsr_val,
                                                const rocsparse_int*      bsr_row_ptr,
@@ -42,7 +42,7 @@ namespace rocsparse
                                                rocsparse_int             row_block_dim,
                                                rocsparse_int             col_block_dim,
                                                const T*                  x,
-                                               U                         beta,
+                                               const T*                  beta,
                                                T*                        y);
     template <typename T>
     rocsparse_status gebsrmv_template(rocsparse_handle          handle,

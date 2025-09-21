@@ -1,6 +1,6 @@
 /*! \file */
 /* ************************************************************************
- * Copyright (C) 2019-2024 Advanced Micro Devices, Inc. All rights Reserved.
+ * Copyright (C) 2019-2025 Advanced Micro Devices, Inc. All rights Reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -24,11 +24,11 @@
 
 #include "rocsparse_csrgemm_symbolic.hpp"
 #include "../conversion/rocsparse_identity.hpp"
-#include "common.h"
-#include "control.h"
 #include "internal/extra/rocsparse_csrgemm.h"
+#include "rocsparse_common.hpp"
+#include "rocsparse_control.hpp"
 #include "rocsparse_csrgemm.hpp"
-#include "utility.h"
+#include "rocsparse_utility.hpp"
 
 #include "rocsparse_csrgemm_symbolic_mult.hpp"
 #include "rocsparse_csrgemm_symbolic_multadd.hpp"
@@ -59,6 +59,8 @@ rocsparse_status rocsparse::csrgemm_symbolic_quickreturn(rocsparse_handle       
                                                          const rocsparse_mat_info  info_C,
                                                          void*                     temp_buffer)
 {
+    ROCSPARSE_ROUTINE_TRACE;
+
     const bool mul = info_C->csrgemm_info->mul;
     const bool add = info_C->csrgemm_info->add;
 
@@ -186,6 +188,7 @@ namespace rocsparse
                                                       const rocsparse_mat_info  info_C, //22
                                                       void*                     temp_buffer) //23
     {
+        ROCSPARSE_ROUTINE_TRACE;
 
         const bool mul = (info_C) ? info_C->csrgemm_info->mul : false;
         const bool add = (info_C) ? info_C->csrgemm_info->add : false;
@@ -291,6 +294,8 @@ rocsparse_status rocsparse::csrgemm_symbolic_core(rocsparse_handle          hand
                                                   const rocsparse_mat_info  info_C,
                                                   void*                     temp_buffer)
 {
+    ROCSPARSE_ROUTINE_TRACE;
+
     const bool mul = info_C->csrgemm_info->mul;
     const bool add = info_C->csrgemm_info->add;
 
@@ -374,6 +379,7 @@ rocsparse_status rocsparse::csrgemm_symbolic_core(rocsparse_handle          hand
 template <typename... P>
 rocsparse_status rocsparse_csrgemm_symbolic_impl(P&&... p)
 {
+    ROCSPARSE_ROUTINE_TRACE;
 
     rocsparse::log_trace("rocsparse_csrgemm_symbolic", p...);
 
@@ -454,6 +460,7 @@ INSTANTIATE(int64_t, int64_t);
                                      void*                     temp_buffer)      \
     try                                                                          \
     {                                                                            \
+        ROCSPARSE_ROUTINE_TRACE;                                                 \
         RETURN_IF_ROCSPARSE_ERROR(rocsparse_csrgemm_symbolic_impl(handle,        \
                                                                   trans_A,       \
                                                                   trans_B,       \
@@ -482,7 +489,7 @@ INSTANTIATE(int64_t, int64_t);
     }                                                                            \
     catch(...)                                                                   \
     {                                                                            \
-        return rocsparse::exception_to_rocsparse_status();                       \
+        RETURN_ROCSPARSE_EXCEPTION();                                            \
     }
 
 C_IMPL(rocsparse_csrgemm_symbolic);

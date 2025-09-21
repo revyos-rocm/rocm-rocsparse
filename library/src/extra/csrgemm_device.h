@@ -1,6 +1,6 @@
 /*! \file */
 /* ************************************************************************
- * Copyright (C) 2019-2024 Advanced Micro Devices, Inc. All rights Reserved.
+ * Copyright (C) 2019-2025 Advanced Micro Devices, Inc. All rights Reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -24,7 +24,7 @@
 
 #pragma once
 
-#include "common.h"
+#include "rocsparse_common.hpp"
 
 namespace rocsparse
 {
@@ -149,9 +149,25 @@ namespace rocsparse
         // clang-format on
     }
 
+    template <uint32_t HASHSIZE, typename J>
+    constexpr bool exceeding_smem_nnz(uint32_t shared_mem_optin)
+    {
+        return (sizeof(J) * HASHSIZE) > shared_mem_optin;
+    }
+
+    template <uint32_t HASHSIZE, typename J, typename T>
+    constexpr bool exceeding_smem(uint32_t shared_mem_optin)
+    {
+        return (((sizeof(J) + sizeof(T)) * HASHSIZE + sizeof(J) * (1024 / 32 + 1))
+                > shared_mem_optin);
+    }
+
     template <uint32_t BLOCKSIZE, uint32_t GROUPS, typename I, typename J>
     ROCSPARSE_KERNEL(BLOCKSIZE)
-    void csrgemm_group_reduce_part1(J m, I* __restrict__ int_prod, J* __restrict__ group_size)
+    void csrgemm_group_reduce_part1(J m,
+                                    I* __restrict__ int_prod,
+                                    J* __restrict__ group_size,
+                                    uint32_t shared_mem_optin)
     {
         J row = hipBlockIdx_x * BLOCKSIZE + hipThreadIdx_x;
 
@@ -179,7 +195,10 @@ namespace rocsparse
         else if(nprod <=  2048) { ++sdata[hipThreadIdx_x * GROUPS + 4]; int_prod[row] = 4; }
         else if(nprod <=  4096) { ++sdata[hipThreadIdx_x * GROUPS + 5]; int_prod[row] = 5; }
         else if(nprod <=  8192) { ++sdata[hipThreadIdx_x * GROUPS + 6]; int_prod[row] = 6; }
-        else                    { ++sdata[hipThreadIdx_x * GROUPS + 7]; int_prod[row] = 7; }
+        else if(nprod <=  16384 && !exceeding_smem_nnz<16384, J>(shared_mem_optin)) { ++sdata[hipThreadIdx_x * GROUPS + 7]; int_prod[row] = 7; }
+        else if(nprod <=  32768 && !exceeding_smem_nnz<32768, J>(shared_mem_optin)) { ++sdata[hipThreadIdx_x * GROUPS + 8]; int_prod[row] = 8; }
+        else if(nprod <=  65536 && !exceeding_smem_nnz<65536, J>(shared_mem_optin)) { ++sdata[hipThreadIdx_x * GROUPS + 9]; int_prod[row] = 9; }
+        else                    { ++sdata[hipThreadIdx_x * GROUPS + 10]; int_prod[row] = 10; }
             // clang-format on
         }
 
@@ -196,12 +215,13 @@ namespace rocsparse
         }
     }
 
-    template <uint32_t BLOCKSIZE, uint32_t GROUPS, bool EXCEEDS_SMEM, typename I, typename J>
+    template <uint32_t BLOCKSIZE, uint32_t GROUPS, typename T, typename I, typename J>
     ROCSPARSE_KERNEL(BLOCKSIZE)
     void csrgemm_group_reduce_part2(J m,
                                     const I* __restrict__ csr_row_ptr,
                                     J* __restrict__ group_size,
-                                    int* __restrict__ workspace)
+                                    int* __restrict__ workspace,
+                                    uint32_t shared_mem_optin)
     {
         J row = hipBlockIdx_x * BLOCKSIZE + hipThreadIdx_x;
 
@@ -228,8 +248,11 @@ namespace rocsparse
         else if(nnz <=   512) { ++sdata[hipThreadIdx_x * GROUPS + 3]; workspace[row] = 3; }
         else if(nnz <=  1024) { ++sdata[hipThreadIdx_x * GROUPS + 4]; workspace[row] = 4; }
         else if(nnz <=  2048) { ++sdata[hipThreadIdx_x * GROUPS + 5]; workspace[row] = 5; }
-        else if(nnz <=  4096 && !EXCEEDS_SMEM) { ++sdata[hipThreadIdx_x * GROUPS + 6]; workspace[row] = 6; }
-        else                  { ++sdata[hipThreadIdx_x * GROUPS + 7]; workspace[row] = 7; }
+        else if(nnz <=  4096 && !exceeding_smem<4096, J, T>(shared_mem_optin)) { ++sdata[hipThreadIdx_x * GROUPS + 6]; workspace[row] = 6; }
+        else if(nnz <=  8192 && !exceeding_smem<8192, J, T>(shared_mem_optin)) { ++sdata[hipThreadIdx_x * GROUPS + 7]; workspace[row] = 7; }
+        else if(nnz <=  16384 && !exceeding_smem<16384, J, T>(shared_mem_optin)) { ++sdata[hipThreadIdx_x * GROUPS + 8]; workspace[row] = 8; }
+        else if(nnz <=  32768 && !exceeding_smem<32768, J, T>(shared_mem_optin)) { ++sdata[hipThreadIdx_x * GROUPS + 9]; workspace[row] = 9; }
+        else                  { ++sdata[hipThreadIdx_x * GROUPS + 10]; workspace[row] = 10; }
             // clang-format on
         }
 
@@ -552,7 +575,8 @@ namespace rocsparse
         J row = perm[hipBlockIdx_x + *offset];
 
         // Hash table in shared memory
-        __shared__ J table[HASHSIZE];
+        extern __shared__ char shared_memory[];
+        J*                     table = (J*)shared_memory;
 
         // Initialize hash table
         for(uint32_t i = hipThreadIdx_x; i < HASHSIZE; i += BLOCKSIZE)
@@ -1004,6 +1028,7 @@ namespace rocsparse
               uint32_t WFSIZE,
               uint32_t HASHSIZE,
               uint32_t HASHVAL,
+              uint32_t WARPSIZE,
               typename I,
               typename J,
               typename T>
@@ -1037,8 +1062,9 @@ namespace rocsparse
         int wid = hipThreadIdx_x / WFSIZE;
 
         // Hash table in shared memory
-        __shared__ J table[HASHSIZE];
-        __shared__ T data[HASHSIZE];
+        extern __shared__ char shared_memory[];
+        J*                     table = (J*)shared_memory;
+        T*                     data  = (T*)(shared_memory + sizeof(J) * HASHSIZE);
 
         // Initialize hash table
         for(uint32_t i = hipThreadIdx_x; i < HASHSIZE; i += BLOCKSIZE)
@@ -1101,7 +1127,7 @@ namespace rocsparse
         __syncthreads();
 
         // Compress hash table, such that valid entries come first
-        __shared__ J scan_offsets[BLOCKSIZE / warpSize + 1];
+        J* scan_offsets = (J*)(shared_memory + (sizeof(J) + sizeof(T)) * HASHSIZE);
 
         // Offset into hash table
         J hash_offset = 0;
@@ -1136,15 +1162,15 @@ namespace rocsparse
 
             // Each wavefront writes its offset / nnz into shared memory so we can compute the
             // scan offset
-            scan_offsets[hipThreadIdx_x / warpSize] = nnz;
+            scan_offsets[hipThreadIdx_x / WARPSIZE] = nnz;
 
             // Wait for all wavefronts to finish writing
             __syncthreads();
 
             // Each thread accumulates the offset of all previous wavefronts to obtain its offset
-            for(uint32_t j = 1; j < BLOCKSIZE / warpSize; ++j)
+            for(uint32_t j = 1; j < BLOCKSIZE / WARPSIZE; ++j)
             {
-                if(hipThreadIdx_x >= j * warpSize)
+                if(hipThreadIdx_x >= j * WARPSIZE)
                 {
                     offset += scan_offsets[j - 1];
                 }
@@ -1165,14 +1191,14 @@ namespace rocsparse
             // entries are shifted by this offset
             if(hipThreadIdx_x == BLOCKSIZE - 1)
             {
-                scan_offsets[BLOCKSIZE / warpSize - 1] = offset;
+                scan_offsets[BLOCKSIZE / WARPSIZE - 1] = offset;
             }
 
             // Wait for last thread in block to finish writing
             __syncthreads();
 
             // Each thread reads the block-wide offset and adds it to its local offset
-            hash_offset += scan_offsets[BLOCKSIZE / warpSize - 1];
+            hash_offset += scan_offsets[BLOCKSIZE / WARPSIZE - 1];
         }
 
         // Entry point into row of C
@@ -1213,6 +1239,7 @@ namespace rocsparse
     template <uint32_t BLOCKSIZE,
               uint32_t WFSIZE,
               uint32_t CHUNKSIZE,
+              uint32_t WARPSIZE,
               typename I,
               typename J,
               typename T>
@@ -1432,16 +1459,16 @@ namespace rocsparse
 
                 // Each wavefront writes its offset / nnz into shared memory so we can compute the
                 // scan offset
-                scan_offsets[hipThreadIdx_x / warpSize] = nnz;
+                scan_offsets[hipThreadIdx_x / WARPSIZE] = nnz;
 
                 // Wait for all wavefronts to finish writing
                 __syncthreads();
 
                 // Each thread accumulates the offset of all previous wavefronts to obtain its
                 // offset into C
-                for(uint32_t j = 1; j < BLOCKSIZE / warpSize; ++j)
+                for(uint32_t j = 1; j < BLOCKSIZE / WARPSIZE; ++j)
                 {
-                    if(hipThreadIdx_x >= j * warpSize)
+                    if(hipThreadIdx_x >= j * WARPSIZE)
                     {
                         offset += scan_offsets[j - 1];
                     }
@@ -1462,14 +1489,14 @@ namespace rocsparse
                 // entries are shifted by this offset
                 if(hipThreadIdx_x == BLOCKSIZE - 1)
                 {
-                    scan_offsets[BLOCKSIZE / warpSize - 1] = offset;
+                    scan_offsets[BLOCKSIZE / WARPSIZE - 1] = offset;
                 }
 
                 // Wait for last thread in block to finish writing
                 __syncthreads();
 
                 // Each thread reads the block-wide offset and adds it to its local offset into C
-                row_begin_C += scan_offsets[BLOCKSIZE / warpSize - 1];
+                row_begin_C += scan_offsets[BLOCKSIZE / WARPSIZE - 1];
             }
 
             // Each thread loads the new chunk beginning and end point

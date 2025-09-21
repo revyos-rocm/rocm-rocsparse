@@ -1,6 +1,6 @@
 /*! \file */
 /* ************************************************************************
- * Copyright (C) 2019-2024 Advanced Micro Devices, Inc. All rights Reserved.
+ * Copyright (C) 2019-2025 Advanced Micro Devices, Inc. All rights Reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -133,28 +133,11 @@ void testing_roti(const Arguments& arg)
 
     if(arg.timing)
     {
-        int number_cold_calls = 2;
-        int number_hot_calls  = arg.iters;
 
         CHECK_ROCSPARSE_ERROR(rocsparse_set_pointer_mode(handle, rocsparse_pointer_mode_host));
 
-        // Warm up
-        for(int iter = 0; iter < number_cold_calls; ++iter)
-        {
-            CHECK_ROCSPARSE_ERROR(
-                rocsparse_roti<T>(handle, nnz, dx_val_1, dx_ind, dy_1, &hc[0], &hs[0], base));
-        }
-
-        double gpu_time_used = get_time_us();
-
-        // Performance run
-        for(int iter = 0; iter < number_hot_calls; ++iter)
-        {
-            CHECK_ROCSPARSE_ERROR(
-                rocsparse_roti<T>(handle, nnz, dx_val_1, dx_ind, dy_1, &hc[0], &hs[0], base));
-        }
-
-        gpu_time_used = (get_time_us() - gpu_time_used) / number_hot_calls;
+        const double gpu_time_used = rocsparse_clients::run_benchmark(
+            arg, rocsparse_roti<T>, handle, nnz, dx_val_1, dx_ind, dy_1, &hc[0], &hs[0], base);
 
         double gflop_count = roti_gflop_count<rocsparse_int>(nnz);
         double gbyte_count = roti_gbyte_count<T>(nnz);

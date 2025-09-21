@@ -1,6 +1,6 @@
 /*! \file */
 /* ************************************************************************
- * Copyright (C) 2023-2024 Advanced Micro Devices, Inc. All rights Reserved.
+ * Copyright (C) 2023-2025 Advanced Micro Devices, Inc. All rights Reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -42,6 +42,8 @@ namespace rocsparse
                                            rocsparse_solve_policy    solve,
                                            void*                     temp_buffer)
     {
+        ROCSPARSE_ROUTINE_TRACE;
+
         // Differentiate the analysis policies
         if(analysis == rocsparse_analysis_policy_reuse)
         {
@@ -92,11 +94,7 @@ namespace rocsparse
         // User is explicitly asking to force a re-analysis, or no valid data has been
         // found to be re-used.
 
-        // Clear csrilu0 info
-        RETURN_IF_ROCSPARSE_ERROR(rocsparse::destroy_trm_info(info->csrilu0_info));
-
-        // Create csrilu0 info
-        RETURN_IF_ROCSPARSE_ERROR(rocsparse::create_trm_info(&info->csrilu0_info));
+        rocsparse::trm_info_t::recreate(&info->csrilu0_info);
 
         // Perform analysis
         RETURN_IF_ROCSPARSE_ERROR(rocsparse::trm_analysis(handle,
@@ -116,7 +114,7 @@ namespace rocsparse
             if(info->singular_pivot == nullptr)
             {
                 RETURN_IF_HIP_ERROR(rocsparse_hipMallocAsync(
-                    (void**)&(info->singular_pivot), sizeof(rocsparse_int), handle->stream));
+                    &info->singular_pivot, sizeof(rocsparse_int), handle->stream));
             }
             RETURN_IF_HIP_ERROR(hipMemcpyAsync(info->singular_pivot,
                                                info->zero_pivot,
@@ -140,6 +138,8 @@ namespace rocsparse
                                                          rocsparse_solve_policy    solve,
                                                          void*                     temp_buffer)
     {
+        ROCSPARSE_ROUTINE_TRACE;
+
         if(m == 0)
         {
             return rocsparse_status_success;
@@ -160,6 +160,8 @@ namespace rocsparse
                                                       rocsparse_solve_policy    solve, //9
                                                       void*                     temp_buffer) //10
     {
+        ROCSPARSE_ROUTINE_TRACE;
+
         ROCSPARSE_CHECKARG_HANDLE(0, handle);
 
         ROCSPARSE_CHECKARG_SIZE(1, m);
@@ -217,6 +219,7 @@ namespace rocsparse
                                            rocsparse_solve_policy    solve,
                                            void*                     temp_buffer)
     {
+        ROCSPARSE_ROUTINE_TRACE;
 
         // Logging
         rocsparse::log_trace(handle,
@@ -276,6 +279,8 @@ extern "C" rocsparse_status rocsparse_scsrilu0_analysis(rocsparse_handle        
                                                         void*                     temp_buffer)
 try
 {
+    ROCSPARSE_ROUTINE_TRACE;
+
     RETURN_IF_ROCSPARSE_ERROR(rocsparse::csrilu0_analysis_impl(handle,
                                                                m,
                                                                nnz,
@@ -288,11 +293,13 @@ try
                                                                solve,
                                                                temp_buffer));
     return rocsparse_status_success;
+    // LCOV_EXCL_START
 }
 catch(...)
 {
     RETURN_ROCSPARSE_EXCEPTION();
 }
+// LCOV_EXCL_STOP
 
 extern "C" rocsparse_status rocsparse_dcsrilu0_analysis(rocsparse_handle          handle,
                                                         rocsparse_int             m,
@@ -307,6 +314,8 @@ extern "C" rocsparse_status rocsparse_dcsrilu0_analysis(rocsparse_handle        
                                                         void*                     temp_buffer)
 try
 {
+    ROCSPARSE_ROUTINE_TRACE;
+
     RETURN_IF_ROCSPARSE_ERROR(rocsparse::csrilu0_analysis_impl(handle,
                                                                m,
                                                                nnz,
@@ -319,11 +328,13 @@ try
                                                                solve,
                                                                temp_buffer));
     return rocsparse_status_success;
+    // LCOV_EXCL_START
 }
 catch(...)
 {
     RETURN_ROCSPARSE_EXCEPTION();
 }
+// LCOV_EXCL_STOP
 
 extern "C" rocsparse_status rocsparse_ccsrilu0_analysis(rocsparse_handle               handle,
                                                         rocsparse_int                  m,
@@ -338,6 +349,8 @@ extern "C" rocsparse_status rocsparse_ccsrilu0_analysis(rocsparse_handle        
                                                         void*                          temp_buffer)
 try
 {
+    ROCSPARSE_ROUTINE_TRACE;
+
     RETURN_IF_ROCSPARSE_ERROR(rocsparse::csrilu0_analysis_impl(handle,
                                                                m,
                                                                nnz,
@@ -350,11 +363,13 @@ try
                                                                solve,
                                                                temp_buffer));
     return rocsparse_status_success;
+    // LCOV_EXCL_START
 }
 catch(...)
 {
     RETURN_ROCSPARSE_EXCEPTION();
 }
+// LCOV_EXCL_STOP
 
 extern "C" rocsparse_status rocsparse_zcsrilu0_analysis(rocsparse_handle                handle,
                                                         rocsparse_int                   m,
@@ -369,6 +384,8 @@ extern "C" rocsparse_status rocsparse_zcsrilu0_analysis(rocsparse_handle        
                                                         void*                           temp_buffer)
 try
 {
+    ROCSPARSE_ROUTINE_TRACE;
+
     RETURN_IF_ROCSPARSE_ERROR(rocsparse::csrilu0_analysis_impl(handle,
                                                                m,
                                                                nnz,
@@ -381,8 +398,10 @@ try
                                                                solve,
                                                                temp_buffer));
     return rocsparse_status_success;
+    // LCOV_EXCL_START
 }
 catch(...)
 {
     RETURN_ROCSPARSE_EXCEPTION();
 }
+// LCOV_EXCL_STOP

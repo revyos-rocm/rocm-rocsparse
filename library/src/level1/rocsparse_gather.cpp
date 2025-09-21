@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (C) 2020-2024 Advanced Micro Devices, Inc. All rights Reserved.
+ * Copyright (C) 2020-2025 Advanced Micro Devices, Inc. All rights Reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -22,10 +22,10 @@
  * ************************************************************************ */
 
 #include "internal/generic/rocsparse_gather.h"
-#include "control.h"
-#include "handle.h"
 #include "internal/level1/rocsparse_gthr.h"
-#include "utility.h"
+#include "rocsparse_control.hpp"
+#include "rocsparse_handle.hpp"
+#include "rocsparse_utility.hpp"
 
 #include "rocsparse_gthr.hpp"
 
@@ -36,6 +36,8 @@ namespace rocsparse
                                      rocsparse_const_dnvec_descr y,
                                      rocsparse_spvec_descr       x)
     {
+        ROCSPARSE_ROUTINE_TRACE;
+
         RETURN_IF_ROCSPARSE_ERROR((rocsparse::gthr_template<I, T>)(handle,
                                                                    (I)x->nnz,
                                                                    (const T*)y->const_values,
@@ -57,6 +59,8 @@ extern "C" rocsparse_status rocsparse_gather(rocsparse_handle            handle,
                                              rocsparse_spvec_descr       x)
 try
 {
+    ROCSPARSE_ROUTINE_TRACE;
+
     // Check for invalid handle
     ROCSPARSE_CHECKARG_HANDLE(0, handle);
 
@@ -77,6 +81,12 @@ try
     if(x->idx_type == rocsparse_indextype_i32 && x->data_type == rocsparse_datatype_i8_r)
     {
         RETURN_IF_ROCSPARSE_ERROR((rocsparse::gather_template<int32_t, int8_t>)(handle, y, x));
+        return rocsparse_status_success;
+    }
+    // half real ; i32
+    if(x->idx_type == rocsparse_indextype_i32 && x->data_type == rocsparse_datatype_f16_r)
+    {
+        RETURN_IF_ROCSPARSE_ERROR((rocsparse::gather_template<int32_t, _Float16>)(handle, y, x));
         return rocsparse_status_success;
     }
     // single real ; i32
@@ -110,6 +120,12 @@ try
         RETURN_IF_ROCSPARSE_ERROR((rocsparse::gather_template<int64_t, int8_t>)(handle, y, x));
         return rocsparse_status_success;
     }
+    // half real ; i64
+    if(x->idx_type == rocsparse_indextype_i64 && x->data_type == rocsparse_datatype_f16_r)
+    {
+        RETURN_IF_ROCSPARSE_ERROR((rocsparse::gather_template<int64_t, _Float16>)(handle, y, x));
+        return rocsparse_status_success;
+    }
     // single real ; i64
     if(x->idx_type == rocsparse_indextype_i64 && x->data_type == rocsparse_datatype_f32_r)
     {
@@ -137,9 +153,11 @@ try
         return rocsparse_status_success;
     }
 
+    // LCOV_EXCL_START
     RETURN_IF_ROCSPARSE_ERROR(rocsparse_status_not_implemented);
 }
 catch(...)
 {
     RETURN_ROCSPARSE_EXCEPTION();
 }
+// LCOV_EXCL_STOP

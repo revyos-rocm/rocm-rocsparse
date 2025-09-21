@@ -1,6 +1,6 @@
 /*! \file */
 /* ************************************************************************
- * Copyright (C) 2018-2024 Advanced Micro Devices, Inc. All rights Reserved.
+ * Copyright (C) 2018-2025 Advanced Micro Devices, Inc. All rights Reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -23,14 +23,14 @@
  * ************************************************************************ */
 
 #include "internal/conversion/rocsparse_csr2hyb.h"
-#include "control.h"
+#include "rocsparse_control.hpp"
 #include "rocsparse_csr2hyb.hpp"
-#include "utility.h"
+#include "rocsparse_utility.hpp"
 
 #include "csr2ell_device.h"
 #include "csr2hyb_device.h"
 
-#include "rocsparse_primitives.h"
+#include "rocsparse_primitives.hpp"
 
 namespace rocsparse
 {
@@ -41,6 +41,8 @@ namespace rocsparse
                                           rocsparse_hyb_mat       hyb,
                                           rocsparse_hyb_partition partition_type)
     {
+        ROCSPARSE_ROUTINE_TRACE;
+
         hyb->m         = m;
         hyb->n         = n;
         hyb->partition = partition_type;
@@ -102,6 +104,8 @@ rocsparse_status rocsparse::csr2hyb_template(rocsparse_handle          handle,
                                              rocsparse_int             user_ell_width,
                                              rocsparse_hyb_partition   partition_type)
 {
+    ROCSPARSE_ROUTINE_TRACE;
+
     // Check for valid handle and matrix descriptor
     // Logging
     rocsparse::log_trace(handle,
@@ -167,12 +171,16 @@ rocsparse_status rocsparse::csr2hyb_template(rocsparse_handle          handle,
         // ELL width cannot be 0 or negative
         if(user_ell_width < 0)
         {
+            // LCOV_EXCL_START
             return rocsparse_status_invalid_value;
+            // LCOV_EXCL_STOP
         }
 
         if(user_ell_width > max_row_nnz)
         {
+            // LCOV_EXCL_START
             return rocsparse_status_invalid_value;
+            // LCOV_EXCL_STOP
         }
     }
 
@@ -199,8 +207,8 @@ rocsparse_status rocsparse::csr2hyb_template(rocsparse_handle          handle,
     {
         // Allocate workspace
         rocsparse_int* workspace = nullptr;
-        RETURN_IF_HIP_ERROR(rocsparse_hipMallocAsync(
-            (void**)&workspace, sizeof(rocsparse_int) * blocks, handle->stream));
+        RETURN_IF_HIP_ERROR(
+            rocsparse_hipMallocAsync(&workspace, sizeof(rocsparse_int) * blocks, handle->stream));
 
         // HYB == ELL - no COO part - compute maximum nnz per row
         RETURN_IF_HIPLAUNCHKERNELGGL_ERROR((rocsparse::ell_width_kernel_part1<CSR2ELL_DIM>),
@@ -232,7 +240,9 @@ rocsparse_status rocsparse::csr2hyb_template(rocsparse_handle          handle,
     // Re-check ELL width
     if(hyb->ell_width > max_row_nnz)
     {
+        // LCOV_EXCL_START
         return rocsparse_status_invalid_value;
+        // LCOV_EXCL_STOP
     }
 
     // Compute ELL non-zeros
@@ -242,15 +252,15 @@ rocsparse_status rocsparse::csr2hyb_template(rocsparse_handle          handle,
     if(hyb->ell_nnz > 0)
     {
         RETURN_IF_HIP_ERROR(rocsparse_hipMallocAsync(
-            (void**)&hyb->ell_col_ind, sizeof(rocsparse_int) * hyb->ell_nnz, handle->stream));
+            &hyb->ell_col_ind, sizeof(rocsparse_int) * hyb->ell_nnz, handle->stream));
         RETURN_IF_HIP_ERROR(
             rocsparse_hipMallocAsync(&hyb->ell_val, sizeof(T) * hyb->ell_nnz, handle->stream));
     }
 
     // Allocate workspace
     rocsparse_int* workspace = NULL;
-    RETURN_IF_HIP_ERROR(rocsparse_hipMallocAsync(
-        (void**)&workspace, sizeof(rocsparse_int) * (m + 1), handle->stream));
+    RETURN_IF_HIP_ERROR(
+        rocsparse_hipMallocAsync(&workspace, sizeof(rocsparse_int) * (m + 1), handle->stream));
 
     // If there is a COO part, compute the COO non-zero elements per row
     if(partition_type != rocsparse_hyb_partition_max)
@@ -316,9 +326,9 @@ rocsparse_status rocsparse::csr2hyb_template(rocsparse_handle          handle,
     if(hyb->coo_nnz > 0)
     {
         RETURN_IF_HIP_ERROR(rocsparse_hipMallocAsync(
-            (void**)&hyb->coo_row_ind, sizeof(rocsparse_int) * hyb->coo_nnz, handle->stream));
+            &hyb->coo_row_ind, sizeof(rocsparse_int) * hyb->coo_nnz, handle->stream));
         RETURN_IF_HIP_ERROR(rocsparse_hipMallocAsync(
-            (void**)&hyb->coo_col_ind, sizeof(rocsparse_int) * hyb->coo_nnz, handle->stream));
+            &hyb->coo_col_ind, sizeof(rocsparse_int) * hyb->coo_nnz, handle->stream));
         RETURN_IF_HIP_ERROR(
             rocsparse_hipMallocAsync(&hyb->coo_val, sizeof(T) * hyb->coo_nnz, handle->stream));
     }
@@ -368,6 +378,8 @@ extern "C" rocsparse_status rocsparse_scsr2hyb(rocsparse_handle          handle,
                                                rocsparse_hyb_partition   partition_type)
 try
 {
+    ROCSPARSE_ROUTINE_TRACE;
+
     RETURN_IF_ROCSPARSE_ERROR(rocsparse::csr2hyb_template(handle,
                                                           m,
                                                           n,
@@ -379,11 +391,13 @@ try
                                                           user_ell_width,
                                                           partition_type));
     return rocsparse_status_success;
+    // LCOV_EXCL_START
 }
 catch(...)
 {
     RETURN_ROCSPARSE_EXCEPTION();
 }
+// LCOV_EXCL_STOP
 
 extern "C" rocsparse_status rocsparse_dcsr2hyb(rocsparse_handle          handle,
                                                rocsparse_int             m,
@@ -397,6 +411,8 @@ extern "C" rocsparse_status rocsparse_dcsr2hyb(rocsparse_handle          handle,
                                                rocsparse_hyb_partition   partition_type)
 try
 {
+    ROCSPARSE_ROUTINE_TRACE;
+
     RETURN_IF_ROCSPARSE_ERROR(rocsparse::csr2hyb_template(handle,
                                                           m,
                                                           n,
@@ -408,11 +424,13 @@ try
                                                           user_ell_width,
                                                           partition_type));
     return rocsparse_status_success;
+    // LCOV_EXCL_START
 }
 catch(...)
 {
     RETURN_ROCSPARSE_EXCEPTION();
 }
+// LCOV_EXCL_STOP
 
 extern "C" rocsparse_status rocsparse_ccsr2hyb(rocsparse_handle               handle,
                                                rocsparse_int                  m,
@@ -426,6 +444,8 @@ extern "C" rocsparse_status rocsparse_ccsr2hyb(rocsparse_handle               ha
                                                rocsparse_hyb_partition        partition_type)
 try
 {
+    ROCSPARSE_ROUTINE_TRACE;
+
     RETURN_IF_ROCSPARSE_ERROR(rocsparse::csr2hyb_template(handle,
                                                           m,
                                                           n,
@@ -437,11 +457,13 @@ try
                                                           user_ell_width,
                                                           partition_type));
     return rocsparse_status_success;
+    // LCOV_EXCL_START
 }
 catch(...)
 {
     RETURN_ROCSPARSE_EXCEPTION();
 }
+// LCOV_EXCL_STOP
 
 extern "C" rocsparse_status rocsparse_zcsr2hyb(rocsparse_handle                handle,
                                                rocsparse_int                   m,
@@ -455,6 +477,8 @@ extern "C" rocsparse_status rocsparse_zcsr2hyb(rocsparse_handle                h
                                                rocsparse_hyb_partition         partition_type)
 try
 {
+    ROCSPARSE_ROUTINE_TRACE;
+
     RETURN_IF_ROCSPARSE_ERROR(rocsparse::csr2hyb_template(handle,
                                                           m,
                                                           n,
@@ -466,8 +490,10 @@ try
                                                           user_ell_width,
                                                           partition_type));
     return rocsparse_status_success;
+    // LCOV_EXCL_START
 }
 catch(...)
 {
     RETURN_ROCSPARSE_EXCEPTION();
 }
+// LCOV_EXCL_STOP

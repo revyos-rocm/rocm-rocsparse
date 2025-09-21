@@ -1,6 +1,6 @@
 /*! \file */
 /* ************************************************************************
- * Copyright (C) 2022-2024 Advanced Micro Devices, Inc. All rights Reserved.
+ * Copyright (C) 2022-2025 Advanced Micro Devices, Inc. All rights Reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -682,8 +682,6 @@ void testing_bsrgemm(const Arguments& arg)
 
     if(arg.timing)
     {
-        int number_cold_calls = 2;
-        int number_hot_calls  = arg.iters;
 
         CHECK_ROCSPARSE_ERROR(rocsparse_set_pointer_mode(handle, rocsparse_pointer_mode_host));
 
@@ -693,23 +691,10 @@ void testing_bsrgemm(const Arguments& arg)
         d_C.define(
             d_C.dir, d_C.mb, d_C.nb, out_nnz, d_C.row_block_dim, d_C.col_block_dim, d_C.base);
 
-        for(int iter = 0; iter < number_cold_calls; ++iter)
-        {
-            CHECK_ROCSPARSE_ERROR(
-                rocsparse_bsrgemm<T>(PARAMS(h_alpha, h_beta, d_A, d_B, d_C, d_D)));
-        }
+        const double gpu_solve_time_used = rocsparse_clients::run_benchmark(
+            arg, rocsparse_bsrgemm<T>, PARAMS(h_alpha, h_beta, d_A, d_B, d_C, d_D));
 
-        double gpu_solve_time_used = get_time_us();
-
-        for(int iter = 0; iter < number_hot_calls; ++iter)
-        {
-            CHECK_ROCSPARSE_ERROR(
-                rocsparse_bsrgemm<T>(PARAMS(h_alpha, h_beta, d_A, d_B, d_C, d_D)));
-        }
-
-        gpu_solve_time_used = (get_time_us() - gpu_solve_time_used) / number_hot_calls;
-
-        hipDeviceSynchronize();
+        CHECK_HIP_ERROR(hipDeviceSynchronize());
 
         double gflop_count = bsrgemm_gflop_count<T, rocsparse_int, rocsparse_int>(
             Mb, d_A.row_block_dim, h_alpha, h_A.ptr, h_A.ind, h_B.ptr, h_beta, h_D.ptr, h_A.base);

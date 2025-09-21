@@ -1,6 +1,6 @@
 /*! \file */
 /* ************************************************************************
- * Copyright (C) 2020-2024 Advanced Micro Devices, Inc. All rights Reserved.
+ * Copyright (C) 2020-2025 Advanced Micro Devices, Inc. All rights Reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -29,23 +29,25 @@
 
 namespace rocsparse
 {
-    template <uint32_t BLOCKSIZE, typename T, typename U>
+    template <uint32_t BLOCKSIZE, typename T>
     ROCSPARSE_KERNEL(BLOCKSIZE)
     void gemmit_kernel(rocsparse_int m,
                        rocsparse_int n,
-                       U             alpha_device_host,
+                       ROCSPARSE_DEVICE_HOST_SCALAR_PARAMS(T, alpha),
                        const T* __restrict__ A,
                        rocsparse_int lda,
                        const rocsparse_int* __restrict__ csr_row_ptr,
                        const rocsparse_int* __restrict__ csr_col_ind,
                        const T* __restrict__ csr_val,
-                       U beta_device_host,
+                       ROCSPARSE_DEVICE_HOST_SCALAR_PARAMS(T, beta),
                        T* __restrict__ C,
                        rocsparse_int        ldc,
-                       rocsparse_index_base base)
+                       rocsparse_index_base base,
+                       bool                 is_host_mode)
     {
-        auto alpha = rocsparse::load_scalar_device_host(alpha_device_host);
-        auto beta  = rocsparse::load_scalar_device_host(beta_device_host);
+        ROCSPARSE_DEVICE_HOST_SCALAR_GET(alpha);
+        ROCSPARSE_DEVICE_HOST_SCALAR_GET(beta);
+
         rocsparse::gemmit_device<BLOCKSIZE>(
             m, n, alpha, A, lda, csr_row_ptr, csr_col_ind, csr_val, beta, C, ldc, base);
     }
@@ -69,6 +71,7 @@ namespace rocsparse
                                        T*                        C,
                                        rocsparse_int             ldc)
     {
+        ROCSPARSE_ROUTINE_TRACE;
 
         // Stream
         hipStream_t stream = handle->stream;
@@ -76,22 +79,7 @@ namespace rocsparse
         // If k == 0, scale C with beta
         if(k == 0)
         {
-            if(handle->pointer_mode == rocsparse_pointer_mode_device)
-            {
-                RETURN_IF_ROCSPARSE_ERROR(rocsparse::scale_array(handle, m * n, beta, C));
-            }
-            else
-            {
-                if(*beta == static_cast<T>(0))
-                {
-                    RETURN_IF_HIP_ERROR(hipMemsetAsync(C, 0, sizeof(T) * m * n, stream));
-                }
-                else if(*beta != static_cast<T>(1))
-                {
-                    RETURN_IF_ROCSPARSE_ERROR(rocsparse::scale_array(handle, m * n, *beta, C));
-                }
-            }
-
+            RETURN_IF_ROCSPARSE_ERROR(rocsparse::scale_array(handle, m * n, beta, C));
             return rocsparse_status_success;
         }
 
@@ -99,65 +87,32 @@ namespace rocsparse
         dim3 gemmit_blocks((m - 1) / GEMMIT_DIM + 1, std::min(n, (rocsparse_int)65535));
         dim3 gemmit_threads(GEMMIT_DIM);
 
-        if(handle->pointer_mode == rocsparse_pointer_mode_device)
+        const bool on_host = handle->pointer_mode == rocsparse_pointer_mode_host;
+        if(on_host && (*alpha == static_cast<T>(0)))
         {
-            RETURN_IF_HIPLAUNCHKERNELGGL_ERROR((rocsparse::gemmit_kernel<GEMMIT_DIM>),
-                                               gemmit_blocks,
-                                               gemmit_threads,
-                                               0,
-                                               stream,
-                                               m,
-                                               n,
-                                               alpha,
-                                               A,
-                                               lda,
-                                               csr_row_ptr,
-                                               csr_col_ind,
-                                               csr_val,
-                                               beta,
-                                               C,
-                                               ldc,
-                                               descr->base);
+            RETURN_IF_ROCSPARSE_ERROR(rocsparse::scale_array(handle, m * n, beta, C));
+            return rocsparse_status_success;
         }
-        else
-        {
-            // Quick return
-            if(*alpha == static_cast<T>(0) && *beta == static_cast<T>(1))
-            {
-                return rocsparse_status_success;
-            }
-            else if(*alpha == static_cast<T>(0))
-            {
-                if(*beta == static_cast<T>(0))
-                {
-                    RETURN_IF_HIP_ERROR(hipMemsetAsync(C, 0, sizeof(T) * m * n, stream));
-                }
-                else
-                {
-                    RETURN_IF_ROCSPARSE_ERROR(rocsparse::scale_array(handle, m * n, *beta, C));
-                }
 
-                return rocsparse_status_success;
-            }
+        RETURN_IF_HIPLAUNCHKERNELGGL_ERROR((rocsparse::gemmit_kernel<GEMMIT_DIM>),
+                                           gemmit_blocks,
+                                           gemmit_threads,
+                                           0,
+                                           stream,
+                                           m,
+                                           n,
+                                           ROCSPARSE_DEVICE_HOST_SCALAR_ARGS(handle, alpha),
+                                           A,
+                                           lda,
+                                           csr_row_ptr,
+                                           csr_col_ind,
+                                           csr_val,
+                                           ROCSPARSE_DEVICE_HOST_SCALAR_ARGS(handle, beta),
+                                           C,
+                                           ldc,
+                                           descr->base,
+                                           handle->pointer_mode == rocsparse_pointer_mode_host);
 
-            RETURN_IF_HIPLAUNCHKERNELGGL_ERROR((rocsparse::gemmit_kernel<GEMMIT_DIM>),
-                                               gemmit_blocks,
-                                               gemmit_threads,
-                                               0,
-                                               stream,
-                                               m,
-                                               n,
-                                               *alpha,
-                                               A,
-                                               lda,
-                                               csr_row_ptr,
-                                               csr_col_ind,
-                                               csr_val,
-                                               *beta,
-                                               C,
-                                               ldc,
-                                               descr->base);
-        }
 #undef GEMMIT_DIM
 
         return rocsparse_status_success;
@@ -182,6 +137,8 @@ namespace rocsparse
                                               T*                        C,
                                               rocsparse_int             ldc)
     {
+        ROCSPARSE_ROUTINE_TRACE;
+
         if(m == 0 || n == 0)
         {
             return rocsparse_status_success;
@@ -208,6 +165,8 @@ namespace rocsparse
                                            T*                        C, //15
                                            rocsparse_int             ldc) //16
     {
+        ROCSPARSE_ROUTINE_TRACE;
+
         ROCSPARSE_CHECKARG_HANDLE(0, handle);
         ROCSPARSE_CHECKARG_ENUM(1, trans_A);
         ROCSPARSE_CHECKARG_ENUM(2, trans_B);
@@ -294,6 +253,7 @@ rocsparse_status rocsparse::gemmi_template(rocsparse_handle          handle,
                                            T*                        C,
                                            rocsparse_int             ldc)
 {
+    ROCSPARSE_ROUTINE_TRACE;
 
     const rocsparse_status status = rocsparse::gemmi_quickreturn(handle,
                                                                  trans_A,
@@ -360,6 +320,7 @@ namespace rocsparse
                                 T*                        C,
                                 rocsparse_int             ldc)
     {
+        ROCSPARSE_ROUTINE_TRACE;
 
         rocsparse::log_trace(handle,
                              rocsparse::replaceX<T>("rocsparse_Xgemmi"),
@@ -445,6 +406,7 @@ namespace rocsparse
                                      rocsparse_int             ldc)         \
     try                                                                     \
     {                                                                       \
+        ROCSPARSE_ROUTINE_TRACE;                                            \
         RETURN_IF_ROCSPARSE_ERROR(rocsparse::gemmi_impl(handle,             \
                                                         trans_A,            \
                                                         trans_B,            \

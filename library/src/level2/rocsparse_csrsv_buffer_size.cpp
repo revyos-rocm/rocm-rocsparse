@@ -1,6 +1,6 @@
 /*! \file */
 /* ************************************************************************
- * Copyright (C) 2018-2024 Advanced Micro Devices, Inc. All rights Reserved.
+ * Copyright (C) 2018-2025 Advanced Micro Devices, Inc. All rights Reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -22,11 +22,11 @@
  *
  * ************************************************************************ */
 
-#include "control.h"
 #include "internal/level2/rocsparse_csrsv.h"
+#include "rocsparse_control.hpp"
 #include "rocsparse_csrsv.hpp"
-#include "rocsparse_primitives.h"
-#include "utility.h"
+#include "rocsparse_primitives.hpp"
+#include "rocsparse_utility.hpp"
 
 template <typename I, typename J, typename T>
 rocsparse_status rocsparse::csrsv_buffer_size_template(rocsparse_handle          handle,
@@ -40,6 +40,8 @@ rocsparse_status rocsparse::csrsv_buffer_size_template(rocsparse_handle         
                                                        rocsparse_mat_info        info,
                                                        size_t*                   buffer_size)
 {
+    ROCSPARSE_ROUTINE_TRACE;
+
     // Check for valid handle and matrix descriptor
     ROCSPARSE_CHECKARG_HANDLE(0, handle);
     ROCSPARSE_CHECKARG_POINTER(4, descr);
@@ -105,9 +107,12 @@ rocsparse_status rocsparse::csrsv_buffer_size_template(rocsparse_handle         
     // rocsparse_int workspace2
     *buffer_size += ((sizeof(int) * m - 1) / 256 + 1) * 256;
 
+    uint32_t startbit = 0;
+    uint32_t endbit   = rocsparse::clz(m);
+
     size_t rocprim_size = 0;
     RETURN_IF_ROCSPARSE_ERROR((rocsparse::primitives::radix_sort_pairs_buffer_size<int, J>(
-        handle, m, 0, rocsparse::clz(m), &rocprim_size)));
+        handle, m, startbit, endbit, &rocprim_size)));
 
     // rocprim buffer
     *buffer_size += rocprim_size;
@@ -119,7 +124,7 @@ rocsparse_status rocsparse::csrsv_buffer_size_template(rocsparse_handle         
 
         // Determine rocprim buffer size
         RETURN_IF_ROCSPARSE_ERROR((rocsparse::primitives::radix_sort_pairs_buffer_size<J, I>(
-            handle, nnz, 0, rocsparse::clz(m), &transpose_size)));
+            handle, nnz, startbit, endbit, &transpose_size)));
 
         // rocPRIM does not support in-place sorting, so we need an additional buffer
         transpose_size += ((sizeof(J) * nnz - 1) / 256 + 1) * 256;
@@ -176,6 +181,7 @@ INSTANTIATE(int64_t, int64_t, rocsparse_double_complex);
                                      size_t*                   buffer_size)                       \
     try                                                                                           \
     {                                                                                             \
+        ROCSPARSE_ROUTINE_TRACE;                                                                  \
         RETURN_IF_ROCSPARSE_ERROR(rocsparse::csrsv_buffer_size_template(                          \
             handle, trans, m, nnz, descr, csr_val, csr_row_ptr, csr_col_ind, info, buffer_size)); \
         return rocsparse_status_success;                                                          \

@@ -1,6 +1,6 @@
 /*! \file */
 /* ************************************************************************
- * Copyright (C) 2022-2024 Advanced Micro Devices, Inc.
+ * Copyright (C) 2022-2025 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -21,17 +21,18 @@
  * THE SOFTWARE.
  *
  * ************************************************************************ */
-#include "common.h"
-#include "control.h"
+#include "rocsparse_common.hpp"
+#include "rocsparse_control.hpp"
 #include "rocsparse_csxsldu.hpp"
-#include "rocsparse_primitives.h"
-#include "utility.h"
+#include "rocsparse_primitives.hpp"
+#include "rocsparse_utility.hpp"
 
 namespace rocsparse
 {
     template <typename I, typename J>
     static rocsparse_status inclusive_scan(rocsparse_handle handle, J m_, I* ptr_)
     {
+        ROCSPARSE_ROUTINE_TRACE;
 
         size_t temp_storage_size_bytes;
         RETURN_IF_ROCSPARSE_ERROR((rocsparse::primitives::inclusive_scan_buffer_size<I, I>(
@@ -111,6 +112,8 @@ namespace rocsparse
                                                    rocsparse_diag_type udiag_,
                                                    P&&... p)
     {
+        ROCSPARSE_ROUTINE_TRACE;
+
         switch(ldiag_)
         {
         case rocsparse_diag_type_unit:
@@ -156,7 +159,9 @@ namespace rocsparse
             {
             case rocsparse_diag_type_non_unit:
             {
+                // LCOV_EXCL_START
                 RETURN_IF_ROCSPARSE_ERROR(rocsparse_status_invalid_value);
+                // LCOV_EXCL_STOP
             }
             case rocsparse_diag_type_unit:
             {
@@ -203,6 +208,8 @@ rocsparse_status rocsparse::csxsldu_preprocess_template(rocsparse_handle     han
                                                         rocsparse_index_base ubase_,
                                                         void*                buffer_)
 {
+    ROCSPARSE_ROUTINE_TRACE;
+
     const I              ubase              = static_cast<I>(ubase_);
     const I              lbase              = static_cast<I>(lbase_);
     static constexpr int nthreads_per_block = 1024;
@@ -311,6 +318,7 @@ INSTANTIATE(template, rocsparse_double_complex, rocsparse_int, rocsparse_int);
                                      void*                buffer_)                    \
     try                                                                               \
     {                                                                                 \
+        ROCSPARSE_ROUTINE_TRACE;                                                      \
         RETURN_IF_ROCSPARSE_ERROR(rocsparse::csxsldu_preprocess_template(handle_,     \
                                                                          dir_,        \
                                                                          m_,          \

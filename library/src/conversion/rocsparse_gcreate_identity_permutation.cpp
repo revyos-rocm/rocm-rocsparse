@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (C) 2022-2024 Advanced Micro Devices, Inc. All rights Reserved.
+ * Copyright (C) 2022-2025 Advanced Micro Devices, Inc. All rights Reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -22,15 +22,18 @@
  * ************************************************************************ */
 
 #include "rocsparse_gcreate_identity_permutation.hpp"
-#include "control.h"
+#include "rocsparse_control.hpp"
 #include "rocsparse_identity.hpp"
-#include "utility.h"
+#include "rocsparse_internal_convert_scalar.hpp"
+#include "rocsparse_utility.hpp"
 
 rocsparse_status rocsparse::gcreate_identity_permutation(rocsparse_handle    handle_,
                                                          int64_t             nnz,
                                                          rocsparse_indextype idx_type,
                                                          void*               perm)
 {
+    ROCSPARSE_ROUTINE_TRACE;
+
     switch(idx_type)
     {
     case rocsparse_indextype_u16:
@@ -56,5 +59,7 @@ rocsparse_status rocsparse::gcreate_identity_permutation(rocsparse_handle    han
         return rocsparse_status_success;
     }
     }
+    // LCOV_EXCL_START
     RETURN_IF_ROCSPARSE_ERROR(rocsparse_status_invalid_value);
+    // LCOV_EXCL_STOP
 }

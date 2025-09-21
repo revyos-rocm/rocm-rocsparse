@@ -1,6 +1,6 @@
 /*! \file */
 /* ************************************************************************
- * Copyright (C) 2018-2024 Advanced Micro Devices, Inc. All rights Reserved.
+ * Copyright (C) 2018-2025 Advanced Micro Devices, Inc. All rights Reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -23,12 +23,12 @@
  * ************************************************************************ */
 
 #include "internal/conversion/rocsparse_ell2csr.h"
-#include "control.h"
+#include "rocsparse_control.hpp"
 #include "rocsparse_ell2csr.hpp"
-#include "utility.h"
+#include "rocsparse_utility.hpp"
 
 #include "ell2csr_device.h"
-#include "rocsparse_primitives.h"
+#include "rocsparse_primitives.hpp"
 
 rocsparse_status rocsparse::ell2csr_quickreturn(rocsparse_handle          handle,
                                                 int64_t                   m,
@@ -42,6 +42,8 @@ rocsparse_status rocsparse::ell2csr_quickreturn(rocsparse_handle          handle
                                                 const void*               csr_row_ptr,
                                                 void*                     csr_col_ind)
 {
+    ROCSPARSE_ROUTINE_TRACE;
+
     if(m == 0 || n == 0 || ell_width == 0)
     {
         return rocsparse_status_success;
@@ -61,6 +63,8 @@ rocsparse_status rocsparse::ell2csr_checkarg(rocsparse_handle          handle, /
                                              const void*               csr_row_ptr, //9
                                              void*                     csr_col_ind) //10
 {
+    ROCSPARSE_ROUTINE_TRACE;
+
     ROCSPARSE_CHECKARG_HANDLE(0, handle);
     ROCSPARSE_CHECKARG_SIZE(1, m);
     ROCSPARSE_CHECKARG_SIZE(2, n);
@@ -127,6 +131,8 @@ rocsparse_status rocsparse::ell2csr_core(rocsparse_handle          handle,
                                          const I*                  csr_row_ptr,
                                          J*                        csr_col_ind)
 {
+    ROCSPARSE_ROUTINE_TRACE;
+
     // Stream
     hipStream_t stream = handle->stream;
 #define ELL2CSR_DIM 256
@@ -204,6 +210,8 @@ rocsparse_status rocsparse::ell2csr_nnz_quickreturn(rocsparse_handle          ha
                                                     void*                     csr_row_ptr,
                                                     void*                     csr_nnz)
 {
+    ROCSPARSE_ROUTINE_TRACE;
+
     if(m == 0 || n == 0 || ell_width == 0)
     {
         return rocsparse_status_success;
@@ -222,6 +230,8 @@ rocsparse_status rocsparse::ell2csr_nnz_checkarg(rocsparse_handle          handl
                                                  void*                     csr_nnz)
 
 {
+    ROCSPARSE_ROUTINE_TRACE;
+
     ROCSPARSE_CHECKARG_HANDLE(0, handle);
     ROCSPARSE_CHECKARG_SIZE(1, m);
     ROCSPARSE_CHECKARG_SIZE(2, n);
@@ -271,6 +281,8 @@ rocsparse_status rocsparse::ell2csr_nnz_core(rocsparse_handle          handle,
                                              I*                        csr_row_ptr,
                                              I*                        csr_nnz)
 {
+    ROCSPARSE_ROUTINE_TRACE;
+
     hipStream_t stream = handle->stream;
     // Count nnz per row
 #define ELL2CSR_DIM 256
@@ -389,14 +401,18 @@ extern "C" rocsparse_status rocsparse_ell2csr_nnz(rocsparse_handle          hand
                                                   rocsparse_int*            csr_nnz)
 try
 {
+    ROCSPARSE_ROUTINE_TRACE;
+
     RETURN_IF_ROCSPARSE_ERROR(rocsparse::ell2csr_nnz_impl(
         handle, m, n, ell_descr, ell_width, ell_col_ind, csr_descr, csr_row_ptr, csr_nnz));
     return rocsparse_status_success;
+    // LCOV_EXCL_START
 }
 catch(...)
 {
     RETURN_ROCSPARSE_EXCEPTION();
 }
+// LCOV_EXCL_STOP
 
 extern "C" rocsparse_status rocsparse_sell2csr(rocsparse_handle          handle,
                                                rocsparse_int             m,
@@ -411,6 +427,8 @@ extern "C" rocsparse_status rocsparse_sell2csr(rocsparse_handle          handle,
                                                rocsparse_int*            csr_col_ind)
 try
 {
+    ROCSPARSE_ROUTINE_TRACE;
+
     RETURN_IF_ROCSPARSE_ERROR(rocsparse::ell2csr_impl(handle,
                                                       m,
                                                       n,
@@ -423,11 +441,13 @@ try
                                                       csr_row_ptr,
                                                       csr_col_ind));
     return rocsparse_status_success;
+    // LCOV_EXCL_START
 }
 catch(...)
 {
     RETURN_ROCSPARSE_EXCEPTION();
 }
+// LCOV_EXCL_STOP
 
 extern "C" rocsparse_status rocsparse_dell2csr(rocsparse_handle          handle,
                                                rocsparse_int             m,
@@ -442,6 +462,8 @@ extern "C" rocsparse_status rocsparse_dell2csr(rocsparse_handle          handle,
                                                rocsparse_int*            csr_col_ind)
 try
 {
+    ROCSPARSE_ROUTINE_TRACE;
+
     RETURN_IF_ROCSPARSE_ERROR(rocsparse::ell2csr_impl(handle,
                                                       m,
                                                       n,
@@ -454,11 +476,13 @@ try
                                                       csr_row_ptr,
                                                       csr_col_ind));
     return rocsparse_status_success;
+    // LCOV_EXCL_START
 }
 catch(...)
 {
     RETURN_ROCSPARSE_EXCEPTION();
 }
+// LCOV_EXCL_STOP
 
 extern "C" rocsparse_status rocsparse_cell2csr(rocsparse_handle               handle,
                                                rocsparse_int                  m,
@@ -473,6 +497,8 @@ extern "C" rocsparse_status rocsparse_cell2csr(rocsparse_handle               ha
                                                rocsparse_int*                 csr_col_ind)
 try
 {
+    ROCSPARSE_ROUTINE_TRACE;
+
     RETURN_IF_ROCSPARSE_ERROR(rocsparse::ell2csr_impl(handle,
                                                       m,
                                                       n,
@@ -485,11 +511,13 @@ try
                                                       csr_row_ptr,
                                                       csr_col_ind));
     return rocsparse_status_success;
+    // LCOV_EXCL_START
 }
 catch(...)
 {
     RETURN_ROCSPARSE_EXCEPTION();
 }
+// LCOV_EXCL_STOP
 
 extern "C" rocsparse_status rocsparse_zell2csr(rocsparse_handle                handle,
                                                rocsparse_int                   m,
@@ -504,6 +532,8 @@ extern "C" rocsparse_status rocsparse_zell2csr(rocsparse_handle                h
                                                rocsparse_int*                  csr_col_ind)
 try
 {
+    ROCSPARSE_ROUTINE_TRACE;
+
     RETURN_IF_ROCSPARSE_ERROR(rocsparse::ell2csr_impl(handle,
                                                       m,
                                                       n,
@@ -516,8 +546,10 @@ try
                                                       csr_row_ptr,
                                                       csr_col_ind));
     return rocsparse_status_success;
+    // LCOV_EXCL_START
 }
 catch(...)
 {
     RETURN_ROCSPARSE_EXCEPTION();
 }
+// LCOV_EXCL_STOP

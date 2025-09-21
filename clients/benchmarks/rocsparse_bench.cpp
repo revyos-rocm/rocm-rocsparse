@@ -1,6 +1,6 @@
 /*! \file */
 /* ************************************************************************
-* Copyright (C) 2021-2023 Advanced Micro Devices, Inc. All rights Reserved.
+* Copyright (C) 2021-2025 Advanced Micro Devices, Inc. All rights Reserved.
 *
 * Permission is hereby granted, free of charge, to any person obtaining a copy
 * of this software and associated documentation files (the "Software"), to deal
@@ -35,13 +35,43 @@ std::string rocsparse_get_version()
 {
     int  rocsparse_ver;
     char rocsparse_rev[64];
+
+    rocsparse_handle handle;
+    rocsparse_status status = rocsparse_create_handle(&handle);
+    if(rocsparse_status_success != status)
     {
-        rocsparse_handle handle;
-        rocsparse_create_handle(&handle);
-        rocsparse_get_version(handle, &rocsparse_ver);
-        rocsparse_get_git_rev(handle, rocsparse_rev);
-        rocsparse_destroy_handle(handle);
+        std::cerr << "The creation of the rocsparse_handle failed." << std::endl;
+        if(0 == rocsparse_state_debug())
+        {
+            std::cerr << "To get more information, please export the ROCSPARSE_DEBUG environment "
+                         "variable:"
+                      << std::endl;
+            std::cerr << "export ROCSPARSE_DEBUG=1" << std::endl;
+        }
+        throw(status);
     }
+
+    status = rocsparse_get_version(handle, &rocsparse_ver);
+    if(rocsparse_status_success != status)
+    {
+        std::cerr << "rocsparse_get_version failed." << std::endl;
+        throw(status);
+    }
+
+    status = rocsparse_get_git_rev(handle, rocsparse_rev);
+    if(rocsparse_status_success != status)
+    {
+        std::cerr << "rocsparse_get_git_rev failed." << std::endl;
+        throw(status);
+    }
+
+    status = rocsparse_destroy_handle(handle);
+    if(rocsparse_status_success != status)
+    {
+        std::cerr << "rocsparse_destroy_handle failed." << std::endl;
+        throw(status);
+    }
+
     std::ostringstream os;
     os << rocsparse_ver / 100000 << "." << rocsparse_ver / 100 % 1000 << "." << rocsparse_ver % 100
        << "-" << rocsparse_rev;
@@ -65,6 +95,7 @@ void rocsparse_bench::parse(int& argc, char**& argv, rocsparse_arguments_config&
     config.spsm_alg            = rocsparse_spsm_alg_default;
     config.spmm_alg            = rocsparse_spmm_alg_default;
     config.spgemm_alg          = rocsparse_spgemm_alg_default;
+    config.spgeam_alg          = rocsparse_spgeam_alg_default;
     config.sparse_to_dense_alg = rocsparse_sparse_to_dense_alg_default;
     config.dense_to_sparse_alg = rocsparse_dense_to_sparse_alg_default;
     config.precision           = 's';
@@ -144,7 +175,7 @@ void rocsparse_bench::info_devices(std::ostream& out_) const
         hipDeviceProp_t prop;
         if(hipGetDeviceProperties(&prop, i) != hipSuccess)
         {
-            std::cerr << "Error: cannot get device properties" << std::endl;
+            std::cerr << "rocsparse-bench error: cannot get device properties" << std::endl;
             exit(1);
         }
 
@@ -160,7 +191,12 @@ void rocsparse_bench::info_devices(std::ostream& out_) const
     {
         rocsparse_int   device_id = this->get_device_id();
         hipDeviceProp_t prop;
-        hipGetDeviceProperties(&prop, device_id);
+        if(hipGetDeviceProperties(&prop, device_id) != hipSuccess)
+        {
+            std::cerr << "rocsparse-bench error: cannot get device properties" << std::endl;
+            exit(1);
+        }
+
         out_ << "Using device ID " << device_id << " (" << prop.name << ") for rocSPARSE"
              << std::endl
              << "-------------------------------------------------------------------------"

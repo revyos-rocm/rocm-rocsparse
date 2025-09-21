@@ -1,6 +1,6 @@
 /*! \file */
 /* ************************************************************************
- * Copyright (C) 2019-2024 Advanced Micro Devices, Inc. All rights Reserved.
+ * Copyright (C) 2019-2025 Advanced Micro Devices, Inc. All rights Reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -144,7 +144,7 @@ void testing_csrmv_managed(const Arguments& arg)
 
     bool to_int = false;
     to_int |= (prop.warpSize == 32);
-    to_int |= (alg != rocsparse_spmv_alg_csr_stream);
+    to_int |= (alg != rocsparse_spmv_alg_csr_rowsplit);
 
     static constexpr bool       full_rank = false;
     rocsparse_matrix_factory<T> matrix_factory(arg, arg.unit_check ? to_int : false, full_rank);
@@ -266,10 +266,10 @@ void testing_csrmv_managed(const Arguments& arg)
                    N,
                    nnz,
                    *alpha,
-                   csr_row_ptr.data(),
-                   csr_col_ind.data(),
-                   csr_val.data(),
-                   x.data(),
+                   trow_ptr.data(),
+                   tcol_ind.data(),
+                   tval.data(),
+                   tx.data(),
                    *beta,
                    y_gold.data(),
                    base,
@@ -283,56 +283,25 @@ void testing_csrmv_managed(const Arguments& arg)
 
     if(arg.timing)
     {
-        int number_cold_calls = 2;
-        int number_hot_calls  = arg.iters;
 
         CHECK_ROCSPARSE_ERROR(rocsparse_set_pointer_mode(handle, rocsparse_pointer_mode_host));
 
-        // Warm up
-        for(int iter = 0; iter < number_cold_calls; ++iter)
-        {
-            CHECK_ROCSPARSE_ERROR(rocsparse_csrmv<T>(handle,
-                                                     trans,
-                                                     M,
-                                                     N,
-                                                     nnz,
-                                                     alpha,
-                                                     descr,
-                                                     csr_val,
-                                                     csr_row_ptr,
-                                                     csr_col_ind,
-                                                     info,
-                                                     x,
-                                                     beta,
-                                                     y_1));
-        }
-
-        CHECK_HIP_ERROR(hipDeviceSynchronize());
-
-        double gpu_time_used = get_time_us();
-
-        // Performance run
-        for(int iter = 0; iter < number_hot_calls; ++iter)
-        {
-            CHECK_ROCSPARSE_ERROR(rocsparse_csrmv<T>(handle,
-                                                     trans,
-                                                     M,
-                                                     N,
-                                                     nnz,
-                                                     alpha,
-                                                     descr,
-                                                     csr_val,
-                                                     csr_row_ptr,
-                                                     csr_col_ind,
-                                                     info,
-                                                     x,
-                                                     beta,
-                                                     y_1));
-        }
-
-        CHECK_HIP_ERROR(hipDeviceSynchronize());
-
-        gpu_time_used = (get_time_us() - gpu_time_used) / number_hot_calls;
+        const double gpu_time_used = rocsparse_clients::run_benchmark(arg,
+                                                                      rocsparse_csrmv<T>,
+                                                                      handle,
+                                                                      trans,
+                                                                      M,
+                                                                      N,
+                                                                      nnz,
+                                                                      alpha,
+                                                                      descr,
+                                                                      csr_val,
+                                                                      csr_row_ptr,
+                                                                      csr_col_ind,
+                                                                      info,
+                                                                      x,
+                                                                      beta,
+                                                                      y_1);
 
         double gflop_count = spmv_gflop_count(M, nnz, *beta != static_cast<T>(0));
         double gbyte_count = csrmv_gbyte_count<T>(M, N, nnz, *beta != static_cast<T>(0));

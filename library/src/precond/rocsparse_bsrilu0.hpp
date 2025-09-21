@@ -1,6 +1,6 @@
 /*! \file */
 /* ************************************************************************
- * Copyright (C) 2020-2024 Advanced Micro Devices, Inc. All rights Reserved.
+ * Copyright (C) 2020-2025 Advanced Micro Devices, Inc. All rights Reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -24,7 +24,7 @@
 
 #pragma once
 
-#include "utility.h"
+#include "rocsparse_utility.hpp"
 
 namespace rocsparse
 {
@@ -43,7 +43,7 @@ namespace rocsparse
                                                rocsparse_solve_policy    solve,
                                                void*                     temp_buffer);
 
-    template <typename T, typename U>
+    template <typename T>
     rocsparse_status bsrilu0_template(rocsparse_handle          handle,
                                       rocsparse_direction       dir,
                                       rocsparse_int             mb,

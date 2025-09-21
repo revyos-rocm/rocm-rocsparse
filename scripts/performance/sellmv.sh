@@ -1,5 +1,28 @@
 #!/usr/bin/env bash
-# Author: Nico Trost
+
+# ########################################################################
+# Copyright (C) 2019-2025 Advanced Micro Devices, Inc. All rights Reserved.
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in
+# all copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+# THE SOFTWARE.
+#
+# ########################################################################
+
 
 # Helper function
 function display_help()
@@ -24,7 +47,7 @@ path=../../build/release/clients/staging
 # Parse command line parameters
 getopt -T
 if [[ $? -eq 4 ]]; then
-    GETOPT_PARSE=$(getopt --name "${0}" --longoptions help,device:,path:,matrices-dir: --options hd:p:m: -- "$@")
+    GETOPT_PARSE=$(getopt --name "${0}" --longoptions help,device:,path:,matrices-dir:,samples-dir: --options hd:p:m:s: -- "$@")
 else
     echo "Need a new version of getopt"
     exit 1
@@ -41,12 +64,17 @@ else
     matrices_dir=${MATRICES_DIR}
 fi
 
+samples_dir=../samples
+
 eval set -- "${GETOPT_PARSE}"
 
 while true; do
     case "${1}" in
         -m|--matrices-dir)
             matrices_dir=${2}
+            shift 2 ;;
+        -s|--samples-dir)
+            samples_dir=${2}
             shift 2 ;;
         -h|--help)
             display_help
@@ -81,7 +109,10 @@ truncate -s 0 $logname
 
 which=`ls $matrices_dir/*.csr`
 filenames=`for i in $which;do basename $i;done`
+
+arguments=`python3 ${samples_dir}/readConfig.py ${samples_dir}/qa/ellmv/float.json`
+
 # Run ellmv for all matrices available
 for filename in $filenames; do
-    $bench --matrices-dir $matrices_dir -f ellmv --precision s --device $dev --alpha 1 --beta 0 --iters 1000 --rocalution $filename 2>&1 | tee -a $logname
+    $bench --matrices-dir $matrices_dir $(eval echo ${arguments}) 2>&1 | tee -a $logname
 done

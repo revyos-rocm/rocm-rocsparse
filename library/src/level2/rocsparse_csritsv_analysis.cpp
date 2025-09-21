@@ -1,6 +1,6 @@
 /*! \file */
 /* ************************************************************************
- * Copyright (C) 2022-2024 Advanced Micro Devices, Inc. All rights Reserved.
+ * Copyright (C) 2022-2025 Advanced Micro Devices, Inc. All rights Reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -21,12 +21,12 @@
  * THE SOFTWARE.
  *
  * ************************************************************************ */
-#include "common.h"
-#include "control.h"
 #include "internal/level2/rocsparse_csritsv.h"
+#include "rocsparse_common.hpp"
+#include "rocsparse_control.hpp"
 #include "rocsparse_csritsv.hpp"
 #include "rocsparse_csrmv.hpp"
-#include "utility.h"
+#include "rocsparse_utility.hpp"
 
 namespace rocsparse
 {
@@ -155,11 +155,13 @@ namespace rocsparse
                                            rocsparse_int**           zero_pivot,
                                            void*                     temp_buffer)
     {
+        ROCSPARSE_ROUTINE_TRACE;
+
         // Allocate buffer to hold zero pivot
         if(zero_pivot[0] == nullptr)
         {
-            RETURN_IF_HIP_ERROR(rocsparse_hipMallocAsync(
-                (void**)zero_pivot, sizeof(rocsparse_int), handle->stream));
+            RETURN_IF_HIP_ERROR(
+                rocsparse_hipMallocAsync(zero_pivot, sizeof(rocsparse_int), handle->stream));
         }
 
         // Initialize zero pivot
@@ -263,7 +265,9 @@ namespace rocsparse
         case rocsparse_matrix_type_symmetric:
         case rocsparse_matrix_type_hermitian:
         {
+            // LCOV_EXCL_START
             RETURN_IF_ROCSPARSE_ERROR(rocsparse_status_not_implemented);
+            // LCOV_EXCL_STOP
         }
         }
 
@@ -436,6 +440,8 @@ rocsparse_status rocsparse::csritsv_analysis_template(rocsparse_handle          
                                                       rocsparse_solve_policy    solve,
                                                       void*                     temp_buffer)
 {
+    ROCSPARSE_ROUTINE_TRACE;
+
     // Quick return if possible
     if(m == 0)
     {
@@ -482,20 +488,25 @@ rocsparse_status rocsparse::csritsv_analysis_template(rocsparse_handle          
     //
     // Now, in case data are contiguous we can call csrmnv_analysis.
     //
-
     if(false == info->csritsv_info->is_submatrix)
     {
-        RETURN_IF_ROCSPARSE_ERROR(rocsparse::csrmv_analysis_template(handle,
-                                                                     trans,
-                                                                     rocsparse::csrmv_alg_adaptive,
-                                                                     m,
-                                                                     m,
-                                                                     nnz,
-                                                                     descr,
-                                                                     csr_val,
-                                                                     csr_row_ptr,
-                                                                     csr_col_ind,
-                                                                     info));
+        rocsparse_csrmv_info csrmv_info = info->csritsv_info->get_csrmv_info();
+        if(csrmv_info == nullptr)
+        {
+            RETURN_IF_ROCSPARSE_ERROR(
+                (rocsparse::csrmv_analysis_template<I, J, T>(handle,
+                                                             trans,
+                                                             rocsparse::csrmv_alg_adaptive,
+                                                             m,
+                                                             m,
+                                                             nnz,
+                                                             descr,
+                                                             csr_val,
+                                                             csr_row_ptr,
+                                                             csr_col_ind,
+                                                             &csrmv_info)));
+        }
+        info->csritsv_info->set_csrmv_info(csrmv_info);
     }
 
     return rocsparse_status_success;
@@ -517,6 +528,7 @@ namespace rocsparse
                                            rocsparse_solve_policy    solve,
                                            void*                     temp_buffer)
     {
+        ROCSPARSE_ROUTINE_TRACE;
 
         // Check for valid handle and matrix descriptor
         ROCSPARSE_CHECKARG_HANDLE(0, handle);
@@ -638,6 +650,7 @@ INSTANTIATE(int64_t, int64_t, rocsparse_double_complex);
                                      void*                     temp_buffer)       \
     try                                                                           \
     {                                                                             \
+        ROCSPARSE_ROUTINE_TRACE;                                                  \
         RETURN_IF_ROCSPARSE_ERROR(rocsparse::csritsv_analysis_impl(handle,        \
                                                                    trans,         \
                                                                    m,             \

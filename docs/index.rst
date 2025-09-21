@@ -12,7 +12,12 @@ rocSPARSE is a library that provides basic linear algebra subroutines for sparse
 It's created using the HIP programming language, implemented on top of the ROCm runtime and toolchains,
 and optimized for AMD discrete GPUs.
 
-The rocSPARSE public repository is located at `<https://github.com/ROCm/rocSPARSE>`_.
+The rocSPARSE public repository is located at `<https://github.com/ROCm/rocm-libraries/tree/develop/projects/rocsparse>`_.
+
+.. note::
+
+   The rocSPARSE repository for ROCm 6.4.2 and earlier is located at `<https://github.com/ROCm/rocSPARSE>`_.
+
 For ROCm code examples, see `<https://github.com/ROCm/rocm-examples>`_.
 
 .. grid:: 2
@@ -37,12 +42,14 @@ For ROCm code examples, see `<https://github.com/ROCm/rocm-examples>`_.
 
   .. grid-item-card:: Examples
 
-   * `Client samples <https://github.com/ROCm/rocSPARSE/tree/develop/clients/samples>`_
+   * `Client samples <https://github.com/ROCm/rocm-libraries/tree/develop/projects/rocsparse/clients/samples>`_
 
   .. grid-item-card:: API reference
 
     * :ref:`api`
     * :ref:`rocsparse_types_`
+    * :ref:`rocsparse_precision_support_`
+    * :ref:`rocsparse_environment_variables_`
     * :ref:`rocsparse_enumerations_`
     * :ref:`rocsparse_auxiliary_functions_`
     * :ref:`rocsparse_level1_functions_`

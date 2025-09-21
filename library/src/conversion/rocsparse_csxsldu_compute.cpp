@@ -1,6 +1,6 @@
 /*! \file */
 /* ************************************************************************
- * Copyright (C) 2022-2024 Advanced Micro Devices, Inc.
+ * Copyright (C) 2022-2025 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -22,13 +22,13 @@
  *
  * ************************************************************************ */
 
-#include "common.h"
-#include "control.h"
 #include "internal/conversion/rocsparse_csr2csc.h"
 #include "rocsparse_common.h"
+#include "rocsparse_common.hpp"
+#include "rocsparse_control.hpp"
 #include "rocsparse_csr2csc.hpp"
 #include "rocsparse_csxsldu.hpp"
-#include "utility.h"
+#include "rocsparse_utility.hpp"
 
 #include "csr2csc_device.h"
 
@@ -116,6 +116,7 @@ namespace rocsparse
                                                          rocsparse_diag_type udiag_,
                                                          P... p)
     {
+        ROCSPARSE_ROUTINE_TRACE;
 
         switch(ldiag_)
         {
@@ -163,7 +164,9 @@ namespace rocsparse
             {
             case rocsparse_diag_type_non_unit:
             {
+                // LCOV_EXCL_START
                 RETURN_IF_ROCSPARSE_ERROR(rocsparse_status_invalid_value);
+                // LCOV_EXCL_STOP
             }
             case rocsparse_diag_type_unit:
             {
@@ -220,6 +223,8 @@ rocsparse_status rocsparse::csxsldu_compute_template(rocsparse_handle handle_,
                                                      //
                                                      void* buffer_)
 {
+    ROCSPARSE_ROUTINE_TRACE;
+
     static constexpr uint32_t nthreads_per_block = 1024;
     J                         size               = (dir_ == rocsparse_direction_row) ? m_ : n_;
     J                         sizet              = (dir_ == rocsparse_direction_row) ? n_ : m_;
@@ -508,6 +513,7 @@ INSTANTIATE(template, rocsparse_double_complex, rocsparse_int, rocsparse_int);
                                      void*                buffer_)               \
     try                                                                          \
     {                                                                            \
+        ROCSPARSE_ROUTINE_TRACE;                                                 \
         RETURN_IF_ROCSPARSE_ERROR(rocsparse::csxsldu_compute_template(handle_,   \
                                                                       dir_,      \
                                                                       m_,        \
