@@ -1,6 +1,6 @@
 /*! \file */
 /* ************************************************************************
- * Copyright (C) 2021-2024 Advanced Micro Devices, Inc. All rights Reserved.
+ * Copyright (C) 2021-2025 Advanced Micro Devices, Inc. All rights Reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -40,8 +40,8 @@ struct rocsparse_itilu0_alg_t
     static constexpr uint32_t nvalues = 5;
 
     // clang-format off
-  static constexpr value_t  values[nvalues] = {rocsparse_itilu0_alg_default,
-   					         rocsparse_itilu0_alg_async_inplace,
+    static constexpr value_t  values[nvalues] = {rocsparse_itilu0_alg_default,
+   					                             rocsparse_itilu0_alg_async_inplace,
                                                  rocsparse_itilu0_alg_async_split,
                                                  rocsparse_itilu0_alg_sync_split,
                                                  rocsparse_itilu0_alg_sync_split_fusion};
@@ -104,10 +104,10 @@ struct rocsparse_matrix_type_t
     using value_t                     = rocsparse_matrix_type;
     static constexpr uint32_t nvalues = 4;
     // clang-format off
-  static constexpr value_t  values[nvalues] = {rocsparse_matrix_type_general,
-                                               rocsparse_matrix_type_symmetric,
-                                               rocsparse_matrix_type_hermitian,
-                                               rocsparse_matrix_type_triangular};
+    static constexpr value_t  values[nvalues] = {rocsparse_matrix_type_general,
+                                                 rocsparse_matrix_type_symmetric,
+                                                 rocsparse_matrix_type_hermitian,
+                                                 rocsparse_matrix_type_triangular};
     // clang-format on
 };
 
@@ -120,6 +120,72 @@ struct rocsparse_operation_t
                                                  rocsparse_operation_transpose,
                                                  rocsparse_operation_conjugate_transpose};
     // clang-format on
+};
+
+struct rocsparse_order_t
+{
+    using value_t                     = rocsparse_order;
+    static constexpr uint32_t nvalues = 2;
+    // clang-format off
+    static constexpr value_t  values[nvalues] = {rocsparse_order_row,
+                                                 rocsparse_order_column};
+    // clang-format on
+
+    static constexpr bool is_invalid(rocsparse_int value_)
+    {
+        return is_invalid((value_t)value_);
+    };
+
+    static constexpr bool is_invalid(value_t value_)
+    {
+        switch(value_)
+        {
+        case rocsparse_order_row:
+        case rocsparse_order_column:
+        {
+            return false;
+        }
+        }
+        return true;
+    }
+};
+
+struct rocsparse_format_t
+{
+    using value_t                     = rocsparse_format;
+    static constexpr uint32_t nvalues = 7;
+    // clang-format off
+    static constexpr value_t  values[nvalues] = {rocsparse_format_coo,
+                                                 rocsparse_format_coo_aos,
+                                                 rocsparse_format_csr,
+                                                 rocsparse_format_csc,
+                                                 rocsparse_format_ell,
+                                                 rocsparse_format_bell,
+                                                 rocsparse_format_bsr};
+    // clang-format on
+
+    static constexpr bool is_invalid(rocsparse_int value_)
+    {
+        return is_invalid((value_t)value_);
+    };
+
+    static constexpr bool is_invalid(value_t value_)
+    {
+        switch(value_)
+        {
+        case rocsparse_format_coo:
+        case rocsparse_format_coo_aos:
+        case rocsparse_format_csr:
+        case rocsparse_format_csc:
+        case rocsparse_format_ell:
+        case rocsparse_format_bell:
+        case rocsparse_format_bsr:
+        {
+            return false;
+        }
+        }
+        return true;
+    }
 };
 
 struct rocsparse_storage_mode_t
@@ -140,6 +206,11 @@ struct rocsparse_datatype_t
     static inline rocsparse_datatype get();
 };
 
+template <>
+inline rocsparse_datatype rocsparse_datatype_t::get<_Float16>()
+{
+    return rocsparse_datatype_f16_r;
+}
 template <>
 inline rocsparse_datatype rocsparse_datatype_t::get<float>()
 {

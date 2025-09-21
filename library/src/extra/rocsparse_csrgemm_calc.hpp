@@ -1,6 +1,6 @@
 /*! \file */
 /* ************************************************************************
- * Copyright (C) 2023-2024 Advanced Micro Devices, Inc. All rights Reserved.
+ * Copyright (C) 2023-2025 Advanced Micro Devices, Inc. All rights Reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -24,18 +24,18 @@
 
 #pragma once
 
-#include "handle.h"
+#include "rocsparse_handle.hpp"
 
 namespace rocsparse
 {
-    template <typename I, typename J, typename T, typename U>
+    template <typename I, typename J, typename T>
     rocsparse_status csrgemm_calc_template(rocsparse_handle          handle,
                                            rocsparse_operation       trans_A,
                                            rocsparse_operation       trans_B,
                                            J                         m,
                                            J                         n,
                                            J                         k,
-                                           U                         alpha_device_host,
+                                           const T*                  alpha_device_host,
                                            const rocsparse_mat_descr descr_A,
                                            I                         nnz_A,
                                            const T*                  csr_val_A,
@@ -46,7 +46,7 @@ namespace rocsparse
                                            const T*                  csr_val_B,
                                            const I*                  csr_row_ptr_B,
                                            const J*                  csr_col_ind_B,
-                                           U                         beta_device_host,
+                                           const T*                  beta_device_host,
                                            const rocsparse_mat_descr descr_D,
                                            I                         nnz_D,
                                            const T*                  csr_val_D,

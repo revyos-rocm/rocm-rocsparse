@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (C) 2023-2024 Advanced Micro Devices, Inc. All rights Reserved.
+ * Copyright (C) 2023-2025 Advanced Micro Devices, Inc. All rights Reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -22,8 +22,10 @@
  * ************************************************************************ */
 
 #include "rocsparse_gbsr2csr.hpp"
-#include "control.h"
-#include "handle.h"
+#include "rocsparse_control.hpp"
+#include "rocsparse_handle.hpp"
+#include "rocsparse_utility.hpp"
+
 #include "rocsparse_bsr2csr.hpp"
 
 namespace rocsparse
@@ -45,6 +47,7 @@ namespace rocsparse
                                        rocsparse_indextype       csr_col_ind_indextype,
                                        void*                     csr_col_ind)
     {
+        ROCSPARSE_ROUTINE_TRACE;
 
         if(csr_col_ind_indextype != bsr_col_ind_indextype)
         {
@@ -82,7 +85,9 @@ namespace rocsparse
             CASE(rocsparse_indextype_i64, int64_t);
 #undef CASE
         }
+        // LCOV_EXCL_START
         RETURN_IF_ROCSPARSE_ERROR(rocsparse_status_invalid_value);
+        // LCOV_EXCL_STOP
     }
 
     template <typename T>
@@ -104,6 +109,8 @@ namespace rocsparse
                                        rocsparse_indextype       csr_col_ind_indextype,
                                        void*                     csr_col_ind)
     {
+        ROCSPARSE_ROUTINE_TRACE;
+
         switch(csr_row_ptr_indextype)
         {
         case rocsparse_indextype_u16:
@@ -136,7 +143,9 @@ namespace rocsparse
             CASE(rocsparse_indextype_i64, int64_t);
 #undef CASE
         }
+        // LCOV_EXCL_START
         RETURN_IF_ROCSPARSE_ERROR(rocsparse_status_invalid_value);
+        // LCOV_EXCL_STOP
     }
 }
 
@@ -160,6 +169,8 @@ rocsparse_status rocsparse::gbsr2csr(rocsparse_handle          handle,
                                      rocsparse_indextype       csr_col_ind_indextype,
                                      void*                     csr_col_ind)
 {
+    ROCSPARSE_ROUTINE_TRACE;
+
     RETURN_ROCSPARSE_ERROR_IF(rocsparse_status_not_implemented,
                               bsr_row_ptr_indextype != csr_row_ptr_indextype);
     RETURN_ROCSPARSE_ERROR_IF(rocsparse_status_not_implemented,
@@ -181,6 +192,10 @@ rocsparse_status rocsparse::gbsr2csr(rocsparse_handle          handle,
         RETURN_IF_ROCSPARSE_ERROR(rocsparse_status_not_implemented);
     }
     case rocsparse_datatype_u32_r:
+    {
+        RETURN_IF_ROCSPARSE_ERROR(rocsparse_status_not_implemented);
+    }
+    case rocsparse_datatype_f16_r:
     {
         RETURN_IF_ROCSPARSE_ERROR(rocsparse_status_not_implemented);
     }
@@ -215,7 +230,9 @@ rocsparse_status rocsparse::gbsr2csr(rocsparse_handle          handle,
         CASE(rocsparse_datatype_f64_c, rocsparse_double_complex);
 #undef CASE
     }
+    // LCOV_EXCL_START
     RETURN_IF_ROCSPARSE_ERROR(rocsparse_status_invalid_value);
+    // LCOV_EXCL_STOP
 }
 
 rocsparse_status rocsparse::spmat_bsr2csr_buffer_size(rocsparse_handle            handle,
@@ -223,6 +240,8 @@ rocsparse_status rocsparse::spmat_bsr2csr_buffer_size(rocsparse_handle          
                                                       rocsparse_const_spmat_descr target,
                                                       size_t*                     buffer_size)
 {
+    ROCSPARSE_ROUTINE_TRACE;
+
     buffer_size[0] = 0;
     return rocsparse_status_success;
 }
@@ -233,6 +252,8 @@ rocsparse_status rocsparse::spmat_bsr2csr(rocsparse_handle            handle,
                                           size_t                      buffer_size,
                                           void*                       buffer)
 {
+    ROCSPARSE_ROUTINE_TRACE;
+
     RETURN_ROCSPARSE_ERROR_IF(rocsparse_status_not_implemented,
                               source->row_type != target->row_type);
     RETURN_ROCSPARSE_ERROR_IF(rocsparse_status_not_implemented,

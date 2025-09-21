@@ -1,6 +1,6 @@
 /*! \file */
 /* ************************************************************************
- * Copyright (C) 2021-2023 Advanced Micro Devices, Inc. All rights Reserved.
+ * Copyright (C) 2021-2025 Advanced Micro Devices, Inc. All rights Reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -500,36 +500,56 @@ void testing_bsrsm(const Arguments& arg)
 
     if(arg.timing)
     {
-        int number_cold_calls = 2;
-        int number_hot_calls  = arg.iters;
+
+        device_dense_matrix<T> d_alpha(h_alpha);
 
         CHECK_ROCSPARSE_ERROR(rocsparse_set_pointer_mode(handle, rocsparse_pointer_mode_host));
 
-        // Warm up
-        for(int iter = 0; iter < number_cold_calls; ++iter)
-        {
-            CALL_ANALYSIS;
-            CALL_SOLVE(h_alpha);
-            CHECK_ROCSPARSE_ERROR(rocsparse_bsrsm_clear(handle, info));
-        }
-
-        double gpu_analysis_time_used = get_time_us();
-
-        CALL_ANALYSIS;
-
-        gpu_analysis_time_used = get_time_us() - gpu_analysis_time_used;
+        const double gpu_analysis_time_used
+            = rocsparse_clients::run_benchmark(arg,
+                                               rocsparse_bsrsm_analysis<T>,
+                                               handle,
+                                               dir,
+                                               trans_A,
+                                               trans_X,
+                                               mb,
+                                               nrhs,
+                                               dA.nnzb,
+                                               descr,
+                                               dA.val,
+                                               dA.ptr,
+                                               dA.ind,
+                                               block_dim,
+                                               info,
+                                               apol,
+                                               spol,
+                                               dbuffer);
 
         rocsparse_bsrsm_zero_pivot(handle, info, analysis_pivot_gold);
 
-        double gpu_solve_time_used = get_time_us();
-
-        // Performance run
-        for(int iter = 0; iter < number_hot_calls; ++iter)
-        {
-            CALL_SOLVE(h_alpha);
-        }
-
-        gpu_solve_time_used = (get_time_us() - gpu_solve_time_used) / number_hot_calls;
+        const double gpu_solve_time_used
+            = rocsparse_clients::run_benchmark(arg,
+                                               rocsparse_bsrsm_solve<T>,
+                                               handle,
+                                               dir,
+                                               trans_A,
+                                               trans_X,
+                                               mb,
+                                               nrhs,
+                                               dA.nnzb,
+                                               d_alpha,
+                                               descr,
+                                               dA.val,
+                                               dA.ptr,
+                                               dA.ind,
+                                               block_dim,
+                                               info,
+                                               dB,
+                                               dB.ld,
+                                               dX,
+                                               dX.ld,
+                                               spol,
+                                               dbuffer);
 
         rocsparse_bsrsm_zero_pivot(handle, info, solve_pivot_gold);
 

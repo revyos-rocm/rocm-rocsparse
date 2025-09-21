@@ -1,6 +1,6 @@
 /*! \file */
 /* ************************************************************************
- * Copyright (C) 2021-2024 Advanced Micro Devices, Inc. All rights Reserved.
+ * Copyright (C) 2021-2025 Advanced Micro Devices, Inc. All rights Reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -23,11 +23,11 @@
  * ************************************************************************ */
 
 #include "internal/reordering/rocsparse_csrcolor.h"
-#include "control.h"
 #include "csrcolor_device.hpp"
+#include "rocsparse_control.hpp"
 #include "rocsparse_csrcolor.hpp"
-#include "rocsparse_primitives.h"
-#include "utility.h"
+#include "rocsparse_primitives.hpp"
+#include "rocsparse_utility.hpp"
 
 namespace rocsparse
 {
@@ -183,6 +183,8 @@ namespace rocsparse
                                                       J                colors_length,
                                                       J*               colors)
     {
+        ROCSPARSE_ROUTINE_TRACE;
+
         hipStream_t stream = handle->stream;
         J           m, n;
 
@@ -196,7 +198,7 @@ namespace rocsparse
         // Allocation.
         //
         RETURN_IF_HIP_ERROR(
-            rocsparse_hipMallocAsync((void**)&seq_ptr, sizeof(J) * (n + 1), handle->stream));
+            rocsparse_hipMallocAsync(&seq_ptr, sizeof(J) * (n + 1), handle->stream));
 
         //
         // Set to 0.
@@ -314,6 +316,8 @@ namespace rocsparse
                 colors,
                 seq_ptr);
         }
+
+        RETURN_IF_HIP_ERROR(rocsparse_hipFree(seq_ptr));
         return rocsparse_status_success;
     }
 }
@@ -332,6 +336,8 @@ rocsparse_status rocsparse::csrcolor_core(rocsparse_handle          handle,
                                           J*                        reordering,
                                           rocsparse_mat_info        info)
 {
+    ROCSPARSE_ROUTINE_TRACE;
+
     static constexpr rocsparse_int blocksize = 256;
 
     hipStream_t stream = handle->stream;
@@ -345,7 +351,7 @@ rocsparse_status rocsparse::csrcolor_core(rocsparse_handle          handle,
     //
     J* workspace;
     RETURN_IF_HIP_ERROR(
-        rocsparse_hipMallocAsync((void**)&workspace, sizeof(J) * blocksize, handle->stream));
+        rocsparse_hipMallocAsync(&workspace, sizeof(J) * blocksize, handle->stream));
 
     //
     // Initialize colors
@@ -496,8 +502,8 @@ rocsparse_status rocsparse::csrcolor_core(rocsparse_handle          handle,
             //
             // allocate temporary storage
             //
-            rocsparse_hipMallocAsync(
-                &temporary_storage_ptr, temporary_storage_size_bytes, handle->stream);
+            RETURN_IF_HIP_ERROR(rocsparse_hipMallocAsync(
+                &temporary_storage_ptr, temporary_storage_size_bytes, handle->stream));
 
             //
             // perform sort
@@ -537,6 +543,8 @@ rocsparse_status rocsparse::csrcolor_quickreturn(rocsparse_handle          handl
                                                  void*                     reordering,
                                                  rocsparse_mat_info        info)
 {
+    ROCSPARSE_ROUTINE_TRACE;
+
     if(m == 0 || nnz == 0)
     {
         return rocsparse_status_success;
@@ -559,6 +567,8 @@ namespace rocsparse
                                               void*                     reordering, //10
                                               rocsparse_mat_info        info) //11
     {
+        ROCSPARSE_ROUTINE_TRACE;
+
         ROCSPARSE_CHECKARG_HANDLE(0, handle);
         ROCSPARSE_CHECKARG_SIZE(1, m);
         ROCSPARSE_CHECKARG_SIZE(2, nnz);
@@ -614,6 +624,8 @@ namespace rocsparse
                                           J*                        reordering,
                                           rocsparse_mat_info        info)
     {
+        ROCSPARSE_ROUTINE_TRACE;
+
         // Logging
         rocsparse::log_trace(handle,
                              rocsparse::replaceX<T>("rocsparse_Xcsrcolor"),
@@ -686,6 +698,7 @@ namespace rocsparse
                                      rocsparse_mat_info        info)              \
     try                                                                           \
     {                                                                             \
+        ROCSPARSE_ROUTINE_TRACE;                                                  \
         RETURN_IF_ROCSPARSE_ERROR(rocsparse::csrcolor_impl(handle,                \
                                                            m,                     \
                                                            nnz,                   \

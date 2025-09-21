@@ -1,6 +1,6 @@
 /*! \file */
 /* ************************************************************************
- * Copyright (C) 2021-2023 Advanced Micro Devices, Inc. All rights Reserved.
+ * Copyright (C) 2021-2025 Advanced Micro Devices, Inc. All rights Reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -223,28 +223,12 @@ void testing_gtsv_interleaved_batch(const Arguments& arg)
 
     if(arg.timing)
     {
-        int number_cold_calls = 2;
-        int number_hot_calls  = arg.iters;
 
-        // Warm up
-        for(int iter = 0; iter < number_cold_calls; ++iter)
-        {
-            CHECK_ROCSPARSE_ERROR(rocsparse_gtsv_interleaved_batch<T>(PARAMS_SOLVE));
-        }
-
-        double gpu_solve_time_used = get_time_us();
-
-        // Performance run
-        for(int iter = 0; iter < number_hot_calls; ++iter)
-        {
-            CHECK_ROCSPARSE_ERROR(rocsparse_gtsv_interleaved_batch<T>(PARAMS_SOLVE));
-        }
-
-        gpu_solve_time_used = (get_time_us() - gpu_solve_time_used) / number_hot_calls;
+        const double gpu_solve_time_used = rocsparse_clients::run_benchmark(
+            arg, rocsparse_gtsv_interleaved_batch<T>, PARAMS_SOLVE);
 
         double gbyte_count = gtsv_interleaved_batch_gbyte_count<T>(m, batch_count);
-
-        double gpu_gbyte = get_gpu_gbyte(gpu_solve_time_used, gbyte_count);
+        double gpu_gbyte   = get_gpu_gbyte(gpu_solve_time_used, gbyte_count);
 
         display_timing_info(display_key_t::M,
                             m,

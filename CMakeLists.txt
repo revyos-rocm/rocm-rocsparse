@@ -1,5 +1,5 @@
 # ########################################################################
-# Copyright (C) 2018-2024 Advanced Micro Devices, Inc. All rights Reserved.
+# Copyright (C) 2018-2025 Advanced Micro Devices, Inc. All rights Reserved.
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -60,10 +60,19 @@ else()
   message(FATAL_ERROR "'hip-clang' compiler required to compile for ROCm platform.")
 endif()
 
-# Build flags
-set(CMAKE_CXX_STANDARD 14)
+# Set CXX flags
+if (NOT DEFINED CMAKE_CXX_STANDARD)
+  set(CMAKE_CXX_STANDARD 17)
+endif()
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
+
+# Set CXX standard
+if (CMAKE_CXX_STANDARD EQUAL 14)
+  message( DEPRECATION "Builds using the C++14 standard will no longer be supported in the next major release" )
+elseif(NOT CMAKE_CXX_STANDARD EQUAL 17)
+  message(FATAL_ERROR "Only C++14 and C++17 are supported")
+endif()
 
 # Build options
 option(BUILD_SHARED_LIBS "Build rocSPARSE as a shared library" ON)
@@ -77,6 +86,7 @@ option(BUILD_MEMSTAT "Build rocSPARSE with memory statistics enabled" OFF)
 option(BUILD_ROCSPARSE_ILP64 "Build rocSPARSE with rocsparse_int equal to int64_t" OFF)
 option(BUILD_COMPRESSED_DBG "Enable compressed debug symbols" ON)
 option(BUILD_WITH_ROCBLAS "Enable building rocSPARSE with rocBLAS" ON)
+option(BUILD_WITH_ROCTX "Enable building rocSPARSE with rocTX" ON)
 option(BUILD_WITH_OFFLOAD_COMPRESS
        "Enable offload compression during compilation" ON)
 
@@ -162,7 +172,7 @@ if(COMMAND rocm_check_target_ids)
         TARGETS "gfx908:xnack+;gfx90a:xnack+;gfx942:xnack+")
     else()
       rocm_check_target_ids(DEFAULT_GPU_TARGETS
-          TARGETS "gfx803;gfx900:xnack-;gfx906:xnack-;gfx908:xnack-;gfx90a:xnack-;gfx90a:xnack+;gfx942;gfx1030;gfx1100;gfx1101;gfx1102;gfx1151;gfx1200;gfx1201")
+          TARGETS "gfx803;gfx900:xnack-;gfx906:xnack-;gfx908:xnack-;gfx90a:xnack-;gfx90a:xnack+;gfx942;gfx950;gfx1030;gfx1100;gfx1101;gfx1102;gfx1151;gfx1200;gfx1201")
     endif()
 else()
     # Use target ID syntax if supported for GPU_TARGETS
@@ -200,10 +210,12 @@ message(STATUS "GPU_TARGETS: ${GPU_TARGETS}")
 
 # Find rocprim package
 find_package(rocprim REQUIRED)
+
+# Find rocblas package
 if (BUILD_WITH_ROCBLAS)
   find_package(rocblas 4.1.0 QUIET)
 else()
-  message("Build rocSPARSE with rocBLAS is disabled")
+  message("-- Build rocSPARSE with rocBLAS is disabled")
 endif()
 
 if( CMAKE_CXX_COMPILER_ID MATCHES "Clang" )
@@ -211,7 +223,7 @@ if( CMAKE_CXX_COMPILER_ID MATCHES "Clang" )
 endif( )
 
 # Setup version
-set(VERSION_STRING "3.4.0")
+set(VERSION_STRING "4.0.2")
 set(SOVERSION_STRING "1.0")
 
 rocm_setup_version(VERSION ${VERSION_STRING})
@@ -231,7 +243,7 @@ if( BUILD_CLIENTS_SAMPLES OR BUILD_CLIENTS_TESTS OR BUILD_CLIENTS_BENCHMARKS )
   endif()
   set(GFORTRAN_RPM "libgfortran4")
   set(GFORTRAN_DEB "libgfortran4")
-  if(CLIENTS_OS STREQUAL "centos" OR CLIENTS_OS STREQUAL "rhel")
+  if(CLIENTS_OS STREQUAL "centos" OR CLIENTS_OS STREQUAL "rhel" OR CLIENTS_OS STREQUAL "almalinux")
     if(CLIENTS_OS_VERSION VERSION_GREATER_EQUAL "8")
       set(GFORTRAN_RPM "libgfortran")
     endif()
@@ -305,7 +317,7 @@ if (rocblas_FOUND)
   rocm_package_add_deb_dependencies(STATIC_DEPENDS "rocblas-static-dev >= ${ROCBLAS_MINIMUM}")
   rocm_package_add_rpm_dependencies(STATIC_DEPENDS "rocblas-static-devel >= ${ROCBLAS_MINIMUM}")
 else()
-  message("Build rocSPARSE with rocBLAS is disabled since rocBLAS is not found")
+  message("-- Build rocSPARSE with rocBLAS is disabled since rocBLAS is not found")
 endif()
 
 set(CPACK_RESOURCE_FILE_LICENSE "${CMAKE_CURRENT_SOURCE_DIR}/LICENSE.md")
@@ -314,7 +326,9 @@ set(CPACK_RPM_PACKAGE_LICENSE "MIT")
 if(WIN32)
   set(CPACK_SOURCE_GENERATOR "ZIP")
   set(CPACK_GENERATOR "ZIP")
-  set(CMAKE_INSTALL_PREFIX "C:/hipSDK" CACHE PATH "Install path" FORCE)
+  if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
+    set(CMAKE_INSTALL_PREFIX "C:/hipSDK" CACHE PATH "Install path" FORCE)
+  endif()
   set(INSTALL_PREFIX "C:/hipSDK")
   set(CPACK_SET_DESTDIR OFF)
   set(CPACK_PACKAGE_INSTALL_DIRECTORY "C:/hipSDK")
@@ -381,7 +395,7 @@ if(BUILD_CODE_COVERAGE)
   #
   add_custom_command(TARGET coverage_output
     COMMAND lcov --directory . --base-directory . --gcov-tool ${CMAKE_BINARY_DIR}/llvm-gcov.sh --capture -o lcoverage/raw_main_coverage.info
-    COMMAND lcov --remove lcoverage/raw_main_coverage.info "'/opt/*'" "'/usr/*'" -o lcoverage/main_coverage.info
+    COMMAND lcov --remove lcoverage/raw_main_coverage.info "'${CMAKE_SOURCE_DIR}/clients/*'" "'${CMAKE_SOURCE_DIR}/build/*'" "'/opt/*'" "'/usr/*'" -o lcoverage/main_coverage.info
     COMMAND genhtml lcoverage/main_coverage.info --output-directory lcoverage
     )
 

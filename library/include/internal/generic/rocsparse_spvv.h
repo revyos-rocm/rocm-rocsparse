@@ -36,7 +36,7 @@ extern "C" {
 *  \brief Sparse vector inner dot product
 *
 *  \details
-*  \p rocsparse_spvv computes the inner dot product of the sparse vecotr \f$x\f$ with the
+*  \p rocsparse_spvv computes the inner dot product of the sparse vector \f$x\f$ with the
 *  dense vector \f$y\f$, such that
 *  \f[
 *    \text{result} := op(x) \cdot y,
@@ -59,8 +59,13 @@ extern "C" {
 *      }
 *  \endcode
 *
-*  \p rocsparse_spvv supports the following uniform and mixed precision data types for the sparse and dense vectors x and 
-*  y and compute types for the scalar \f$result\f$.
+*  Performing the above operation involves two steps. First, the user calls \p rocsparse_spvv with \p temp_buffer set to \p nullptr 
+*  which will return the required temporary buffer size in the parameter \p buffer_size. The user then allocates this buffer. Finally, 
+*  the user then completes the computation by calling \p rocsparse_spvv a second time with the newly allocated buffer. Once the 
+*  computation is complete, the user is free to deallocate the buffer. 
+*
+*  \p rocsparse_spvv supports the following uniform and mixed precision data types for the sparse and dense vectors \f$x\f$ and 
+*  \f$y\f$ and compute types for the scalar \f$result\f$.
 *
 *  \par Uniform Precisions:
 *  <table>
@@ -75,9 +80,10 @@ extern "C" {
 *  \par Mixed precisions:
 *  <table>
 *  <caption id="spvv_mixed">Mixed Precisions</caption>
-*  <tr><th>X / Y                   <th>compute_type / result
-*  <tr><td>rocsparse_datatype_i8_r <td>rocsparse_datatype_i32_r
-*  <tr><td>rocsparse_datatype_i8_r <td>rocsparse_datatype_f32_r
+*  <tr><th>X / Y                    <th>compute_type / result
+*  <tr><td>rocsparse_datatype_i8_r  <td>rocsparse_datatype_i32_r
+*  <tr><td>rocsparse_datatype_i8_r  <td>rocsparse_datatype_f32_r
+*  <tr><td>rocsparse_datatype_f16_r <td>rocsparse_datatype_f32_r
 *  </table>
 *
 *  \note

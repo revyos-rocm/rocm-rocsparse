@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (C) 2018-2024 Advanced Micro Devices, Inc. All rights Reserved.
+ * Copyright (C) 2018-2025 Advanced Micro Devices, Inc. All rights Reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -30,6 +30,7 @@
 
 #include "rocsparse-complex-types.h"
 
+#include <float.h>
 #include <stddef.h>
 #include <stdint.h>
 
@@ -67,6 +68,16 @@ typedef struct ihipStream_t* hipStream_t;
  *  using rocsparse_destroy_handle().
  */
 typedef struct _rocsparse_handle* rocsparse_handle;
+
+/*! \ingroup types_module
+ *  \brief Descriptor of the error.
+ *
+ *  \details
+ *  The rocSPARSE error descriptor is a structure holding the information related to an error
+ *  that occured during the execution of a rocSPARSE routine.
+ *  It should be destroyed using rocsparse_destroy_error().
+ */
+typedef struct _rocsparse_error* rocsparse_error;
 
 /*! \ingroup types_module
  *  \brief Descriptor of the matrix.
@@ -224,6 +235,22 @@ typedef struct _rocsparse_sparse_to_sparse_descr* rocsparse_sparse_to_sparse_des
  * end using rocsparse_destroy_extract_descr().
  */
 typedef struct _rocsparse_extract_descr* rocsparse_extract_descr;
+
+/*! \ingroup types_module
+ * \brief rocsparse_spgeam_descr is a structure holding the rocsparse spgeam
+ * descr data. It must be initialized using
+ * the rocsparse_create_spgeam_descr() routine. It should be destroyed at the
+ * end using rocsparse_destroy_spgeam_descr().
+ */
+typedef struct _rocsparse_spgeam_descr* rocsparse_spgeam_descr;
+
+/*! \ingroup types_module
+ * \brief rocsparse_spmv_descr is a structure holding the rocsparse spmv
+ * descr data. It must be initialized using
+ * the rocsparse_create_spmv_descr() routine. It should be destroyed at the
+ * end using rocsparse_destroy_spmv_descr().
+ */
+typedef struct _rocsparse_spmv_descr* rocsparse_spmv_descr;
 
 #ifdef __cplusplus
 extern "C" {
@@ -499,6 +526,7 @@ typedef enum rocsparse_indextype_
  */
 typedef enum rocsparse_datatype_
 {
+    rocsparse_datatype_f16_r = 150, /**< 16 bit floating point, real. */
     rocsparse_datatype_f32_r = 151, /**< 32 bit floating point, real. */
     rocsparse_datatype_f64_r = 152, /**< 64 bit floating point, real. */
     rocsparse_datatype_f32_c = 154, /**< 32 bit floating point, complex. */
@@ -569,7 +597,7 @@ typedef enum rocsparse_sparse_to_sparse_alg_
    *
    *  \details
    *  This is a list of possible stages during sparse_to_sparse conversion. Typical order is
-   *  rocsparse_sparse_to_sparse_stage_analysis, rocsparse_sparse_to_sparse_stage_compute.
+   *  \ref rocsparse_sparse_to_sparse_stage_analysis, \ref rocsparse_sparse_to_sparse_stage_compute.
    */
 typedef enum rocsparse_sparse_to_sparse_stage_
 {
@@ -617,7 +645,7 @@ typedef enum rocsparse_itilu0_alg_
     = 2, /**< ASynchronous ITILU0 algorithm with explicit storage splitting */
     rocsparse_itilu0_alg_sync_split
     = 3, /**< Synchronous ITILU0 algorithm with explicit storage splitting */
-    rocsparse_itilu0_alg_sync_split_fusion
+    rocsparse_itilu0_alg_sync_split_fusion [[deprecated]]
     = 4 /**< Semi-synchronous ITILU0 algorithm with explicit storage splitting */
 } rocsparse_itilu0_alg;
 
@@ -658,11 +686,11 @@ typedef enum rocsparse_gtsv_interleaved_alg_
 } rocsparse_gtsv_interleaved_alg;
 
 /*! \ingroup types_module
- *  \brief List of check_matrix stages.
+ *  \brief List of check matrix stages.
  *
  *  \details
- *  This is a list of possible stages during check_matrix computation. Typical order is
- *  rocsparse_check_spmat_stage_buffer_size, rocsparse_check_spmat_stage_compute.
+ *  This is a list of possible stages during check matrix computation. Typical order is
+ *  \ref rocsparse_check_spmat_stage_buffer_size, \ref rocsparse_check_spmat_stage_compute.
  */
 typedef enum rocsparse_check_spmat_stage_
 {
@@ -671,11 +699,37 @@ typedef enum rocsparse_check_spmat_stage_
 } rocsparse_check_spmat_stage;
 
 /*! \ingroup types_module
+ *  \brief List of inputs to SpMV descriptor.
+ *
+ *  \details
+ *  This is a list of possible inputs to the SpMV descriptor.
+ */
+typedef enum rocsparse_spmv_input_
+{
+    rocsparse_spmv_input_alg, /**< Select algorithm for input on SpMV descriptor. */
+    rocsparse_spmv_input_operation, /**< Select matrix transpose operation for input on SpMV descriptor. */
+    rocsparse_spmv_input_scalar_datatype, /**< Select scalar  datatype for input on SpMV descriptor. */
+    rocsparse_spmv_input_compute_datatype /**< Select compute datatype for input on SpMV descriptor. */
+} rocsparse_spmv_input;
+
+/*! \ingroup types_module
+ *  \brief List of SpMV-Version2 stages.
+ *
+ *  \details
+ *  This is a list of possible stages during SpMV-Version2 computation.
+ */
+typedef enum rocsparse_v2_spmv_stage_
+{
+    rocsparse_v2_spmv_stage_analysis, /**< Analysis of the data. */
+    rocsparse_v2_spmv_stage_compute /**< Performs the actual SpMV computation. */
+} rocsparse_v2_spmv_stage;
+
+/*! \ingroup types_module
  *  \brief List of SpMV stages.
  *
  *  \details
  *  This is a list of possible stages during SpMV computation. Typical order is
- *  rocsparse_spmv_stage_buffer_size, rocsparse_spmv_stage_preprocess, rocsparse_spmv_stage_compute.
+ *  \ref rocsparse_spmv_stage_buffer_size, \ref rocsparse_spmv_stage_preprocess, \ref rocsparse_spmv_stage_compute.
  */
 typedef enum rocsparse_spmv_stage_
 {
@@ -696,11 +750,13 @@ typedef enum rocsparse_spmv_alg_
     rocsparse_spmv_alg_default      = 0, /**< Default SpMV algorithm for the given format. */
     rocsparse_spmv_alg_coo          = 1, /**< COO SpMV algorithm 1 (segmented) for COO matrices. */
     rocsparse_spmv_alg_csr_adaptive = 2, /**< CSR SpMV algorithm 1 (adaptive) for CSR matrices. */
-    rocsparse_spmv_alg_csr_stream   = 3, /**< CSR SpMV algorithm 2 (stream) for CSR matrices. */
+    rocsparse_spmv_alg_csr_rowsplit = 3, /**< CSR SpMV algorithm 2 (rowsplit) for CSR matrices. */
     rocsparse_spmv_alg_ell          = 4, /**< ELL SpMV algorithm for ELL matrices. */
     rocsparse_spmv_alg_coo_atomic   = 5, /**< COO SpMV algorithm 2 (atomic) for COO matrices. */
     rocsparse_spmv_alg_bsr          = 6, /**< BSR SpMV algorithm 1 for BSR matrices. */
-    rocsparse_spmv_alg_csr_lrb      = 7 /**< CSR SpMV algorithm 3 (LRB) for CSR matrices. */
+    rocsparse_spmv_alg_csr_lrb      = 7, /**< CSR SpMV algorithm 3 (LRB) for CSR matrices. */
+    rocsparse_spmv_alg_csr_stream [[deprecated]]
+    = rocsparse_spmv_alg_csr_rowsplit /**< CSR SpMV algorithm 2 (stream) for CSR matrices. */
 } rocsparse_spmv_alg;
 
 /*! \ingroup types_module
@@ -720,7 +776,7 @@ typedef enum rocsparse_spsv_alg_
  *
  *  \details
  *  This is a list of possible stages during SpSV computation. Typical order is
- *  rocsparse_spsv_stage_buffer_size, rocsparse_spsv_stage_preprocess, rocsparse_spsv_stage_compute.
+ *  \ref rocsparse_spsv_stage_buffer_size, \ref rocsparse_spsv_stage_preprocess, \ref rocsparse_spsv_stage_compute.
  */
 typedef enum rocsparse_spsv_stage_
 {
@@ -746,7 +802,7 @@ typedef enum rocsparse_spitsv_alg_
  *
  *  \details
  *  This is a list of possible stages during SpITSV computation. Typical order is
- *  rocsparse_spitsv_stage_buffer_size, rocsparse_spitsv_stage_preprocess, rocsparse_spitsv_stage_compute.
+ *  \ref rocsparse_spitsv_stage_buffer_size, \ref rocsparse_spitsv_stage_preprocess, \ref rocsparse_spitsv_stage_compute.
  */
 typedef enum rocsparse_spitsv_stage_
 {
@@ -772,7 +828,7 @@ typedef enum rocsparse_spsm_alg_
  *
  *  \details
  *  This is a list of possible stages during SpSM computation. Typical order is
- *  rocsparse_spsm_stage_buffer_size, rocsparse_spsm_stage_preprocess, rocsparse_spsm_stage_compute.
+ *  \ref rocsparse_spsm_stage_buffer_size, \ref rocsparse_spsm_stage_preprocess, \ref rocsparse_spsm_stage_compute.
  */
 typedef enum rocsparse_spsm_stage_
 {
@@ -848,7 +904,7 @@ typedef enum rocsparse_dense_to_sparse_alg_
  *
  *  \details
  *  This is a list of possible stages during SpMM computation. Typical order is
- *  rocsparse_spmm_stage_buffer_size, rocsparse_spmm_stage_preprocess, rocsparse_spmm_stage_compute.
+ *  \ref rocsparse_spmm_stage_buffer_size, \ref rocsparse_spmm_stage_preprocess, \ref rocsparse_spmm_stage_compute.
  */
 typedef enum rocsparse_spmm_stage_
 {
@@ -862,7 +918,7 @@ typedef enum rocsparse_spmm_stage_
  *
  *  \details
  *  This is a list of possible stages during SpGEMM computation. Typical order is
- *  rocsparse_spgemm_stage_buffer_size, rocsparse_spgemm_stage_nnz, rocsparse_spgemm_stage_compute.
+ *  \ref rocsparse_spgemm_stage_buffer_size, \ref rocsparse_spgemm_stage_nnz, \ref rocsparse_spgemm_stage_compute.
  */
 typedef enum rocsparse_spgemm_stage_
 {
@@ -884,6 +940,67 @@ typedef enum rocsparse_spgemm_alg_
 {
     rocsparse_spgemm_alg_default = 0 /**< Default SpGEMM algorithm for the given format. */
 } rocsparse_spgemm_alg;
+
+/*! \ingroup types_module
+ *  \brief List of SpGEAM stages.
+ *
+ *  \details
+ *  This is a list of possible stages during SpGEAM computation. Typical order is
+ *  rocsparse_spgeam_stage_buffer_size, rocsparse_spgeam_stage_analysis, rocsparse_spgeam_stage_compute.
+ */
+typedef enum rocsparse_spgeam_stage_
+{
+    rocsparse_spgeam_stage_analysis = 1, /**< Computes number of non-zero entries. */
+    rocsparse_spgeam_stage_compute  = 2, /**< Performs the actual SpGEAM computation. */
+    rocsparse_spgeam_stage_symbolic_analysis
+    = 3, /**< Performs only the symbolic analysis SpGEAM computation to fill the column indices array. */
+    rocsparse_spgeam_stage_symbolic_compute
+    = 4, /**< Performs only the symbolic SpGEAM computation to fill the column indices array. */
+    rocsparse_spgeam_stage_numeric_analysis
+    = 5, /**< Performs only the numeric analysis SpGEAM computation to fill the values array. */
+    rocsparse_spgeam_stage_numeric_compute
+    = 6 /**< Performs only the numeric SpGEAM computation to fill the values array. */
+} rocsparse_spgeam_stage;
+
+/*! \ingroup types_module
+ *  \brief List of inputs to SpGEAM descriptor.
+ *
+ *  \details
+ *  This is a list of possible inputs to the SpGEAM descriptor.
+ */
+typedef enum rocsparse_spgeam_input_
+{
+    rocsparse_spgeam_input_alg, /**< Select algorithm for input on SpGEAM descriptor. */
+    rocsparse_spgeam_input_scalar_datatype, /**< Select scalar data type for input on SpGEAM descriptor. */
+    rocsparse_spgeam_input_compute_datatype, /**< Select compute data type for input on SpGEAM descriptor. */
+    rocsparse_spgeam_input_operation_A, /**< Select A matrix transpose operation for input on SpGEAM descriptor. */
+    rocsparse_spgeam_input_operation_B, /**< Select B matrix transpose operation for input on SpGEAM descriptor. */
+    rocsparse_spgeam_input_scalar_alpha, /**< Select scalar multiplier alpha for input on SpGEAM descriptor. */
+    rocsparse_spgeam_input_scalar_beta /**< Select scalar multiplier beta for input on SpGEAM descriptor. */
+} rocsparse_spgeam_input;
+
+/*! \ingroup types_module
+ *  \brief List of outputs to SpGEAM descriptor.
+ *
+ *  \details
+ *  This is a list of possible outputs to the SpGEAM descriptor.
+ */
+typedef enum rocsparse_spgeam_output_
+{
+    rocsparse_spgeam_output_nnz /**< Select nnz count for output from SpGEAM descriptor. */
+} rocsparse_spgeam_output;
+
+/*! \ingroup types_module
+ *  \brief List of SpGEAM algorithms.
+ *
+ *  \details
+ *  This is a list of supported \ref rocsparse_spgeam_alg types that are used to perform
+ *  sparse matrix sparse matrix product.
+ */
+typedef enum rocsparse_spgeam_alg_
+{
+    rocsparse_spgeam_alg_default = 0 /**< Default SpGEAM algorithm for the given format. */
+} rocsparse_spgeam_alg;
 
 /*! \ingroup types_module
  *  \brief List of gpsv algorithms.

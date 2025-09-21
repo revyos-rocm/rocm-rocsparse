@@ -1,6 +1,6 @@
 /*! \file */
 /* ************************************************************************
-* Copyright (C) 2021-2024 Advanced Micro Devices, Inc. All rights Reserved.
+* Copyright (C) 2021-2025 Advanced Micro Devices, Inc. All rights Reserved.
 *
 * Permission is hereby granted, free of charge, to any person obtaining a copy
 * of this software and associated documentation files (the "Software"), to deal
@@ -147,6 +147,7 @@ rocsparse_status rocsparse_routine::dispatch_precision(const char       precisio
     case rocsparse_datatype_u8_r:
     case rocsparse_datatype_i32_r:
     case rocsparse_datatype_u32_r:
+    case rocsparse_datatype_f16_r:
         return rocsparse_status_invalid_value;
     }
     return rocsparse_status_invalid_value;
@@ -223,6 +224,12 @@ constexpr const char* rocsparse_routine::to_string() const
 #include "testing_spmv_ell.hpp"
 #include "testing_spsv_coo.hpp"
 #include "testing_spsv_csr.hpp"
+#include "testing_v2_spmv_bsr.hpp"
+#include "testing_v2_spmv_coo.hpp"
+#include "testing_v2_spmv_coo_aos.hpp"
+#include "testing_v2_spmv_csc.hpp"
+#include "testing_v2_spmv_csr.hpp"
+#include "testing_v2_spmv_ell.hpp"
 
 // Level3
 #include "testing_bsrmm.hpp"
@@ -250,6 +257,10 @@ constexpr const char* rocsparse_routine::to_string() const
 #include "testing_csrgeam.hpp"
 #include "testing_csrgemm.hpp"
 #include "testing_csrgemm_reuse.hpp"
+#include "testing_spgeam_csr.hpp"
+#include "testing_spgeam_csr_2.hpp"
+#include "testing_spgeam_reuse_csr.hpp"
+#include "testing_spgeam_reuse_csr_2.hpp"
 #include "testing_spgemm_bsr.hpp"
 #include "testing_spgemm_csr.hpp"
 #include "testing_spgemm_reuse_csr.hpp"
@@ -522,7 +533,7 @@ rocsparse_status rocsparse_routine::dispatch_call(const Arguments& arg)
         DEFINE_CASE_T(csrilu0);
         DEFINE_CASE_T(csritilu0);
         DEFINE_CASE_T(csritilu0_ex);
-        DEFINE_CASE_T(csrgeam);
+        DEFINE_CASE_IJT_X(csrgeam, testing_spgeam_csr);
         DEFINE_CASE_IJT_X(bsrgemm, testing_spgemm_bsr);
         DEFINE_CASE_IJT_X(csrgemm, testing_spgemm_csr);
         DEFINE_CASE_IJT_X(csrgemm_reuse, testing_spgemm_reuse_csr);
@@ -583,12 +594,18 @@ rocsparse_status rocsparse_routine::dispatch_call(const Arguments& arg)
         DEFINE_CASE_T_REAL_ONLY(prune_dense2csr_by_percentage);
         DEFINE_CASE_T_REAL_ONLY(roti);
         DEFINE_CASE_T(sctr);
-        DEFINE_CASE_IJT(sddmm);
+        DEFINE_CASE_IJABCT(sddmm);
         DEFINE_CASE_IT(sparse_to_dense_coo);
         DEFINE_CASE_IJT(sparse_to_dense_csc);
         DEFINE_CASE_IJT(sparse_to_dense_csr);
         DEFINE_CASE_IJT(sparse_to_sparse);
         DEFINE_CASE_IJT(extract);
+        DEFINE_CASE_IJAXYT_X(v2_spmv_bsr, testing_v2_spmv_bsr);
+        DEFINE_CASE_IJAXYT_X(v2_spmv_csr, testing_v2_spmv_csr);
+        DEFINE_CASE_IJAXYT_X(v2_spmv_csc, testing_v2_spmv_csc);
+        DEFINE_CASE_IAXYT_X(v2_spmv_coo, testing_v2_spmv_coo);
+        DEFINE_CASE_IAXYT_X(v2_spmv_coo_aos, testing_v2_spmv_coo_aos);
+        DEFINE_CASE_IAXYT_X(v2_spmv_ell, testing_v2_spmv_ell);
     }
 
 #undef DEFINE_CASE_IT_X

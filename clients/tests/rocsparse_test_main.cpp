@@ -1,6 +1,6 @@
 /*! \file */
 /* ************************************************************************
- * Copyright (C) 2019-2024 Advanced Micro Devices, Inc. All rights Reserved.
+ * Copyright (C) 2019-2025 Advanced Micro Devices, Inc. All rights Reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -22,6 +22,7 @@
  *
  * ************************************************************************ */
 
+#include "rocsparse_clients_envariables.hpp"
 #include "rocsparse_parse_data.hpp"
 #include "rocsparse_reproducibility.hpp"
 #include "utility.hpp"
@@ -173,17 +174,61 @@ public:
 
 int main(int argc, char** argv)
 {
+    //
+    // Enable debug mode for testing.
+    //
+    rocsparse_enable_debug();
+
+    //
+    // Enable test debug arguments.
+    //
+    if(rocsparse_clients_envariables::is_defined(
+           rocsparse_clients_envariables::TEST_DEBUG_ARGUMENTS)
+       == false)
+    {
+        rocsparse_clients_envariables::set(rocsparse_clients_envariables::TEST_DEBUG_ARGUMENTS,
+                                           true);
+    }
+
     // Get version
     rocsparse_handle handle;
-    rocsparse_create_handle(&handle);
+    rocsparse_status status = rocsparse_create_handle(&handle);
+    if(rocsparse_status_success != status)
+    {
+        std::cerr << "The creation of the rocsparse_handle failed." << std::endl;
+        if(0 == rocsparse_state_debug())
+        {
+            std::cerr << "To get more information, please export the ROCSPARSE_DEBUG environment "
+                         "variable:"
+                      << std::endl;
+            std::cerr << "export ROCSPARSE_DEBUG=1" << std::endl;
+        }
+        return status;
+    }
 
     int  ver;
     char rev[64];
 
-    rocsparse_get_version(handle, &ver);
-    rocsparse_get_git_rev(handle, rev);
+    status = rocsparse_get_version(handle, &ver);
+    if(rocsparse_status_success != status)
+    {
+        std::cerr << "rocsparse_get_version failed." << std::endl;
+        return status;
+    }
 
-    rocsparse_destroy_handle(handle);
+    status = rocsparse_get_git_rev(handle, rev);
+    if(rocsparse_status_success != status)
+    {
+        std::cerr << "rocsparse_get_git_rev failed." << std::endl;
+        return status;
+    }
+
+    status = rocsparse_destroy_handle(handle);
+    if(rocsparse_status_success != status)
+    {
+        std::cerr << "rocsparse_destroy_handle failed." << std::endl;
+        return status;
+    }
 
     // Get user device id from command line
     int dev = 0;
@@ -220,8 +265,8 @@ int main(int argc, char** argv)
 
         if(hipGetDeviceProperties(&prop, i) != hipSuccess)
         {
-            std::cerr << "Error: cannot get device properties" << std::endl;
-            return -1;
+            std::cerr << "rocsparse-test error: cannot get device properties" << std::endl;
+            return rocsparse_status_internal_error;
         }
 
         std::cout << "Device ID " << i << ": " << prop.name << std::endl;
@@ -246,7 +291,11 @@ int main(int argc, char** argv)
     }
 
     hipDeviceProp_t prop;
-    hipGetDeviceProperties(&prop, dev);
+    if(hipGetDeviceProperties(&prop, dev) != hipSuccess)
+    {
+        std::cerr << "rocsparse-test error: cannot get device properties" << std::endl;
+        return rocsparse_status_internal_error;
+    }
 
     std::cout << "Using device ID " << dev << " (" << prop.name << ") for rocSPARSE" << std::endl;
     std::cout << "-------------------------------------------------------------------------"
@@ -313,7 +362,11 @@ int main(int argc, char** argv)
     }
 
     // Reset HIP device
-    hipDeviceReset();
+    if(hipDeviceReset() != hipSuccess)
+    {
+        std::cerr << "Error: cannot reset HIP device" << std::endl;
+        return rocsparse_status_internal_error;
+    }
 
     return ret;
 }

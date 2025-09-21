@@ -1,6 +1,6 @@
 /*! \file */
 /* ************************************************************************
- * Copyright (C) 2020-2024 Advanced Micro Devices, Inc. All rights Reserved.
+ * Copyright (C) 2020-2025 Advanced Micro Devices, Inc. All rights Reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -24,7 +24,7 @@
 
 #pragma once
 
-#include "common.h"
+#include "rocsparse_common.hpp"
 
 namespace rocsparse
 {
@@ -166,12 +166,12 @@ namespace rocsparse
                     {
                         if(order_C == rocsparse_order_column)
                         {
-                            dense_C[global_row + ldc * cols[l]] = rocsparse::fma(
+                            dense_C[global_row + ldc * cols[l]] = rocsparse::fma<T>(
                                 beta, dense_C[global_row + ldc * cols[l]], alpha * sum[l]);
                         }
                         else
                         {
-                            dense_C[global_row * ldc + cols[l]] = rocsparse::fma(
+                            dense_C[global_row * ldc + cols[l]] = rocsparse::fma<T>(
                                 beta, dense_C[global_row * ldc + cols[l]], alpha * sum[l]);
                         }
                     }

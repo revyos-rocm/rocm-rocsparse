@@ -1,6 +1,6 @@
 /*! \file */
 /* ************************************************************************
- * Copyright (C) 2020-2024 Advanced Micro Devices, Inc. All rights Reserved.
+ * Copyright (C) 2020-2025 Advanced Micro Devices, Inc. All rights Reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -23,11 +23,11 @@
  * ************************************************************************ */
 #pragma once
 
-#include "utility.h"
+#include "rocsparse_utility.hpp"
 
-#include "common.h"
-#include "control.h"
 #include "rocsparse_common.h"
+#include "rocsparse_common.hpp"
+#include "rocsparse_control.hpp"
 #include "rocsparse_csx2dense.hpp"
 
 namespace rocsparse
@@ -44,6 +44,8 @@ namespace rocsparse
                                         int64_t                   lda, //8
                                         rocsparse_order           order) //9
     {
+        ROCSPARSE_ROUTINE_TRACE;
+
         ROCSPARSE_CHECKARG_HANDLE(0, handle);
         ROCSPARSE_CHECKARG_POINTER(3, descr);
         ROCSPARSE_CHECKARG_SIZE(1, m);
@@ -150,6 +152,8 @@ namespace rocsparse
                                     int64_t                   lda, //8
                                     rocsparse_order           order) //9
     {
+        ROCSPARSE_ROUTINE_TRACE;
+
         static constexpr bool is_row_oriented = (rocsparse_direction_row == DIRA);
 
         rocsparse::log_trace(handle,

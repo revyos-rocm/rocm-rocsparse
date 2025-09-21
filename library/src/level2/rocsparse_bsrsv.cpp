@@ -1,6 +1,6 @@
 /*! \file */
 /* ************************************************************************
- * Copyright (C) 2020-2024 Advanced Micro Devices, Inc. All rights Reserved.
+ * Copyright (C) 2020-2025 Advanced Micro Devices, Inc. All rights Reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -25,8 +25,8 @@
 #include "internal/level2/rocsparse_bsrsv.h"
 #include "rocsparse_bsrsv.hpp"
 
-#include "control.h"
-#include "utility.h"
+#include "rocsparse_control.hpp"
+#include "rocsparse_utility.hpp"
 
 /*
  * ===========================================================================
@@ -39,6 +39,8 @@ extern "C" rocsparse_status rocsparse_bsrsv_zero_pivot(rocsparse_handle   handle
                                                        rocsparse_int*     position)
 try
 {
+    ROCSPARSE_ROUTINE_TRACE;
+
     // Check for valid handle and matrix descriptor
     ROCSPARSE_CHECKARG_HANDLE(0, handle);
     ROCSPARSE_CHECKARG_POINTER(1, info);
@@ -118,15 +120,19 @@ try
     }
 
     return rocsparse_status_success;
+    // LCOV_EXCL_START
 }
 catch(...)
 {
     RETURN_ROCSPARSE_EXCEPTION();
 }
+// LCOV_EXCL_STOP
 
 extern "C" rocsparse_status rocsparse_bsrsv_clear(rocsparse_handle handle, rocsparse_mat_info info)
 try
 {
+    ROCSPARSE_ROUTINE_TRACE;
+
     // Check for valid handle and matrix descriptor
     ROCSPARSE_CHECKARG_HANDLE(0, handle);
     ROCSPARSE_CHECKARG_POINTER(1, info);
@@ -137,19 +143,19 @@ try
     // Clear bsrsv meta data (this includes lower, upper and their transposed equivalents
     if(!rocsparse::check_trm_shared(info, info->bsrsv_lower_info))
     {
-        RETURN_IF_ROCSPARSE_ERROR(rocsparse::destroy_trm_info(info->bsrsv_lower_info));
+        rocsparse::trm_info_t::destroy(info->bsrsv_lower_info);
     }
     if(!rocsparse::check_trm_shared(info, info->bsrsvt_lower_info))
     {
-        RETURN_IF_ROCSPARSE_ERROR(rocsparse::destroy_trm_info(info->bsrsvt_lower_info));
+        rocsparse::trm_info_t::destroy(info->bsrsvt_lower_info);
     }
     if(!rocsparse::check_trm_shared(info, info->bsrsv_upper_info))
     {
-        RETURN_IF_ROCSPARSE_ERROR(rocsparse::destroy_trm_info(info->bsrsv_upper_info));
+        rocsparse::trm_info_t::destroy(info->bsrsv_upper_info);
     }
     if(!rocsparse::check_trm_shared(info, info->bsrsvt_upper_info))
     {
-        RETURN_IF_ROCSPARSE_ERROR(rocsparse::destroy_trm_info(info->bsrsvt_upper_info));
+        rocsparse::trm_info_t::destroy(info->bsrsvt_upper_info);
     }
 
     info->bsrsv_lower_info  = nullptr;
@@ -158,8 +164,10 @@ try
     info->bsrsvt_upper_info = nullptr;
 
     return rocsparse_status_success;
+    // LCOV_EXCL_START
 }
 catch(...)
 {
     RETURN_ROCSPARSE_EXCEPTION();
 }
+// LCOV_EXCL_STOP

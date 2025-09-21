@@ -1,6 +1,6 @@
 /*! \file */
 /* ************************************************************************
- * Copyright (C) 2023-2024 Advanced Micro Devices, Inc. All rights Reserved.
+ * Copyright (C) 2023-2025 Advanced Micro Devices, Inc. All rights Reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -24,11 +24,11 @@
 
 #include "rocsparse_csrgemm_scal.hpp"
 #include "../conversion/rocsparse_identity.hpp"
-#include "control.h"
 #include "csrgemm_device.h"
 #include "internal/extra/rocsparse_csrgemm.h"
+#include "rocsparse_control.hpp"
 #include "rocsparse_csrgemm.hpp"
-#include "utility.h"
+#include "rocsparse_utility.hpp"
 
 rocsparse_status rocsparse::csrgemm_scal_quickreturn(rocsparse_handle          handle,
                                                      int64_t                   m,
@@ -46,6 +46,8 @@ rocsparse_status rocsparse::csrgemm_scal_quickreturn(rocsparse_handle          h
                                                      const rocsparse_mat_info  info_C,
                                                      void*                     temp_buffer)
 {
+    ROCSPARSE_ROUTINE_TRACE;
+
     if(m == 0 || n == 0 || nnz_D == 0)
     {
         return rocsparse_status_success;
@@ -56,14 +58,15 @@ rocsparse_status rocsparse::csrgemm_scal_quickreturn(rocsparse_handle          h
 
 namespace rocsparse
 {
-    template <uint32_t BLOCKSIZE, typename I, typename T, typename U>
+    template <uint32_t BLOCKSIZE, typename I, typename T>
     ROCSPARSE_KERNEL(BLOCKSIZE)
     void csrgemm_copy_scale(I size,
-                            U alpha_device_host,
+                            ROCSPARSE_DEVICE_HOST_SCALAR_PARAMS(T, alpha),
                             const T* __restrict__ in,
-                            T* __restrict__ out)
+                            T* __restrict__ out,
+                            bool is_host_mode)
     {
-        auto alpha = rocsparse::load_scalar_device_host(alpha_device_host);
+        ROCSPARSE_DEVICE_HOST_SCALAR_GET(alpha);
         rocsparse::csrgemm_copy_scale_device<BLOCKSIZE>(size, alpha, in, out);
     }
 }
@@ -85,6 +88,7 @@ rocsparse_status rocsparse::csrgemm_scal_core(rocsparse_handle          handle,
                                               const rocsparse_mat_info  info_C,
                                               void*                     temp_buffer)
 {
+    ROCSPARSE_ROUTINE_TRACE;
 
     // Stream
     hipStream_t stream = handle->stream;
@@ -109,30 +113,16 @@ rocsparse_status rocsparse::csrgemm_scal_core(rocsparse_handle          handle,
     }
 
     // Scale the matrix
-    if(handle->pointer_mode == rocsparse_pointer_mode_device)
-    {
-        RETURN_IF_HIPLAUNCHKERNELGGL_ERROR((rocsparse::csrgemm_copy_scale<CSRGEMM_DIM>),
-                                           csrgemm_blocks,
-                                           csrgemm_threads,
-                                           0,
-                                           stream,
-                                           nnz_D,
-                                           beta,
-                                           csr_val_D,
-                                           csr_val_C);
-    }
-    else
-    {
-        RETURN_IF_HIPLAUNCHKERNELGGL_ERROR((rocsparse::csrgemm_copy_scale<CSRGEMM_DIM>),
-                                           csrgemm_blocks,
-                                           csrgemm_threads,
-                                           0,
-                                           stream,
-                                           nnz_D,
-                                           *beta,
-                                           csr_val_D,
-                                           csr_val_C);
-    }
+    RETURN_IF_HIPLAUNCHKERNELGGL_ERROR((rocsparse::csrgemm_copy_scale<CSRGEMM_DIM>),
+                                       csrgemm_blocks,
+                                       csrgemm_threads,
+                                       0,
+                                       stream,
+                                       nnz_D,
+                                       ROCSPARSE_DEVICE_HOST_SCALAR_ARGS(handle, beta),
+                                       csr_val_D,
+                                       csr_val_C,
+                                       handle->pointer_mode == rocsparse_pointer_mode_host);
 #undef CSRGEMM_DIM
 
     return rocsparse_status_success;

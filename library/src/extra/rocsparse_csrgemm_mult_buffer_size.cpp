@@ -1,6 +1,6 @@
 /*! \file */
 /* ************************************************************************
- * Copyright (C) 2023-2024 Advanced Micro Devices, Inc. All rights Reserved.
+ * Copyright (C) 2023-2025 Advanced Micro Devices, Inc. All rights Reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -23,14 +23,14 @@
  * ************************************************************************ */
 
 #include "../conversion/rocsparse_identity.hpp"
-#include "control.h"
 #include "csrgemm_device.h"
 #include "internal/extra/rocsparse_csrgemm.h"
+#include "rocsparse_control.hpp"
 #include "rocsparse_csrgemm.hpp"
-#include "utility.h"
+#include "rocsparse_utility.hpp"
 
 #include "rocsparse_csrgemm_mult.hpp"
-#include "rocsparse_primitives.h"
+#include "rocsparse_primitives.hpp"
 
 #define INSTANTIATE(I, J, T)                                            \
     template rocsparse_status rocsparse::csrgemm_mult_buffer_size_core( \
@@ -93,6 +93,8 @@ rocsparse_status rocsparse::csrgemm_mult_buffer_size_core(rocsparse_handle      
                                                           rocsparse_mat_info        info_C,
                                                           size_t*                   buffer_size)
 {
+    ROCSPARSE_ROUTINE_TRACE;
+
     // rocprim buffer
     size_t rocprim_size;
     size_t rocprim_max = 0;
@@ -105,8 +107,11 @@ rocsparse_status rocsparse::csrgemm_mult_buffer_size_core(rocsparse_handle      
         handle, static_cast<I>(0), m + 1, &rocprim_size)));
     rocprim_max = rocsparse::max(rocprim_max, rocprim_size);
 
-    RETURN_IF_ROCSPARSE_ERROR((
-        rocsparse::primitives::radix_sort_pairs_buffer_size<I, J>(handle, m, 0, 3, &rocprim_size)));
+    uint32_t startbit = 0;
+    uint32_t endbit   = rocsparse::clz(CSRGEMM_MAXGROUPS);
+
+    RETURN_IF_ROCSPARSE_ERROR((rocsparse::primitives::radix_sort_pairs_buffer_size<I, J>(
+        handle, m, startbit, endbit, &rocprim_size)));
     rocprim_max = rocsparse::max(rocprim_max, rocprim_size);
 
     *buffer_size = ((rocprim_max - 1) / 256 + 1) * 256;
@@ -144,6 +149,8 @@ rocsparse_status rocsparse::csrgemm_mult_buffer_size_quickreturn(rocsparse_handl
                                                                  rocsparse_mat_info info_C,
                                                                  size_t*            buffer_size)
 {
+    ROCSPARSE_ROUTINE_TRACE;
+
     if(m == 0 || n == 0 || k == 0 || nnz_A == 0 || nnz_B == 0)
     {
         *buffer_size                         = 0;

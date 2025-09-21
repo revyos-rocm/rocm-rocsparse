@@ -1,6 +1,6 @@
 /*! \file */
 /* ************************************************************************
- * Copyright (C) 2019-2024 Advanced Micro Devices, Inc. All rights Reserved.
+ * Copyright (C) 2019-2025 Advanced Micro Devices, Inc. All rights Reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -107,7 +107,7 @@ void testing_axpyi(const Arguments& arg)
         CHECK_HIP_ERROR(hipMemcpy(hy_2, dy_2, sizeof(T) * M, hipMemcpyDeviceToHost));
 
         // CPU axpyi
-        host_axpby<rocsparse_int, T>(M, nnz, h_alpha, hx_val, hx_ind, 1.0, hy_gold, base);
+        host_axpby<T, rocsparse_int, T, T>(M, nnz, h_alpha, hx_val, hx_ind, (T)1.0, hy_gold, base);
 
         hy_gold.unit_check(hy_1);
         hy_gold.unit_check(hy_2);
@@ -121,28 +121,11 @@ void testing_axpyi(const Arguments& arg)
 
     if(arg.timing)
     {
-        int number_cold_calls = 2;
-        int number_hot_calls  = arg.iters;
 
         CHECK_ROCSPARSE_ERROR(rocsparse_set_pointer_mode(handle, rocsparse_pointer_mode_host));
 
-        // Warm up
-        for(int iter = 0; iter < number_cold_calls; ++iter)
-        {
-            CHECK_ROCSPARSE_ERROR(
-                rocsparse_axpyi<T>(handle, nnz, &h_alpha, dx_val, dx_ind, dy_1, base));
-        }
-
-        double gpu_time_used = get_time_us();
-
-        // Performance run
-        for(int iter = 0; iter < number_hot_calls; ++iter)
-        {
-            CHECK_ROCSPARSE_ERROR(
-                rocsparse_axpyi<T>(handle, nnz, &h_alpha, dx_val, dx_ind, dy_1, base));
-        }
-
-        gpu_time_used = (get_time_us() - gpu_time_used) / number_hot_calls;
+        const double gpu_time_used = rocsparse_clients::run_benchmark(
+            arg, rocsparse_axpyi<T>, handle, nnz, &h_alpha, dx_val, dx_ind, dy_1, base);
 
         double gflop_count = axpyi_gflop_count(nnz);
         double gbyte_count = axpby_gbyte_count<T>(nnz);

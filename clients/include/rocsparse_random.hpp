@@ -50,9 +50,8 @@ rocsparse_rng_t& rocsparse_rng_nan_get();
 
 // extern  rocsparse_rng_t rocsparse_rng, rocsparse_seed, rocsparse_rng_nan;
 
-extern int rocsparse_rand_uniform_float_idx;
-extern int rocsparse_rand_uniform_double_idx;
-extern int rocsparse_rand_normal_double_idx;
+extern int rocsparse_rand_uniform_idx;
+extern int rocsparse_rand_normal_idx;
 
 // Reset the seed (mainly to ensure repeatability of failures in a given suite)
 void rocsparse_seedrand();
@@ -108,16 +107,22 @@ public:
             rocsparse_rng_nan_get());
     }
 
-    // Random NaN double
-    explicit operator double()
+    // Random NaN half
+    explicit operator _Float16()
     {
-        return random_nan_data<double, uint64_t, 52, 11>();
+        return random_nan_data<_Float16, uint16_t, 10, 5>();
     }
 
     // Random NaN float
     explicit operator float()
     {
         return random_nan_data<float, uint32_t, 23, 8>();
+    }
+
+    // Random NaN double
+    explicit operator double()
+    {
+        return random_nan_data<double, uint64_t, 52, 11>();
     }
 
     explicit operator rocsparse_float_complex()

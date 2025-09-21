@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (C) 2022-2024 Advanced Micro Devices, Inc.
+ * Copyright (C) 2022-2025 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -22,9 +22,9 @@
  * ************************************************************************ */
 
 #include "internal/generic/rocsparse_spmv.h"
-#include "control.h"
-#include "handle.h"
-#include "utility.h"
+#include "rocsparse_control.hpp"
+#include "rocsparse_handle.hpp"
+#include "rocsparse_utility.hpp"
 
 #include "rocsparse_bsrmv.hpp"
 #include "rocsparse_coomv.hpp"
@@ -32,252 +32,324 @@
 #include "rocsparse_cscmv.hpp"
 #include "rocsparse_csrmv.hpp"
 #include "rocsparse_ellmv.hpp"
+#include "rocsparse_enum_utils.hpp"
+#include "rocsparse_spmv.hpp"
 
-namespace rocsparse
+template <>
+const char* rocsparse::enum_utils::to_string(rocsparse_spmv_alg value_)
 {
-    rocsparse_indextype determine_I_index_type(rocsparse_const_spmat_descr mat);
-    rocsparse_indextype determine_J_index_type(rocsparse_const_spmat_descr mat);
-
-    static rocsparse_status check_spmv_alg(rocsparse_format format, rocsparse_spmv_alg alg)
+#define CASE(C) \
+    case C:     \
+        return #C
+    switch(value_)
     {
-        switch(format)
-        {
-        case rocsparse_format_csr:
-        case rocsparse_format_csc:
-        {
-            switch(alg)
-            {
-            case rocsparse_spmv_alg_default:
-            case rocsparse_spmv_alg_csr_stream:
-            case rocsparse_spmv_alg_csr_adaptive:
-            case rocsparse_spmv_alg_csr_lrb:
-            {
-                return rocsparse_status_success;
-            }
-            case rocsparse_spmv_alg_coo:
-            case rocsparse_spmv_alg_ell:
-            case rocsparse_spmv_alg_bsr:
-            case rocsparse_spmv_alg_coo_atomic:
-            {
-                RETURN_IF_ROCSPARSE_ERROR(rocsparse_status_invalid_value);
-            }
-            }
+        CASE(rocsparse_spmv_alg_default);
+        CASE(rocsparse_spmv_alg_coo);
+        CASE(rocsparse_spmv_alg_csr_adaptive);
+        CASE(rocsparse_spmv_alg_csr_rowsplit);
+        CASE(rocsparse_spmv_alg_ell);
+        CASE(rocsparse_spmv_alg_coo_atomic);
+        CASE(rocsparse_spmv_alg_bsr);
+        CASE(rocsparse_spmv_alg_csr_lrb);
+#undef CASE
+    }
+    // LCOV_EXCL_START
+    THROW_IF_ROCSPARSE_ERROR(rocsparse_status_invalid_value);
+    // LCOV_EXCL_STOP
+}
 
+template <>
+const char* rocsparse::enum_utils::to_string(rocsparse_spmv_stage value_)
+{
+#define CASE(C) \
+    case C:     \
+        return #C
+    switch(value_)
+    {
+        CASE(rocsparse_spmv_stage_buffer_size);
+        CASE(rocsparse_spmv_stage_preprocess);
+        CASE(rocsparse_spmv_stage_compute);
+#undef CASE
+    }
+    // LCOV_EXCL_START
+    THROW_IF_ROCSPARSE_ERROR(rocsparse_status_invalid_value);
+    // LCOV_EXCL_STOP
+}
+
+template <>
+bool rocsparse::enum_utils::is_invalid(rocsparse_spmv_stage value_)
+{
+    switch(value_)
+    {
+    case rocsparse_spmv_stage_buffer_size:
+    case rocsparse_spmv_stage_preprocess:
+    case rocsparse_spmv_stage_compute:
+    {
+        return false;
+    }
+    }
+    return true;
+}
+
+rocsparse_status rocsparse::check_spmv_alg(rocsparse_format format, rocsparse_spmv_alg alg)
+{
+    switch(format)
+    {
+    case rocsparse_format_csr:
+    case rocsparse_format_csc:
+    {
+        switch(alg)
+        {
+        case rocsparse_spmv_alg_default:
+        case rocsparse_spmv_alg_csr_rowsplit:
+        case rocsparse_spmv_alg_csr_adaptive:
+        case rocsparse_spmv_alg_csr_lrb:
+        {
+            return rocsparse_status_success;
+        }
+        case rocsparse_spmv_alg_coo:
+        case rocsparse_spmv_alg_ell:
+        case rocsparse_spmv_alg_bsr:
+        case rocsparse_spmv_alg_coo_atomic:
+        {
+            // LCOV_EXCL_START
             RETURN_IF_ROCSPARSE_ERROR(rocsparse_status_invalid_value);
         }
-        case rocsparse_format_coo:
-        case rocsparse_format_coo_aos:
-        {
-            switch(alg)
-            {
-            case rocsparse_spmv_alg_default:
-            case rocsparse_spmv_alg_coo:
-            case rocsparse_spmv_alg_coo_atomic:
-            {
-                return rocsparse_status_success;
-            }
-            case rocsparse_spmv_alg_csr_stream:
-            case rocsparse_spmv_alg_csr_adaptive:
-            case rocsparse_spmv_alg_bsr:
-            case rocsparse_spmv_alg_ell:
-            case rocsparse_spmv_alg_csr_lrb:
-            {
-                RETURN_IF_ROCSPARSE_ERROR(rocsparse_status_invalid_value);
-            }
-            }
-
-            RETURN_IF_ROCSPARSE_ERROR(rocsparse_status_invalid_value);
-        }
-        case rocsparse_format_ell:
-        {
-            switch(alg)
-            {
-            case rocsparse_spmv_alg_default:
-            case rocsparse_spmv_alg_ell:
-            {
-                return rocsparse_status_success;
-            }
-            case rocsparse_spmv_alg_csr_stream:
-            case rocsparse_spmv_alg_csr_adaptive:
-            case rocsparse_spmv_alg_bsr:
-            case rocsparse_spmv_alg_coo:
-            case rocsparse_spmv_alg_coo_atomic:
-            case rocsparse_spmv_alg_csr_lrb:
-            {
-                RETURN_IF_ROCSPARSE_ERROR(rocsparse_status_invalid_value);
-            }
-            }
-
-            RETURN_IF_ROCSPARSE_ERROR(rocsparse_status_invalid_value);
-        }
-        case rocsparse_format_bell:
-        {
-            switch(alg)
-            {
-            case rocsparse_spmv_alg_default:
-            case rocsparse_spmv_alg_coo:
-            case rocsparse_spmv_alg_csr_stream:
-            case rocsparse_spmv_alg_csr_adaptive:
-            case rocsparse_spmv_alg_ell:
-            case rocsparse_spmv_alg_bsr:
-            case rocsparse_spmv_alg_coo_atomic:
-            case rocsparse_spmv_alg_csr_lrb:
-            {
-                RETURN_IF_ROCSPARSE_ERROR(rocsparse_status_invalid_value);
-            }
-            }
-
-            RETURN_IF_ROCSPARSE_ERROR(rocsparse_status_invalid_value);
         }
 
-        case rocsparse_format_bsr:
+        RETURN_IF_ROCSPARSE_ERROR(rocsparse_status_invalid_value);
+        // LCOV_EXCL_STOP
+    }
+    case rocsparse_format_coo:
+    case rocsparse_format_coo_aos:
+    {
+        switch(alg)
         {
-            switch(alg)
-            {
-            case rocsparse_spmv_alg_default:
-            case rocsparse_spmv_alg_bsr:
-            {
-                return rocsparse_status_success;
-            }
-            case rocsparse_spmv_alg_ell:
-            case rocsparse_spmv_alg_csr_stream:
-            case rocsparse_spmv_alg_csr_adaptive:
-            case rocsparse_spmv_alg_coo:
-            case rocsparse_spmv_alg_coo_atomic:
-            case rocsparse_spmv_alg_csr_lrb:
-            {
-                RETURN_IF_ROCSPARSE_ERROR(rocsparse_status_invalid_value);
-            }
-            }
+        case rocsparse_spmv_alg_default:
+        case rocsparse_spmv_alg_coo:
+        case rocsparse_spmv_alg_coo_atomic:
+        {
+            return rocsparse_status_success;
+        }
+        case rocsparse_spmv_alg_csr_rowsplit:
+        case rocsparse_spmv_alg_csr_adaptive:
+        case rocsparse_spmv_alg_bsr:
+        case rocsparse_spmv_alg_ell:
+        case rocsparse_spmv_alg_csr_lrb:
+        {
+            // LCOV_EXCL_START
+            RETURN_IF_ROCSPARSE_ERROR(rocsparse_status_invalid_value);
+        }
+        }
 
+        RETURN_IF_ROCSPARSE_ERROR(rocsparse_status_invalid_value);
+        // LCOV_EXCL_STOP
+    }
+    case rocsparse_format_ell:
+    {
+        switch(alg)
+        {
+        case rocsparse_spmv_alg_default:
+        case rocsparse_spmv_alg_ell:
+        {
+            return rocsparse_status_success;
+        }
+        case rocsparse_spmv_alg_csr_rowsplit:
+        case rocsparse_spmv_alg_csr_adaptive:
+        case rocsparse_spmv_alg_bsr:
+        case rocsparse_spmv_alg_coo:
+        case rocsparse_spmv_alg_coo_atomic:
+        case rocsparse_spmv_alg_csr_lrb:
+        {
+            // LCOV_EXCL_START
+            RETURN_IF_ROCSPARSE_ERROR(rocsparse_status_invalid_value);
+        }
+        }
+
+        RETURN_IF_ROCSPARSE_ERROR(rocsparse_status_invalid_value);
+        // LCOV_EXCL_STOP
+    }
+    case rocsparse_format_bell:
+    {
+        switch(alg)
+        {
+        case rocsparse_spmv_alg_default:
+        case rocsparse_spmv_alg_coo:
+        case rocsparse_spmv_alg_csr_rowsplit:
+        case rocsparse_spmv_alg_csr_adaptive:
+        case rocsparse_spmv_alg_ell:
+        case rocsparse_spmv_alg_bsr:
+        case rocsparse_spmv_alg_coo_atomic:
+        case rocsparse_spmv_alg_csr_lrb:
+        {
+            // LCOV_EXCL_START
+            RETURN_IF_ROCSPARSE_ERROR(rocsparse_status_invalid_value);
+        }
+        }
+
+        RETURN_IF_ROCSPARSE_ERROR(rocsparse_status_invalid_value);
+        // LCOV_EXCL_STOP
+    }
+
+    case rocsparse_format_bsr:
+    {
+        switch(alg)
+        {
+        case rocsparse_spmv_alg_default:
+        case rocsparse_spmv_alg_bsr:
+        {
+            return rocsparse_status_success;
+        }
+        case rocsparse_spmv_alg_ell:
+        case rocsparse_spmv_alg_csr_rowsplit:
+        case rocsparse_spmv_alg_csr_adaptive:
+        case rocsparse_spmv_alg_coo:
+        case rocsparse_spmv_alg_coo_atomic:
+        case rocsparse_spmv_alg_csr_lrb:
+        {
+            // LCOV_EXCL_START
             RETURN_IF_ROCSPARSE_ERROR(rocsparse_status_invalid_value);
         }
         }
 
         RETURN_IF_ROCSPARSE_ERROR(rocsparse_status_invalid_value);
     }
+    }
 
-    static rocsparse_status spmv_alg2csrmv_alg(rocsparse_spmv_alg    spmv_alg,
+    RETURN_IF_ROCSPARSE_ERROR(rocsparse_status_invalid_value);
+    // LCOV_EXCL_STOP
+}
+
+rocsparse_status rocsparse::spmv_alg2csrmv_alg(rocsparse_spmv_alg    spmv_alg,
                                                rocsparse::csrmv_alg& target)
+{
+    switch(spmv_alg)
     {
-        switch(spmv_alg)
-        {
-        case rocsparse_spmv_alg_csr_stream:
-        {
-            target = rocsparse::csrmv_alg_stream;
-            return rocsparse_status_success;
-        }
+    case rocsparse_spmv_alg_csr_rowsplit:
+    {
+        target = rocsparse::csrmv_alg_rowsplit;
+        return rocsparse_status_success;
+    }
 
-        case rocsparse_spmv_alg_default:
-        case rocsparse_spmv_alg_csr_adaptive:
-        {
-            target = rocsparse::csrmv_alg_adaptive;
-            return rocsparse_status_success;
-        }
+    case rocsparse_spmv_alg_default:
+    case rocsparse_spmv_alg_csr_adaptive:
+    {
+        target = rocsparse::csrmv_alg_adaptive;
+        return rocsparse_status_success;
+    }
 
-        case rocsparse_spmv_alg_csr_lrb:
-        {
-            target = rocsparse::csrmv_alg_lrb;
-            return rocsparse_status_success;
-        }
+    case rocsparse_spmv_alg_csr_lrb:
+    {
+        target = rocsparse::csrmv_alg_lrb;
+        return rocsparse_status_success;
+    }
 
-        case rocsparse_spmv_alg_coo:
-        case rocsparse_spmv_alg_coo_atomic:
-        case rocsparse_spmv_alg_bsr:
-        case rocsparse_spmv_alg_ell:
-        {
-            return rocsparse_status_invalid_value;
-        }
-        }
+    case rocsparse_spmv_alg_coo:
+    case rocsparse_spmv_alg_coo_atomic:
+    case rocsparse_spmv_alg_bsr:
+    case rocsparse_spmv_alg_ell:
+    {
+        // LCOV_EXCL_START
         return rocsparse_status_invalid_value;
     }
+    }
+    return rocsparse_status_invalid_value;
+    // LCOV_EXCL_STOP
+}
 
-    static rocsparse_status spmv_alg2coomv_alg(rocsparse_spmv_alg   spmv_alg,
+rocsparse_status rocsparse::spmv_alg2coomv_alg(rocsparse_spmv_alg   spmv_alg,
                                                rocsparse_coomv_alg& coomv_alg)
+{
+    switch(spmv_alg)
     {
-        switch(spmv_alg)
-        {
-        case rocsparse_spmv_alg_default:
-        {
-            coomv_alg = rocsparse_coomv_alg_default;
-            return rocsparse_status_success;
-        }
-
-        case rocsparse_spmv_alg_coo:
-        {
-            coomv_alg = rocsparse_coomv_alg_segmented;
-            return rocsparse_status_success;
-        }
-
-        case rocsparse_spmv_alg_coo_atomic:
-        {
-            coomv_alg = rocsparse_coomv_alg_atomic;
-            return rocsparse_status_success;
-        }
-
-        case rocsparse_spmv_alg_csr_adaptive:
-        case rocsparse_spmv_alg_csr_stream:
-        case rocsparse_spmv_alg_bsr:
-        case rocsparse_spmv_alg_ell:
-        case rocsparse_spmv_alg_csr_lrb:
-        {
-            RETURN_IF_ROCSPARSE_ERROR(rocsparse_status_invalid_value);
-        }
-        }
-        RETURN_IF_ROCSPARSE_ERROR(rocsparse_status_invalid_value);
+    case rocsparse_spmv_alg_default:
+    {
+        coomv_alg = rocsparse_coomv_alg_default;
+        return rocsparse_status_success;
     }
 
-    static rocsparse_status spmv_alg2coomv_aos_alg(rocsparse_spmv_alg       spmv_alg,
+    case rocsparse_spmv_alg_coo:
+    {
+        coomv_alg = rocsparse_coomv_alg_segmented;
+        return rocsparse_status_success;
+    }
+
+    case rocsparse_spmv_alg_coo_atomic:
+    {
+        coomv_alg = rocsparse_coomv_alg_atomic;
+        return rocsparse_status_success;
+    }
+
+    case rocsparse_spmv_alg_csr_adaptive:
+    case rocsparse_spmv_alg_csr_rowsplit:
+    case rocsparse_spmv_alg_bsr:
+    case rocsparse_spmv_alg_ell:
+    case rocsparse_spmv_alg_csr_lrb:
+    {
+        // LCOV_EXCL_START
+        RETURN_IF_ROCSPARSE_ERROR(rocsparse_status_invalid_value);
+    }
+    }
+    RETURN_IF_ROCSPARSE_ERROR(rocsparse_status_invalid_value);
+    // LCOV_EXCL_STOP
+}
+
+rocsparse_status rocsparse::spmv_alg2coomv_aos_alg(rocsparse_spmv_alg       spmv_alg,
                                                    rocsparse_coomv_aos_alg& coomv_aos_alg)
+{
+    switch(spmv_alg)
     {
-        switch(spmv_alg)
-        {
-        case rocsparse_spmv_alg_default:
-        {
-            coomv_aos_alg = rocsparse_coomv_aos_alg_default;
-            return rocsparse_status_success;
-        }
+    case rocsparse_spmv_alg_default:
+    {
+        coomv_aos_alg = rocsparse_coomv_aos_alg_default;
+        return rocsparse_status_success;
+    }
 
-        case rocsparse_spmv_alg_coo:
-        {
-            coomv_aos_alg = rocsparse_coomv_aos_alg_segmented;
-            return rocsparse_status_success;
-        }
+    case rocsparse_spmv_alg_coo:
+    {
+        coomv_aos_alg = rocsparse_coomv_aos_alg_segmented;
+        return rocsparse_status_success;
+    }
 
-        case rocsparse_spmv_alg_coo_atomic:
-        {
-            coomv_aos_alg = rocsparse_coomv_aos_alg_atomic;
-            return rocsparse_status_success;
-        }
+    case rocsparse_spmv_alg_coo_atomic:
+    {
+        coomv_aos_alg = rocsparse_coomv_aos_alg_atomic;
+        return rocsparse_status_success;
+    }
 
-        case rocsparse_spmv_alg_csr_adaptive:
-        case rocsparse_spmv_alg_csr_stream:
-        case rocsparse_spmv_alg_bsr:
-        case rocsparse_spmv_alg_ell:
-        case rocsparse_spmv_alg_csr_lrb:
-        {
-            RETURN_IF_ROCSPARSE_ERROR(rocsparse_status_invalid_value);
-        }
-        }
+    case rocsparse_spmv_alg_csr_adaptive:
+    case rocsparse_spmv_alg_csr_rowsplit:
+    case rocsparse_spmv_alg_bsr:
+    case rocsparse_spmv_alg_ell:
+    case rocsparse_spmv_alg_csr_lrb:
+    {
+        // LCOV_EXCL_START
         RETURN_IF_ROCSPARSE_ERROR(rocsparse_status_invalid_value);
     }
+    }
+    RETURN_IF_ROCSPARSE_ERROR(rocsparse_status_invalid_value);
+    // LCOV_EXCL_STOP
 }
 
 namespace rocsparse
 {
-    template <typename T, typename I, typename J, typename A, typename X, typename Y>
-    rocsparse_status spmv_template(rocsparse_handle            handle,
-                                   rocsparse_operation         trans,
-                                   const void*                 alpha,
-                                   rocsparse_const_spmat_descr mat,
-                                   rocsparse_const_dnvec_descr x,
-                                   const void*                 beta,
-                                   const rocsparse_dnvec_descr y,
-                                   rocsparse_spmv_alg          alg,
-                                   rocsparse_spmv_stage        stage,
-                                   size_t*                     buffer_size,
-                                   void*                       temp_buffer)
+    rocsparse_status spmv(rocsparse_handle            handle,
+                          rocsparse_operation         trans,
+                          rocsparse_datatype          alpha_type,
+                          const void*                 alpha,
+                          rocsparse_const_spmat_descr mat,
+                          rocsparse_const_dnvec_descr x,
+                          rocsparse_datatype          beta_type,
+                          const void*                 beta,
+                          const rocsparse_dnvec_descr y,
+                          rocsparse_spmv_alg          alg,
+                          rocsparse_spmv_stage        stage,
+                          size_t*                     buffer_size,
+                          void*                       temp_buffer)
     {
+        ROCSPARSE_ROUTINE_TRACE;
+        static constexpr bool fallback_algorithm = true;
+
         RETURN_IF_ROCSPARSE_ERROR((rocsparse::check_spmv_alg(mat->format, alg)));
 
         switch(mat->format)
@@ -296,40 +368,49 @@ namespace rocsparse
             }
             case rocsparse_spmv_stage_preprocess:
             {
-                if(alg == rocsparse_spmv_alg_coo_atomic && mat->analysed == false)
+                if(mat->analysed == false)
                 {
-                    RETURN_IF_ROCSPARSE_ERROR(
-                        (rocsparse::coomv_analysis_template(handle,
-                                                            trans,
-                                                            coomv_alg,
-                                                            (I)mat->rows,
-                                                            (I)mat->cols,
-                                                            mat->nnz,
-                                                            mat->descr,
-                                                            (const A*)mat->const_val_data,
-                                                            (const I*)mat->const_row_data,
-                                                            (const I*)mat->const_col_data)));
-
+                    RETURN_IF_ROCSPARSE_ERROR((rocsparse::coomv_analysis(handle,
+                                                                         trans,
+                                                                         coomv_alg,
+                                                                         mat->rows,
+                                                                         mat->cols,
+                                                                         mat->nnz,
+                                                                         mat->descr,
+                                                                         mat->data_type,
+                                                                         mat->const_val_data,
+                                                                         mat->row_type,
+                                                                         mat->const_row_data,
+                                                                         mat->col_type,
+                                                                         mat->const_col_data)));
                     mat->analysed = true;
                 }
                 return rocsparse_status_success;
             }
             case rocsparse_spmv_stage_compute:
             {
-                RETURN_IF_ROCSPARSE_ERROR(rocsparse::coomv_template(handle,
-                                                                    trans,
-                                                                    coomv_alg,
-                                                                    (I)mat->rows,
-                                                                    (I)mat->cols,
-                                                                    mat->nnz,
-                                                                    (const T*)alpha,
-                                                                    mat->descr,
-                                                                    (const A*)mat->const_val_data,
-                                                                    (const I*)mat->const_row_data,
-                                                                    (const I*)mat->const_col_data,
-                                                                    (const X*)x->const_values,
-                                                                    (const T*)beta,
-                                                                    (Y*)y->values));
+                RETURN_IF_ROCSPARSE_ERROR((rocsparse::coomv(handle,
+                                                            trans,
+                                                            coomv_alg,
+                                                            mat->rows,
+                                                            mat->cols,
+                                                            mat->nnz,
+                                                            alpha_type,
+                                                            alpha,
+                                                            mat->descr,
+                                                            mat->data_type,
+                                                            mat->const_val_data,
+                                                            mat->row_type,
+                                                            mat->const_row_data,
+                                                            mat->col_type,
+                                                            mat->const_col_data,
+                                                            x->data_type,
+                                                            x->const_values,
+                                                            beta_type,
+                                                            beta,
+                                                            y->data_type,
+                                                            y->values,
+                                                            fallback_algorithm)));
                 return rocsparse_status_success;
             }
             }
@@ -353,20 +434,26 @@ namespace rocsparse
             }
             case rocsparse_spmv_stage_compute:
             {
-                RETURN_IF_ROCSPARSE_ERROR(
-                    rocsparse::coomv_aos_template(handle,
-                                                  trans,
-                                                  coomv_aos_alg,
-                                                  (I)mat->rows,
-                                                  (I)mat->cols,
-                                                  mat->nnz,
-                                                  (const T*)alpha,
-                                                  mat->descr,
-                                                  (const A*)mat->const_val_data,
-                                                  (const I*)mat->const_ind_data,
-                                                  (const X*)x->const_values,
-                                                  (const T*)beta,
-                                                  (Y*)y->values));
+                RETURN_IF_ROCSPARSE_ERROR((rocsparse::coomv_aos(handle,
+                                                                trans,
+                                                                coomv_aos_alg,
+                                                                mat->rows,
+                                                                mat->cols,
+                                                                mat->nnz,
+                                                                alpha_type,
+                                                                alpha,
+                                                                mat->descr,
+                                                                mat->data_type,
+                                                                mat->const_val_data,
+                                                                mat->row_type,
+                                                                mat->const_ind_data,
+                                                                x->data_type,
+                                                                x->const_values,
+                                                                beta_type,
+                                                                beta,
+                                                                y->data_type,
+                                                                y->values,
+                                                                fallback_algorithm)));
                 return rocsparse_status_success;
             }
             }
@@ -384,24 +471,25 @@ namespace rocsparse
 
             case rocsparse_spmv_stage_preprocess:
             {
-                //
-                // If algorithm 1 or default is selected and analysis step is required
-                //
-                if(alg == rocsparse_spmv_alg_default && mat->analysed == false)
+                if(mat->analysed == false)
                 {
-                    RETURN_IF_ROCSPARSE_ERROR(
-                        rocsparse::bsrmv_analysis_template(handle,
-                                                           mat->block_dir,
-                                                           trans,
-                                                           (J)mat->rows,
-                                                           (J)mat->cols,
-                                                           (I)mat->nnz,
-                                                           mat->descr,
-                                                           (const A*)mat->const_val_data,
-                                                           (const I*)mat->const_row_data,
-                                                           (const J*)mat->const_col_data,
-                                                           (J)mat->block_dim,
-                                                           mat->info));
+                    rocsparse_bsrmv_info bsrmv_info;
+                    RETURN_IF_ROCSPARSE_ERROR((rocsparse::bsrmv_analysis(handle,
+                                                                         mat->block_dir,
+                                                                         trans,
+                                                                         mat->rows,
+                                                                         mat->cols,
+                                                                         mat->nnz,
+                                                                         mat->descr,
+                                                                         mat->data_type,
+                                                                         mat->const_val_data,
+                                                                         mat->row_type,
+                                                                         mat->const_row_data,
+                                                                         mat->col_type,
+                                                                         mat->const_col_data,
+                                                                         mat->block_dim,
+                                                                         &bsrmv_info)));
+                    mat->info->set_bsrmv_info(bsrmv_info);
                     mat->analysed = true;
                 }
 
@@ -410,22 +498,29 @@ namespace rocsparse
 
             case rocsparse_spmv_stage_compute:
             {
-                RETURN_IF_ROCSPARSE_ERROR(rocsparse::bsrmv_template(handle,
-                                                                    mat->block_dir,
-                                                                    trans,
-                                                                    (J)mat->rows,
-                                                                    (J)mat->cols,
-                                                                    (I)mat->nnz,
-                                                                    (const T*)alpha,
-                                                                    mat->descr,
-                                                                    (const A*)mat->const_val_data,
-                                                                    (const I*)mat->const_row_data,
-                                                                    (const J*)mat->const_col_data,
-                                                                    (J)mat->block_dim,
-                                                                    mat->info,
-                                                                    (const X*)x->const_values,
-                                                                    (const T*)beta,
-                                                                    (Y*)y->values));
+                RETURN_IF_ROCSPARSE_ERROR((rocsparse::bsrmv(handle,
+                                                            mat->block_dir,
+                                                            trans,
+                                                            mat->rows,
+                                                            mat->cols,
+                                                            mat->nnz,
+                                                            alpha_type,
+                                                            alpha,
+                                                            mat->descr,
+                                                            mat->data_type,
+                                                            mat->const_val_data,
+                                                            mat->row_type,
+                                                            mat->const_row_data,
+                                                            mat->col_type,
+                                                            mat->const_col_data,
+                                                            mat->block_dim,
+                                                            mat->info->get_bsrmv_info(),
+                                                            x->data_type,
+                                                            x->const_values,
+                                                            beta_type,
+                                                            beta,
+                                                            y->data_type,
+                                                            y->values)));
                 return rocsparse_status_success;
             }
             }
@@ -446,27 +541,27 @@ namespace rocsparse
 
             case rocsparse_spmv_stage_preprocess:
             {
-
                 //
                 // If algorithm 1 or default is selected and analysis step is required
                 //
-                if((alg == rocsparse_spmv_alg_default || alg == rocsparse_spmv_alg_csr_adaptive
-                    || alg == rocsparse_spmv_alg_csr_lrb)
-                   && mat->analysed == false)
+                if(mat->analysed == false)
                 {
-                    RETURN_IF_ROCSPARSE_ERROR(
-                        rocsparse::csrmv_analysis_template(handle,
-                                                           trans,
-                                                           alg_csrmv,
-                                                           (J)mat->rows,
-                                                           (J)mat->cols,
-                                                           (I)mat->nnz,
-                                                           mat->descr,
-                                                           (const A*)mat->const_val_data,
-                                                           (const I*)mat->const_row_data,
-                                                           (const J*)mat->const_col_data,
-                                                           mat->info));
-
+                    rocsparse_csrmv_info csrmv_info{};
+                    RETURN_IF_ROCSPARSE_ERROR((rocsparse::csrmv_analysis(handle,
+                                                                         trans,
+                                                                         alg_csrmv,
+                                                                         mat->rows,
+                                                                         mat->cols,
+                                                                         mat->nnz,
+                                                                         mat->descr,
+                                                                         mat->data_type,
+                                                                         mat->const_val_data,
+                                                                         mat->row_type,
+                                                                         mat->const_row_data,
+                                                                         mat->col_type,
+                                                                         mat->const_col_data,
+                                                                         &csrmv_info)));
+                    mat->info->set_csrmv_info(csrmv_info);
                     mat->analysed = true;
                 }
 
@@ -475,24 +570,33 @@ namespace rocsparse
 
             case rocsparse_spmv_stage_compute:
             {
-                RETURN_IF_ROCSPARSE_ERROR(rocsparse::csrmv_template(
-                    handle,
-                    trans,
-                    alg_csrmv,
-                    (J)mat->rows,
-                    (J)mat->cols,
-                    (I)mat->nnz,
-                    (const T*)alpha,
-                    mat->descr,
-                    (const A*)mat->const_val_data,
-                    (const I*)mat->const_row_data,
-                    ((const I*)mat->const_row_data) + 1,
-                    (const J*)mat->const_col_data,
-                    (alg == rocsparse_spmv_alg_csr_stream) ? nullptr : mat->info,
-                    (const X*)x->const_values,
-                    (const T*)beta,
-                    (Y*)y->values,
-                    false));
+                RETURN_IF_ROCSPARSE_ERROR(
+                    (rocsparse::csrmv(handle,
+                                      trans,
+                                      alg_csrmv,
+                                      mat->rows,
+                                      mat->cols,
+                                      mat->nnz,
+                                      alpha_type,
+                                      alpha,
+                                      mat->descr,
+                                      mat->data_type,
+                                      mat->const_val_data,
+                                      mat->row_type,
+                                      mat->const_row_data,
+                                      mat->row_type,
+                                      reinterpret_cast<const char*>(mat->const_row_data)
+                                          + rocsparse::indextype_sizeof(mat->row_type),
+                                      mat->col_type,
+                                      mat->const_col_data,
+                                      mat->info->get_csrmv_info(),
+                                      x->data_type,
+                                      x->const_values,
+                                      beta_type,
+                                      beta,
+                                      y->data_type,
+                                      y->values,
+                                      fallback_algorithm)));
                 return rocsparse_status_success;
             }
             }
@@ -513,26 +617,24 @@ namespace rocsparse
 
             case rocsparse_spmv_stage_preprocess:
             {
-                //
-                // If algorithm 1 or default is selected and analysis step is required
-                //
-                if((alg == rocsparse_spmv_alg_default || alg == rocsparse_spmv_alg_csr_adaptive
-                    || alg == rocsparse_spmv_alg_csr_lrb)
-                   && mat->analysed == false)
+                if(mat->analysed == false)
                 {
-                    RETURN_IF_ROCSPARSE_ERROR(
-                        rocsparse::cscmv_analysis_template(handle,
-                                                           trans,
-                                                           alg_csrmv,
-                                                           (J)mat->rows,
-                                                           (J)mat->cols,
-                                                           (I)mat->nnz,
-                                                           mat->descr,
-                                                           (const A*)mat->const_val_data,
-                                                           (const I*)mat->const_col_data,
-                                                           (const J*)mat->const_row_data,
-                                                           mat->info));
-
+                    rocsparse_csrmv_info csrmv_info{};
+                    RETURN_IF_ROCSPARSE_ERROR((rocsparse::cscmv_analysis(handle,
+                                                                         trans,
+                                                                         alg_csrmv,
+                                                                         mat->rows,
+                                                                         mat->cols,
+                                                                         mat->nnz,
+                                                                         mat->descr,
+                                                                         mat->data_type,
+                                                                         mat->const_val_data,
+                                                                         mat->col_type,
+                                                                         mat->const_col_data,
+                                                                         mat->row_type,
+                                                                         mat->const_row_data,
+                                                                         &csrmv_info)));
+                    mat->info->set_csrmv_info(csrmv_info);
                     mat->analysed = true;
                 }
                 return rocsparse_status_success;
@@ -540,22 +642,29 @@ namespace rocsparse
 
             case rocsparse_spmv_stage_compute:
             {
-                RETURN_IF_ROCSPARSE_ERROR(rocsparse::cscmv_template(
-                    handle,
-                    trans,
-                    alg_csrmv,
-                    (J)mat->rows,
-                    (J)mat->cols,
-                    (I)mat->nnz,
-                    (const T*)alpha,
-                    mat->descr,
-                    (const A*)mat->const_val_data,
-                    (const I*)mat->const_col_data,
-                    (const J*)mat->const_row_data,
-                    (alg == rocsparse_spmv_alg_csr_stream) ? nullptr : mat->info,
-                    (const X*)x->const_values,
-                    (const T*)beta,
-                    (Y*)y->values));
+                RETURN_IF_ROCSPARSE_ERROR((rocsparse::cscmv(handle,
+                                                            trans,
+                                                            alg_csrmv,
+                                                            mat->rows,
+                                                            mat->cols,
+                                                            mat->nnz,
+                                                            alpha_type,
+                                                            alpha,
+                                                            mat->descr,
+                                                            mat->data_type,
+                                                            mat->const_val_data,
+                                                            mat->col_type,
+                                                            mat->const_col_data,
+                                                            mat->row_type,
+                                                            mat->const_row_data,
+                                                            mat->info->get_csrmv_info(),
+                                                            x->data_type,
+                                                            x->const_values,
+                                                            beta_type,
+                                                            beta,
+                                                            y->data_type,
+                                                            y->values,
+                                                            fallback_algorithm)));
                 return rocsparse_status_success;
             }
             }
@@ -578,18 +687,24 @@ namespace rocsparse
 
             case rocsparse_spmv_stage_compute:
             {
-                RETURN_IF_ROCSPARSE_ERROR(rocsparse::ellmv_template(handle,
-                                                                    trans,
-                                                                    (I)mat->rows,
-                                                                    (I)mat->cols,
-                                                                    (const T*)alpha,
-                                                                    mat->descr,
-                                                                    (const A*)mat->const_val_data,
-                                                                    (const I*)mat->const_col_data,
-                                                                    (I)mat->ell_width,
-                                                                    (const X*)x->const_values,
-                                                                    (const T*)beta,
-                                                                    (Y*)y->values));
+                RETURN_IF_ROCSPARSE_ERROR((rocsparse::ellmv(handle,
+                                                            trans,
+                                                            mat->rows,
+                                                            mat->cols,
+                                                            alpha_type,
+                                                            alpha,
+                                                            mat->descr,
+                                                            mat->data_type,
+                                                            mat->const_val_data,
+                                                            mat->col_type,
+                                                            mat->const_col_data,
+                                                            mat->ell_width,
+                                                            x->data_type,
+                                                            x->const_values,
+                                                            beta_type,
+                                                            beta,
+                                                            y->data_type,
+                                                            y->values)));
                 return rocsparse_status_success;
             }
             }
@@ -599,212 +714,13 @@ namespace rocsparse
         {
             // LCOV_EXCL_START
             RETURN_IF_ROCSPARSE_ERROR(rocsparse_status_not_implemented);
-            // LCOV_EXCL_STOP
         }
         }
 
         RETURN_IF_ROCSPARSE_ERROR(rocsparse_status_invalid_value);
+        // LCOV_EXCL_STOP
     }
 
-    template <typename... Ts>
-    rocsparse_status spmv_dynamic_dispatch(rocsparse_indextype itype,
-                                           rocsparse_indextype jtype,
-                                           rocsparse_datatype  atype,
-                                           rocsparse_datatype  xtype,
-                                           rocsparse_datatype  ytype,
-                                           rocsparse_datatype  ctype,
-                                           Ts&&... ts)
-    {
-#define DISPATCH_COMPUTE_TYPE_I32R(ITYPE, JTYPE, CTYPE, atype, xtype, ytype)                  \
-    if(atype == rocsparse_datatype_i8_r && xtype == rocsparse_datatype_i8_r                   \
-       && ytype == rocsparse_datatype_i32_r)                                                  \
-    {                                                                                         \
-        RETURN_IF_ROCSPARSE_ERROR(                                                            \
-            (rocsparse::spmv_template<CTYPE, ITYPE, JTYPE, int8_t, int8_t, int32_t>(ts...))); \
-        return rocsparse_status_success;                                                      \
-    }                                                                                         \
-    else                                                                                      \
-    {                                                                                         \
-        RETURN_IF_ROCSPARSE_ERROR(rocsparse_status_not_implemented);                          \
-    }
-
-#define DISPATCH_COMPUTE_TYPE_F32R(ITYPE, JTYPE, CTYPE, atype, xtype, ytype)                \
-    if(atype == rocsparse_datatype_f32_r && atype == xtype && atype == ytype)               \
-    {                                                                                       \
-        RETURN_IF_ROCSPARSE_ERROR(                                                          \
-            (rocsparse::spmv_template<CTYPE, ITYPE, JTYPE, float, float, float>(ts...)));   \
-        return rocsparse_status_success;                                                    \
-    }                                                                                       \
-    else if(atype == rocsparse_datatype_i8_r && xtype == rocsparse_datatype_i8_r            \
-            && ytype == rocsparse_datatype_f32_r)                                           \
-    {                                                                                       \
-        RETURN_IF_ROCSPARSE_ERROR(                                                          \
-            (rocsparse::spmv_template<CTYPE, ITYPE, JTYPE, int8_t, int8_t, float>(ts...))); \
-        return rocsparse_status_success;                                                    \
-    }                                                                                       \
-    else                                                                                    \
-    {                                                                                       \
-        RETURN_IF_ROCSPARSE_ERROR(rocsparse_status_not_implemented);                        \
-    }
-
-#define DISPATCH_COMPUTE_TYPE_F64R(ITYPE, JTYPE, CTYPE, atype, xtype, ytype)                 \
-    if(atype == rocsparse_datatype_f64_r && atype == xtype && atype == ytype)                \
-    {                                                                                        \
-        RETURN_IF_ROCSPARSE_ERROR(                                                           \
-            (rocsparse::spmv_template<CTYPE, ITYPE, JTYPE, double, double, double>(ts...))); \
-        return rocsparse_status_success;                                                     \
-    }                                                                                        \
-    else if(atype == rocsparse_datatype_f32_r && xtype == rocsparse_datatype_f64_r           \
-            && xtype == ytype)                                                               \
-    {                                                                                        \
-        RETURN_IF_ROCSPARSE_ERROR(                                                           \
-            (rocsparse::spmv_template<CTYPE, ITYPE, JTYPE, float, double, double>(ts...)));  \
-        return rocsparse_status_success;                                                     \
-    }                                                                                        \
-    else                                                                                     \
-    {                                                                                        \
-        RETURN_IF_ROCSPARSE_ERROR(rocsparse_status_not_implemented);                         \
-    }
-
-#define DISPATCH_COMPUTE_TYPE_F32C(ITYPE, JTYPE, CTYPE, atype, xtype, ytype)                   \
-    if(atype == rocsparse_datatype_f32_c && atype == xtype && atype == ytype)                  \
-    {                                                                                          \
-        RETURN_IF_ROCSPARSE_ERROR((rocsparse::spmv_template<CTYPE,                             \
-                                                            ITYPE,                             \
-                                                            JTYPE,                             \
-                                                            rocsparse_float_complex,           \
-                                                            rocsparse_float_complex,           \
-                                                            rocsparse_float_complex>(ts...))); \
-        return rocsparse_status_success;                                                       \
-    }                                                                                          \
-    else if(atype == rocsparse_datatype_f32_r && xtype == rocsparse_datatype_f32_c             \
-            && ytype == rocsparse_datatype_f32_c)                                              \
-    {                                                                                          \
-        RETURN_IF_ROCSPARSE_ERROR((rocsparse::spmv_template<CTYPE,                             \
-                                                            ITYPE,                             \
-                                                            JTYPE,                             \
-                                                            float,                             \
-                                                            rocsparse_float_complex,           \
-                                                            rocsparse_float_complex>(ts...))); \
-        return rocsparse_status_success;                                                       \
-    }                                                                                          \
-    else                                                                                       \
-    {                                                                                          \
-        RETURN_IF_ROCSPARSE_ERROR(rocsparse_status_not_implemented);                           \
-    }
-
-#define DISPATCH_COMPUTE_TYPE_F64C(ITYPE, JTYPE, CTYPE, atype, xtype, ytype)                    \
-    if(atype == rocsparse_datatype_f64_c && atype == xtype && atype == ytype)                   \
-    {                                                                                           \
-        RETURN_IF_ROCSPARSE_ERROR((rocsparse::spmv_template<CTYPE,                              \
-                                                            ITYPE,                              \
-                                                            JTYPE,                              \
-                                                            rocsparse_double_complex,           \
-                                                            rocsparse_double_complex,           \
-                                                            rocsparse_double_complex>(ts...))); \
-        return rocsparse_status_success;                                                        \
-    }                                                                                           \
-    else if(atype == rocsparse_datatype_f64_r && xtype == rocsparse_datatype_f64_c              \
-            && ytype == rocsparse_datatype_f64_c)                                               \
-    {                                                                                           \
-        RETURN_IF_ROCSPARSE_ERROR((rocsparse::spmv_template<CTYPE,                              \
-                                                            ITYPE,                              \
-                                                            JTYPE,                              \
-                                                            double,                             \
-                                                            rocsparse_double_complex,           \
-                                                            rocsparse_double_complex>(ts...))); \
-        return rocsparse_status_success;                                                        \
-    }                                                                                           \
-    else if(atype == rocsparse_datatype_f32_c && xtype == rocsparse_datatype_f64_c              \
-            && xtype == ytype)                                                                  \
-    {                                                                                           \
-        RETURN_IF_ROCSPARSE_ERROR((rocsparse::spmv_template<CTYPE,                              \
-                                                            ITYPE,                              \
-                                                            JTYPE,                              \
-                                                            rocsparse_float_complex,            \
-                                                            rocsparse_double_complex,           \
-                                                            rocsparse_double_complex>(ts...))); \
-        return rocsparse_status_success;                                                        \
-    }                                                                                           \
-    else                                                                                        \
-    {                                                                                           \
-        RETURN_IF_ROCSPARSE_ERROR(rocsparse_status_not_implemented);                            \
-    }
-
-#define DISPATCH_COMPUTE_TYPE(ITYPE, JTYPE, atype, xtype, ytype, ctype)                         \
-    switch(ctype)                                                                               \
-    {                                                                                           \
-    case rocsparse_datatype_i32_r:                                                              \
-    {                                                                                           \
-        DISPATCH_COMPUTE_TYPE_I32R(ITYPE, JTYPE, int32_t, atype, xtype, ytype)                  \
-    }                                                                                           \
-    case rocsparse_datatype_f32_r:                                                              \
-    {                                                                                           \
-        DISPATCH_COMPUTE_TYPE_F32R(ITYPE, JTYPE, float, atype, xtype, ytype)                    \
-    }                                                                                           \
-    case rocsparse_datatype_f64_r:                                                              \
-    {                                                                                           \
-        DISPATCH_COMPUTE_TYPE_F64R(ITYPE, JTYPE, double, atype, xtype, ytype)                   \
-    }                                                                                           \
-    case rocsparse_datatype_f32_c:                                                              \
-    {                                                                                           \
-        DISPATCH_COMPUTE_TYPE_F32C(ITYPE, JTYPE, rocsparse_float_complex, atype, xtype, ytype)  \
-    }                                                                                           \
-    case rocsparse_datatype_f64_c:                                                              \
-    {                                                                                           \
-        DISPATCH_COMPUTE_TYPE_F64C(ITYPE, JTYPE, rocsparse_double_complex, atype, xtype, ytype) \
-    }                                                                                           \
-    case rocsparse_datatype_i8_r:                                                               \
-    case rocsparse_datatype_u8_r:                                                               \
-    case rocsparse_datatype_u32_r:                                                              \
-    {                                                                                           \
-        RETURN_IF_ROCSPARSE_ERROR(rocsparse_status_not_implemented);                            \
-    }                                                                                           \
-    }
-
-        switch(itype)
-        {
-        case rocsparse_indextype_u16:
-        {
-            RETURN_IF_ROCSPARSE_ERROR(rocsparse_status_not_implemented);
-        }
-        case rocsparse_indextype_i32:
-        {
-            switch(jtype)
-            {
-            case rocsparse_indextype_u16:
-            case rocsparse_indextype_i64:
-            {
-                RETURN_IF_ROCSPARSE_ERROR(rocsparse_status_not_implemented);
-            }
-            case rocsparse_indextype_i32:
-            {
-                DISPATCH_COMPUTE_TYPE(int32_t, int32_t, atype, xtype, ytype, ctype);
-            }
-            }
-        }
-        case rocsparse_indextype_i64:
-        {
-            switch(jtype)
-            {
-            case rocsparse_indextype_u16:
-            {
-                RETURN_IF_ROCSPARSE_ERROR(rocsparse_status_not_implemented);
-            }
-            case rocsparse_indextype_i32:
-            {
-                DISPATCH_COMPUTE_TYPE(int64_t, int32_t, atype, xtype, ytype, ctype);
-            }
-            case rocsparse_indextype_i64:
-            {
-                DISPATCH_COMPUTE_TYPE(int64_t, int64_t, atype, xtype, ytype, ctype);
-            }
-            }
-        }
-        }
-
-        RETURN_IF_ROCSPARSE_ERROR(rocsparse_status_invalid_value);
-    }
 }
 
 /*
@@ -827,6 +743,8 @@ extern "C" rocsparse_status rocsparse_spmv(rocsparse_handle            handle, /
                                            void*                       temp_buffer) //11
 try
 {
+    ROCSPARSE_ROUTINE_TRACE;
+
     // Logging
     rocsparse::log_trace(handle,
                          "rocsparse_spmv",
@@ -867,27 +785,25 @@ try
     ROCSPARSE_CHECKARG(6, y, (y->init == false), rocsparse_status_not_initialized);
     // LCOV_EXCL_STOP
 
-    RETURN_IF_ROCSPARSE_ERROR(
-        rocsparse::spmv_dynamic_dispatch(rocsparse::determine_I_index_type(mat),
-                                         rocsparse::determine_J_index_type(mat),
-                                         mat->data_type,
-                                         x->data_type,
-                                         y->data_type,
-                                         compute_type,
-                                         handle,
-                                         trans,
-                                         alpha,
-                                         mat,
-                                         x,
-                                         beta,
-                                         y,
-                                         alg,
-                                         stage,
-                                         buffer_size,
-                                         temp_buffer));
+    RETURN_IF_ROCSPARSE_ERROR(rocsparse::spmv(handle,
+                                              trans,
+                                              compute_type,
+                                              alpha,
+                                              mat,
+                                              x,
+                                              compute_type,
+                                              beta,
+                                              y,
+                                              alg,
+                                              stage,
+                                              buffer_size,
+                                              temp_buffer));
+
     return rocsparse_status_success;
+    // LCOV_EXCL_START
 }
 catch(...)
 {
     RETURN_ROCSPARSE_EXCEPTION();
 }
+// LCOV_EXCL_STOP

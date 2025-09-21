@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (C) 2022-2024 Advanced Micro Devices, Inc. All rights Reserved.
+ * Copyright (C) 2022-2025 Advanced Micro Devices, Inc. All rights Reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -22,10 +22,72 @@
  * ************************************************************************ */
 
 #include "internal/generic/rocsparse_spitsv.h"
-#include "control.h"
-#include "handle.h"
+#include "rocsparse_control.hpp"
 #include "rocsparse_csritsv.hpp"
-#include "utility.h"
+#include "rocsparse_handle.hpp"
+#include "rocsparse_utility.hpp"
+
+template <>
+const char* rocsparse::enum_utils::to_string(rocsparse_spitsv_alg value_)
+{
+#define CASE(C) \
+    case C:     \
+        return #C
+    switch(value_)
+    {
+        CASE(rocsparse_spitsv_alg_default);
+#undef CASE
+    }
+    // LCOV_EXCL_START
+    THROW_IF_ROCSPARSE_ERROR(rocsparse_status_invalid_value);
+    // LCOV_EXCL_STOP
+}
+
+template <>
+const char* rocsparse::enum_utils::to_string(rocsparse_spitsv_stage value_)
+{
+#define CASE(C) \
+    case C:     \
+        return #C
+    switch(value_)
+    {
+        CASE(rocsparse_spitsv_stage_buffer_size);
+        CASE(rocsparse_spitsv_stage_preprocess);
+        CASE(rocsparse_spitsv_stage_compute);
+#undef CASE
+    }
+    // LCOV_EXCL_START
+    THROW_IF_ROCSPARSE_ERROR(rocsparse_status_invalid_value);
+    // LCOV_EXCL_STOP
+}
+
+template <>
+bool rocsparse::enum_utils::is_invalid(rocsparse_spitsv_alg value_)
+{
+    switch(value_)
+    {
+    case rocsparse_spitsv_alg_default:
+    {
+        return false;
+    }
+    }
+    return true;
+}
+
+template <>
+bool rocsparse::enum_utils::is_invalid(rocsparse_spitsv_stage value_)
+{
+    switch(value_)
+    {
+    case rocsparse_spitsv_stage_buffer_size:
+    case rocsparse_spitsv_stage_preprocess:
+    case rocsparse_spitsv_stage_compute:
+    {
+        return false;
+    }
+    }
+    return true;
+}
 
 namespace rocsparse
 {
@@ -44,9 +106,13 @@ namespace rocsparse
                                      size_t*                     buffer_size,
                                      void*                       temp_buffer)
     {
+        ROCSPARSE_ROUTINE_TRACE;
+
         if(mat->format != rocsparse_format_csr)
         {
+            // LCOV_EXCL_START
             RETURN_IF_ROCSPARSE_ERROR(rocsparse_status_not_implemented);
+            // LCOV_EXCL_STOP
         }
 
         switch(stage)
@@ -111,8 +177,9 @@ namespace rocsparse
         }
         }
 
+        // LCOV_EXCL_START
         RETURN_IF_ROCSPARSE_ERROR(rocsparse_status_invalid_value);
-        return rocsparse_status_success;
+        // LCOV_EXCL_STOP
     }
 
     template <typename... Ts>
@@ -121,6 +188,8 @@ namespace rocsparse
                                              rocsparse_datatype  ctype,
                                              Ts&&... ts)
     {
+        ROCSPARSE_ROUTINE_TRACE;
+
         switch(ctype)
         {
 
@@ -185,8 +254,11 @@ namespace rocsparse
         case rocsparse_datatype_u8_r:
         case rocsparse_datatype_i32_r:
         case rocsparse_datatype_u32_r:
+        case rocsparse_datatype_f16_r:
         {
+            // LCOV_EXCL_START
             RETURN_IF_ROCSPARSE_ERROR(rocsparse_status_not_implemented);
+            // LCOV_EXCL_STOP
         }
         }
         // LCOV_EXCL_START
@@ -217,6 +289,7 @@ extern "C" rocsparse_status rocsparse_spitsv(rocsparse_handle            handle,
                                              void*                       temp_buffer) // 13
 try
 {
+    ROCSPARSE_ROUTINE_TRACE;
 
     // Check for invalid handle
     ROCSPARSE_CHECKARG_HANDLE(0, handle);
@@ -272,7 +345,9 @@ try
        compute_type != x->data_type || //
        compute_type != y->data_type)
     {
+        // LCOV_EXCL_START
         RETURN_IF_ROCSPARSE_ERROR(rocsparse_status_not_implemented);
+        // LCOV_EXCL_STOP
     }
 
     RETURN_IF_ROCSPARSE_ERROR(rocsparse::spitsv_dynamic_dispatch(mat->row_type,
@@ -292,8 +367,10 @@ try
                                                                  buffer_size,
                                                                  temp_buffer));
     return rocsparse_status_success;
+    // LCOV_EXCL_START
 }
 catch(...)
 {
     RETURN_ROCSPARSE_EXCEPTION();
 }
+// LCOV_EXCL_STOP

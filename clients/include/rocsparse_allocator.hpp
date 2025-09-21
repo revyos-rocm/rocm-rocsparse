@@ -242,23 +242,26 @@ private:
                 init_guards(guard, PAD);
 
                 // Copy guard to device memory before allocated memory
-                hipMemcpy(d,
-                          guard,
-                          sizeof(guard),
-                          memory_mode::get_hipMemcpyKind(MODE, memory_mode::host));
-                hipMemcpy(d + PAD,
-                          guard,
-                          sizeof(guard),
-                          memory_mode::get_hipMemcpyKind(MODE, memory_mode::host));
+                EXPECT_EQ(hipMemcpy(d,
+                                    guard,
+                                    sizeof(guard),
+                                    memory_mode::get_hipMemcpyKind(MODE, memory_mode::host)),
+                          0);
+                EXPECT_EQ(hipMemcpy(d + PAD,
+                                    guard,
+                                    sizeof(guard),
+                                    memory_mode::get_hipMemcpyKind(MODE, memory_mode::host)),
+                          0);
 
                 // Point to allocated block
                 d += 2 * PAD;
 
                 // Copy guard to device memory after allocated memory
-                hipMemcpy(d + size,
-                          guard,
-                          sizeof(guard),
-                          memory_mode::get_hipMemcpyKind(MODE, memory_mode::host));
+                EXPECT_EQ(hipMemcpy(d + size,
+                                    guard,
+                                    sizeof(guard),
+                                    memory_mode::get_hipMemcpyKind(MODE, memory_mode::host)),
+                          0);
             }
         }
         return d;
@@ -325,16 +328,18 @@ public:
             {
                 U host[PAD], guard[PAD];
                 // Copy device memory after allocated memory to host
-                hipMemcpy(guard,
-                          ((U*)d) - 2 * PAD,
-                          sizeof(guard),
-                          memory_mode::get_hipMemcpyKind(memory_mode::host, MODE));
+                EXPECT_EQ(hipMemcpy(guard,
+                                    ((U*)d) - 2 * PAD,
+                                    sizeof(guard),
+                                    memory_mode::get_hipMemcpyKind(memory_mode::host, MODE)),
+                          0);
 
                 // Copy device memory after allocated memory to host
-                hipMemcpy(host,
-                          d + size,
-                          sizeof(guard),
-                          memory_mode::get_hipMemcpyKind(memory_mode::host, MODE));
+                EXPECT_EQ(hipMemcpy(host,
+                                    d + size,
+                                    sizeof(guard),
+                                    memory_mode::get_hipMemcpyKind(memory_mode::host, MODE)),
+                          0);
 
                 // Make sure no corruption has occurred
                 EXPECT_EQ(memcmp(host, guard, sizeof(guard)), 0);
@@ -343,10 +348,11 @@ public:
                 d -= PAD;
 
                 // Copy device memory after allocated memory to host
-                hipMemcpy(host,
-                          d,
-                          sizeof(guard),
-                          memory_mode::get_hipMemcpyKind(memory_mode::host, MODE));
+                EXPECT_EQ(hipMemcpy(host,
+                                    d,
+                                    sizeof(guard),
+                                    memory_mode::get_hipMemcpyKind(memory_mode::host, MODE)),
+                          0);
 
                 // Make sure no corruption has occurred
                 EXPECT_EQ(memcmp(host, guard, sizeof(guard)), 0);

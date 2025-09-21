@@ -1,5 +1,5 @@
 # ########################################################################
-# Copyright (C) 2020-2024 Advanced Micro Devices, Inc. All rights Reserved.
+# Copyright (C) 2020-2025 Advanced Micro Devices, Inc. All rights Reserved.
 #
 # Permission is hereby granted, free of charge, to any person obtaining a copy
 # of this software and associated documentation files (the "Software"), to deal
@@ -23,19 +23,29 @@
 
 # rocSPARSE source
 set(rocsparse_source
-  src/handle.cpp
-  src/rocsparse_common.cpp
-  src/rocsparse_auxiliary.cpp
-  src/rocsparse_blas.cpp
-  src/rocsparse_blas_rocblas.cpp
-  src/rocsparse_envariables.cpp
-  src/rocsparse_memstat.cpp
-  ##
-  src/rocsparse_debug.cpp
-  src/rocsparse_argdescr.cpp
-  src/rocsparse_message.cpp
-  ##
-  src/to_string.cpp
+
+# Auxiliary
+  src/auxiliary/rocsparse_auxiliary.cpp
+  src/auxiliary/rocsparse_error.cpp
+
+# Common
+  src/common/rocsparse_common.cpp
+  src/common/rocsparse_handle.cpp
+  src/common/rocsparse_mat_info.cpp
+  src/common/rocsparse_trm_info.cpp
+  src/common/rocsparse_indextype_utils.cpp
+  src/common/rocsparse_datatype_utils.cpp
+  src/common/rocsparse_one.cpp
+  src/common/rocsparse_assign_async.cpp
+  src/common/rocsparse_blas.cpp
+  src/common/rocsparse_blas_rocblas.cpp
+  src/common/rocsparse_envariables.cpp
+  src/common/rocsparse_memstat.cpp
+  src/common/rocsparse_debug.cpp
+  src/common/rocsparse_argdescr.cpp
+  src/common/rocsparse_message.cpp
+  src/common/rocsparse_determine_indextype.cpp
+
 
 # Primitives
   src/primitives/rocsparse_radix_sort_pairs.cpp
@@ -63,8 +73,10 @@ set(rocsparse_source
   src/level1/rocsparse_spvv.cpp
 
 # Level2
-  src/level2/rocsparse_bsrmv_ex.cpp
+  src/level2/rocsparse_bsrmv_impl.cpp
   src/level2/rocsparse_bsrmv.cpp
+  src/level2/rocsparse_bsrmv_analysis.cpp
+  #
   src/level2/rocsparse_bsrxmv.cpp
   src/level2/rocsparse_bsrxmv_spzl_2x2.cpp
   src/level2/rocsparse_bsrxmv_spzl_3x3.cpp
@@ -78,27 +90,45 @@ set(rocsparse_source
   src/level2/rocsparse_bsrsv_analysis.cpp
   src/level2/rocsparse_bsrsv_buffer_size.cpp
   src/level2/rocsparse_bsrsv_solve.cpp
+  #
+  src/level2/rocsparse_coomv_impl.cpp
   src/level2/rocsparse_coomv.cpp
+  src/level2/rocsparse_coomv_analysis.cpp
+  #
+  src/level2/rocsparse_coomv_aos_impl.cpp
   src/level2/rocsparse_coomv_aos.cpp
-  src/level2/rocsparse_csrmv_template_stream.cpp
+  #
+  src/level2/rocsparse_csrmv_template_rowsplit.cpp
   src/level2/rocsparse_csrmv_template_adaptive.cpp
   src/level2/rocsparse_csrmv_template_lrb.cpp
+  src/level2/rocsparse_csrmv_impl.cpp
   src/level2/rocsparse_csrmv.cpp
+  src/level2/rocsparse_csrmv_info.cpp
+  src/level2/rocsparse_csrmv_adaptive_info.cpp
+  src/level2/rocsparse_csrmv_lrb_info.cpp
+  src/level2/rocsparse_csrmv_analysis.cpp
+  #
+  src/level2/rocsparse_cscmv_impl.cpp
   src/level2/rocsparse_cscmv.cpp
+  src/level2/rocsparse_cscmv_analysis.cpp
+  #
+  src/level2/rocsparse_ellmv_impl.cpp
+  src/level2/rocsparse_ellmv.cpp
+  #
   src/level2/rocsparse_csrsv.cpp
   src/level2/rocsparse_csrsv_analysis.cpp
   src/level2/rocsparse_csrsv_buffer_size.cpp
   src/level2/rocsparse_csrsv_solve.cpp
   src/level2/rocsparse_csritsv.cpp
+  src/level2/rocsparse_csritsv_info.cpp
   src/level2/rocsparse_csritsv_buffer_size.cpp
   src/level2/rocsparse_csritsv_analysis.cpp
   src/level2/rocsparse_csritsv_solve.cpp
   src/level2/rocsparse_csritsv_solve_ex.cpp
   src/level2/rocsparse_coosv.cpp
-  src/level2/rocsparse_ellmv.cpp
   src/level2/rocsparse_hybmv.cpp
+  src/level2/rocsparse_v2_spmv.cpp
   src/level2/rocsparse_spmv.cpp
-  src/level2/rocsparse_spmv_ex.cpp
   src/level2/rocsparse_spsv.cpp
   src/level2/rocsparse_spitsv.cpp
   src/level2/rocsparse_gebsrmv.cpp
@@ -124,6 +154,187 @@ set(rocsparse_source
   src/level3/rocsparse_bsrmm.cpp
   src/level3/rocsparse_bellmm.cpp
   src/level3/rocsparse_bellmm_template_general.cpp
+  # csrmm row split
+  src/level3/csrmm/row_split/csrmm_device_row_split_256_16_8_2_1.cpp
+  src/level3/csrmm/row_split/csrmm_device_row_split_256_16_8_2_2.cpp
+  src/level3/csrmm/row_split/csrmm_device_row_split_256_16_8_2_2_1.cpp
+  src/level3/csrmm/row_split/csrmm_device_row_split_256_16_8_2_4.cpp
+  src/level3/csrmm/row_split/csrmm_device_row_split_256_16_8_2_4_1.cpp
+  src/level3/csrmm/row_split/csrmm_device_row_split_256_16_8_2_4_2.cpp
+  src/level3/csrmm/row_split/csrmm_device_row_split_256_16_8_2_4_2_1.cpp
+  src/level3/csrmm/row_split/csrmm_device_row_split_256_16_8_3_1.cpp
+  src/level3/csrmm/row_split/csrmm_device_row_split_256_16_8_3_2.cpp
+  src/level3/csrmm/row_split/csrmm_device_row_split_256_16_8_3_2_1.cpp
+  src/level3/csrmm/row_split/csrmm_device_row_split_256_16_8_3_4.cpp
+  src/level3/csrmm/row_split/csrmm_device_row_split_256_16_8_3_4_1.cpp
+  src/level3/csrmm/row_split/csrmm_device_row_split_256_16_8_3_4_2.cpp
+  src/level3/csrmm/row_split/csrmm_device_row_split_256_16_8_3_4_2_1.cpp
+  src/level3/csrmm/row_split/csrmm_device_row_split_256_16_8_4_1.cpp
+  src/level3/csrmm/row_split/csrmm_device_row_split_256_16_8_4_2.cpp
+  src/level3/csrmm/row_split/csrmm_device_row_split_256_16_8_4_2_1.cpp
+  src/level3/csrmm/row_split/csrmm_device_row_split_256_16_8_4_4.cpp
+  src/level3/csrmm/row_split/csrmm_device_row_split_256_16_8_4_4_1.cpp
+  src/level3/csrmm/row_split/csrmm_device_row_split_256_16_8_4_4_2.cpp
+  src/level3/csrmm/row_split/csrmm_device_row_split_256_16_8_4_4_2_1.cpp
+  src/level3/csrmm/row_split/csrmm_device_row_split_256_16_8_5_1.cpp
+  src/level3/csrmm/row_split/csrmm_device_row_split_256_16_8_5_2.cpp
+  src/level3/csrmm/row_split/csrmm_device_row_split_256_16_8_5_2_1.cpp
+  src/level3/csrmm/row_split/csrmm_device_row_split_256_16_8_5_4.cpp
+  src/level3/csrmm/row_split/csrmm_device_row_split_256_16_8_5_4_1.cpp
+  src/level3/csrmm/row_split/csrmm_device_row_split_256_16_8_5_4_2.cpp
+  src/level3/csrmm/row_split/csrmm_device_row_split_256_16_8_5_4_2_1.cpp
+  src/level3/csrmm/row_split/csrmm_device_row_split_256_16_8_6_1.cpp
+  src/level3/csrmm/row_split/csrmm_device_row_split_256_16_8_6_2.cpp
+  src/level3/csrmm/row_split/csrmm_device_row_split_256_16_8_6_2_1.cpp
+  src/level3/csrmm/row_split/csrmm_device_row_split_256_16_8_6_4.cpp
+  src/level3/csrmm/row_split/csrmm_device_row_split_256_16_8_6_4_1.cpp
+  src/level3/csrmm/row_split/csrmm_device_row_split_256_16_8_6_4_2.cpp
+  src/level3/csrmm/row_split/csrmm_device_row_split_256_16_8_6_4_2_1.cpp
+  src/level3/csrmm/row_split/csrmm_device_row_split_256_16_8_7_1.cpp
+  src/level3/csrmm/row_split/csrmm_device_row_split_256_16_8_7_2.cpp
+  src/level3/csrmm/row_split/csrmm_device_row_split_256_16_8_7_2_1.cpp
+  src/level3/csrmm/row_split/csrmm_device_row_split_256_16_8_7_4.cpp
+  src/level3/csrmm/row_split/csrmm_device_row_split_256_16_8_7_4_1.cpp
+  src/level3/csrmm/row_split/csrmm_device_row_split_256_16_8_7_4_2.cpp
+  src/level3/csrmm/row_split/csrmm_device_row_split_256_16_8_7_4_2_1.cpp
+  src/level3/csrmm/row_split/csrmm_device_row_split_256_16_8_1.cpp
+  src/level3/csrmm/row_split/csrmm_device_row_split_256_16_8_2.cpp
+  src/level3/csrmm/row_split/csrmm_device_row_split_256_16_8_3.cpp
+  src/level3/csrmm/row_split/csrmm_device_row_split_256_16_8_4.cpp
+  src/level3/csrmm/row_split/csrmm_device_row_split_256_16_8_5.cpp
+  src/level3/csrmm/row_split/csrmm_device_row_split_256_16_8_6.cpp
+  src/level3/csrmm/row_split/csrmm_device_row_split_256_16_8_7.cpp
+  src/level3/csrmm/row_split/csrmm_device_row_split_256_16_8_8.cpp
+  src/level3/csrmm/row_split/csrmmnn_device_row_split_shared_256_8.cpp
+  src/level3/csrmm/row_split/csrmmnn_device_row_split_256_8_8.cpp
+  src/level3/csrmm/row_split/csrmmnn_device_row_split_256_8_1.cpp
+  src/level3/csrmm/row_split/csrmmtn_device_row_split_256_4.cpp
+  src/level3/csrmm/row_split/csrmmtt_device_row_split_256_4.cpp
+  src/level3/csrmm/row_split/csrmm_device_row_split_remainder_256_8_8.cpp
+  src/level3/csrmm/row_split/csrmm_device_row_split_remainder_256_16_16.cpp
+  # csrmm nnz split
+  src/level3/csrmm/nnz_split/csrmmnn_device_nnz_split_main_256_8.cpp
+  src/level3/csrmm/nnz_split/csrmmnn_device_nnz_split_main_256_4.cpp
+  src/level3/csrmm/nnz_split/csrmmnn_device_nnz_split_main_256_2.cpp
+  src/level3/csrmm/nnz_split/csrmmnn_device_nnz_split_main_256_1.cpp
+  src/level3/csrmm/nnz_split/csrmmnn_device_nnz_split_remainder_256_8.cpp
+  src/level3/csrmm/nnz_split/csrmmnn_device_nnz_split_remainder_256_4.cpp
+  src/level3/csrmm/nnz_split/csrmmnn_device_nnz_split_remainder_256_2.cpp
+  src/level3/csrmm/nnz_split/csrmmnn_device_nnz_split_remainder_256_1.cpp
+  src/level3/csrmm/nnz_split/csrmmnt_device_nnz_split_main_256_32_2.cpp
+  src/level3/csrmm/nnz_split/csrmmnt_device_nnz_split_main_256_32_4.cpp
+  src/level3/csrmm/nnz_split/csrmmnt_device_nnz_split_main_256_32_6.cpp
+  src/level3/csrmm/nnz_split/csrmmnt_device_nnz_split_main_256_32_8.cpp
+  src/level3/csrmm/nnz_split/csrmmnt_device_nnz_split_main_256_64_1.cpp
+  src/level3/csrmm/nnz_split/csrmmnt_device_nnz_split_main_256_64_2.cpp
+  src/level3/csrmm/nnz_split/csrmmnt_device_nnz_split_main_256_64_3.cpp
+  src/level3/csrmm/nnz_split/csrmmnt_device_nnz_split_main_256_64_4.cpp
+  src/level3/csrmm/nnz_split/csrmmnt_device_nnz_split_remainder_256_1.cpp
+  src/level3/csrmm/nnz_split/csrmmnt_device_nnz_split_remainder_256_2.cpp
+  src/level3/csrmm/nnz_split/csrmmnt_device_nnz_split_remainder_256_4.cpp
+  src/level3/csrmm/nnz_split/csrmmnt_device_nnz_split_remainder_256_8.cpp
+  src/level3/csrmm/nnz_split/csrmmnt_device_nnz_split_remainder_256_16.cpp
+  src/level3/csrmm/nnz_split/csrmmnt_device_nnz_split_remainder_256_32.cpp
+  src/level3/csrmm/nnz_split/csrmmnt_device_nnz_split_remainder_256_64.cpp
+  # csrmm merge path
+  src/level3/csrmm/merge_path/csrmmnn_device_merge_path_256_16_256.cpp
+  src/level3/csrmm/merge_path/csrmmnn_device_merge_path_256_32_256.cpp
+  src/level3/csrmm/merge_path/csrmmnn_device_merge_path_256_64_256.cpp
+  src/level3/csrmm/merge_path/csrmmnn_device_merge_path_256_128_256.cpp
+  src/level3/csrmm/merge_path/csrmmnn_device_merge_path_256_256_256.cpp
+  src/level3/csrmm/merge_path/csrmmnt_device_merge_path_main_64_256_1.cpp
+  src/level3/csrmm/merge_path/csrmmnt_device_merge_path_main_128_256_1.cpp
+  src/level3/csrmm/merge_path/csrmmnt_device_merge_path_main_256_256_1.cpp
+  src/level3/csrmm/merge_path/csrmmnt_device_merge_path_remainder_256_8_256.cpp
+  src/level3/csrmm/merge_path/csrmmnt_device_merge_path_remainder_256_16_256.cpp
+  src/level3/csrmm/merge_path/csrmmnt_device_merge_path_remainder_256_32_256.cpp
+  src/level3/csrmm/merge_path/csrmmnt_device_merge_path_remainder_256_64_256.cpp
+  src/level3/csrmm/merge_path/csrmmnt_device_merge_path_remainder_256_128_256.cpp
+  src/level3/csrmm/merge_path/csrmmnt_device_merge_path_remainder_256_256_256.cpp
+  # coomm atomic
+  src/level3/coomm/atomic/coommnn_device_atomic_main_256_32_2_0.cpp
+  src/level3/coomm/atomic/coommnn_device_atomic_main_256_32_4_0.cpp
+  src/level3/coomm/atomic/coommnn_device_atomic_main_256_32_6_0.cpp
+  src/level3/coomm/atomic/coommnn_device_atomic_main_256_32_8_0.cpp
+  src/level3/coomm/atomic/coommnn_device_atomic_main_256_32_2_1.cpp
+  src/level3/coomm/atomic/coommnn_device_atomic_main_256_32_4_1.cpp
+  src/level3/coomm/atomic/coommnn_device_atomic_main_256_32_6_1.cpp
+  src/level3/coomm/atomic/coommnn_device_atomic_main_256_32_8_1.cpp
+  src/level3/coomm/atomic/coommnn_device_atomic_main_256_64_1_0.cpp
+  src/level3/coomm/atomic/coommnn_device_atomic_main_256_64_2_0.cpp
+  src/level3/coomm/atomic/coommnn_device_atomic_main_256_64_3_0.cpp
+  src/level3/coomm/atomic/coommnn_device_atomic_main_256_64_4_0.cpp
+  src/level3/coomm/atomic/coommnn_device_atomic_main_256_64_1_1.cpp
+  src/level3/coomm/atomic/coommnn_device_atomic_main_256_64_2_1.cpp
+  src/level3/coomm/atomic/coommnn_device_atomic_main_256_64_3_1.cpp
+  src/level3/coomm/atomic/coommnn_device_atomic_main_256_64_4_1.cpp
+  src/level3/coomm/atomic/coommnn_device_atomic_remainder_256_1_0.cpp
+  src/level3/coomm/atomic/coommnn_device_atomic_remainder_256_2_0.cpp
+  src/level3/coomm/atomic/coommnn_device_atomic_remainder_256_4_0.cpp
+  src/level3/coomm/atomic/coommnn_device_atomic_remainder_256_8_0.cpp
+  src/level3/coomm/atomic/coommnn_device_atomic_remainder_256_16_0.cpp
+  src/level3/coomm/atomic/coommnn_device_atomic_remainder_256_32_0.cpp
+  src/level3/coomm/atomic/coommnn_device_atomic_remainder_256_64_0.cpp
+  src/level3/coomm/atomic/coommnn_device_atomic_remainder_256_1_1.cpp
+  src/level3/coomm/atomic/coommnn_device_atomic_remainder_256_2_1.cpp
+  src/level3/coomm/atomic/coommnn_device_atomic_remainder_256_4_1.cpp
+  src/level3/coomm/atomic/coommnn_device_atomic_remainder_256_8_1.cpp
+  src/level3/coomm/atomic/coommnn_device_atomic_remainder_256_16_1.cpp
+  src/level3/coomm/atomic/coommnn_device_atomic_remainder_256_32_1.cpp
+  src/level3/coomm/atomic/coommnn_device_atomic_remainder_256_64_1.cpp
+  src/level3/coomm/atomic/coommtn_device_atomic_main_256_0.cpp
+  src/level3/coomm/atomic/coommtn_device_atomic_main_256_1.cpp
+  # coomm segmented atomic
+  src/level3/coomm/segmented_atomic/coommnn_device_segmented_atomic_32_16_1_0.cpp
+  src/level3/coomm/segmented_atomic/coommnn_device_segmented_atomic_32_16_1_1.cpp
+  src/level3/coomm/segmented_atomic/coommnn_device_segmented_atomic_32_16_2_0.cpp
+  src/level3/coomm/segmented_atomic/coommnn_device_segmented_atomic_32_16_2_1.cpp
+  src/level3/coomm/segmented_atomic/coommnn_device_segmented_atomic_32_16_3_0.cpp
+  src/level3/coomm/segmented_atomic/coommnn_device_segmented_atomic_32_16_3_1.cpp
+  src/level3/coomm/segmented_atomic/coommnn_device_segmented_atomic_32_16_4_0.cpp
+  src/level3/coomm/segmented_atomic/coommnn_device_segmented_atomic_32_16_4_1.cpp
+  src/level3/coomm/segmented_atomic/coommnn_device_segmented_atomic_32_16_5_0.cpp
+  src/level3/coomm/segmented_atomic/coommnn_device_segmented_atomic_32_16_5_1.cpp
+  src/level3/coomm/segmented_atomic/coommnn_device_segmented_atomic_32_16_6_0.cpp
+  src/level3/coomm/segmented_atomic/coommnn_device_segmented_atomic_32_16_6_1.cpp
+  src/level3/coomm/segmented_atomic/coommnn_device_segmented_atomic_32_16_7_0.cpp
+  src/level3/coomm/segmented_atomic/coommnn_device_segmented_atomic_32_16_7_1.cpp
+  src/level3/coomm/segmented_atomic/coommnn_device_segmented_atomic_32_16_8_0.cpp
+  src/level3/coomm/segmented_atomic/coommnn_device_segmented_atomic_32_16_8_1.cpp
+  src/level3/coomm/segmented_atomic/coommnn_device_segmented_atomic_64_16_1_0.cpp
+  src/level3/coomm/segmented_atomic/coommnn_device_segmented_atomic_64_16_1_1.cpp
+  src/level3/coomm/segmented_atomic/coommnn_device_segmented_atomic_64_16_2_0.cpp
+  src/level3/coomm/segmented_atomic/coommnn_device_segmented_atomic_64_16_2_1.cpp
+  src/level3/coomm/segmented_atomic/coommnn_device_segmented_atomic_64_16_3_0.cpp
+  src/level3/coomm/segmented_atomic/coommnn_device_segmented_atomic_64_16_3_1.cpp
+  src/level3/coomm/segmented_atomic/coommnn_device_segmented_atomic_64_16_4_0.cpp
+  src/level3/coomm/segmented_atomic/coommnn_device_segmented_atomic_64_16_4_1.cpp
+  src/level3/coomm/segmented_atomic/coommnn_device_segmented_atomic_64_16_5_0.cpp
+  src/level3/coomm/segmented_atomic/coommnn_device_segmented_atomic_64_16_5_1.cpp
+  src/level3/coomm/segmented_atomic/coommnn_device_segmented_atomic_64_16_6_0.cpp
+  src/level3/coomm/segmented_atomic/coommnn_device_segmented_atomic_64_16_6_1.cpp
+  src/level3/coomm/segmented_atomic/coommnn_device_segmented_atomic_64_16_7_0.cpp
+  src/level3/coomm/segmented_atomic/coommnn_device_segmented_atomic_64_16_7_1.cpp
+  src/level3/coomm/segmented_atomic/coommnn_device_segmented_atomic_64_16_8_0.cpp
+  src/level3/coomm/segmented_atomic/coommnn_device_segmented_atomic_64_16_8_1.cpp
+  # coomm segmented
+  src/level3/coomm/segmented/coommnn_device_segmented_main_256_1_4_0.cpp
+  src/level3/coomm/segmented/coommnn_device_segmented_main_256_1_4_1.cpp
+  src/level3/coomm/segmented/coommnn_device_segmented_main_256_2_4_0.cpp
+  src/level3/coomm/segmented/coommnn_device_segmented_main_256_2_4_1.cpp
+  src/level3/coomm/segmented/coommnn_device_segmented_main_256_4_4_0.cpp
+  src/level3/coomm/segmented/coommnn_device_segmented_main_256_4_4_1.cpp
+  src/level3/coomm/segmented/coommnn_device_segmented_main_256_8_4_0.cpp
+  src/level3/coomm/segmented/coommnn_device_segmented_main_256_8_4_1.cpp
+  src/level3/coomm/segmented/coommnn_device_segmented_remainder_256_1_4_0.cpp
+  src/level3/coomm/segmented/coommnn_device_segmented_remainder_256_1_4_1.cpp
+  src/level3/coomm/segmented/coommnn_device_segmented_remainder_256_2_4_0.cpp
+  src/level3/coomm/segmented/coommnn_device_segmented_remainder_256_2_4_1.cpp
+  src/level3/coomm/segmented/coommnn_device_segmented_remainder_256_4_4_0.cpp
+  src/level3/coomm/segmented/coommnn_device_segmented_remainder_256_4_4_1.cpp
+  src/level3/coomm/segmented/coommnn_device_segmented_remainder_256_8_4_0.cpp
+  src/level3/coomm/segmented/coommnn_device_segmented_remainder_256_8_4_1.cpp
+
   src/level3/rocsparse_csrmm_template_row_split.cpp
   src/level3/rocsparse_csrmm_template_nnz_split.cpp
   src/level3/rocsparse_csrmm_template_merge.cpp
@@ -162,9 +373,17 @@ set(rocsparse_source
 # Extra
   src/extra/rocsparse_bsrgeam.cpp
   src/extra/rocsparse_bsrgeam_nnzb.cpp
+  src/extra/rocsparse_csrgeam_numeric_impl.cpp
+  src/extra/rocsparse_csrgeam_numeric.cpp
+  src/extra/rocsparse_csrgeam_symbolic_impl.cpp
+  src/extra/rocsparse_csrgeam_symbolic.cpp
+  src/extra/rocsparse_csrgeam_impl.cpp
   src/extra/rocsparse_csrgeam.cpp
+  src/extra/rocsparse_csrgeam_nnz_impl.cpp
   src/extra/rocsparse_csrgeam_nnz.cpp
+  src/extra/rocsparse_csrgeam_buffer_size.cpp
   #
+  src/extra/rocsparse_csrgemm_info.cpp
   src/extra/rocsparse_csrgemm_scal_buffer_size.cpp
   src/extra/rocsparse_csrgemm_scal_nnz.cpp
   src/extra/rocsparse_csrgemm_scal.cpp
@@ -208,6 +427,7 @@ set(rocsparse_source
   src/extra/rocsparse_bsrgemm_calc.cpp
   src/extra/rocsparse_bsrgemm.cpp
   src/extra/rocsparse_spgemm.cpp
+  src/extra/rocsparse_spgeam.cpp
 
 # Preconditioner
   src/precond/rocsparse_bsric0.cpp
@@ -240,6 +460,7 @@ set(rocsparse_source
   src/precond/itilu0/rocsparse_csritilu0_sync_split_fusion.cpp
 
 # Conversion
+  src/conversion/rocsparse_calculate_nnz.cpp
   src/conversion/rocsparse_nnz.cpp
   src/conversion/rocsparse_csxsldu_buffer_size.cpp
   src/conversion/rocsparse_csxsldu_preprocess.cpp
@@ -300,6 +521,7 @@ set(rocsparse_source
   src/conversion/rocsparse_gell2csr.cpp
   src/conversion/rocsparse_ggthr.cpp
   src/conversion/rocsparse_convert_array.cpp
+  src/conversion/rocsparse_convert_scalar.cpp
   src/conversion/rocsparse_sparse_to_sparse_buffer_size.cpp
   src/conversion/rocsparse_sparse_to_sparse.cpp
   src/conversion/rocsparse_sparse_to_sparse_compute.cpp

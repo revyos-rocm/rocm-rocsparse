@@ -67,9 +67,9 @@ extern "C" {
 *  The user then allocates this buffer and calls \p rocsparse_spsm with the stage \ref rocsparse_spsm_stage_preprocess
 *  which will perform analysis on the sparse matrix \f$op(A)\f$. Finally, the user completes the computation by calling
 *  \p rocsparse_spsm with the stage \ref rocsparse_spsm_stage_compute. The buffer size, buffer allocation, and preprecess
-*  stages only need to be called once for a given sparse matrix \f$op(A)\f$ while the computation stage can be repeatedly
-*  used with different \f$B\f$ and \f$C\f$ matrices. Once all calls to \p rocsparse_spsm are complete, the temporary buffer
-*  can be deallocated.
+*  stages only need to be called once for a given sparse triangular matrix \f$op(A)\f$ while the computation stage can be 
+*  repeatedly used with different \f$B\f$ and \f$C\f$ matrices. Once all calls to \p rocsparse_spsm are complete, the 
+*  temporary buffer can be deallocated.
 *
 *  As noted above, both \f$B\f$ and \f$C\f$ can be in row or column order (this includes mixing the order so that \f$B\f$ is 
 *  row order and \f$C\f$ is column order and vice versa). Internally however, rocSPARSE kernels solve the system assuming the 
@@ -152,8 +152,8 @@ extern "C" {
 *   // A = 4 2 0 0
 *   //     0 3 7 0
 *   //     0 0 0 1
-*   rocsparse_int m   = 4;
-*   rocsparse_int n   = 2;
+*   int m   = 4;
+*   int n   = 2;
 *
 *   std::vector<int> hcsr_row_ptr = {0, 1, 3, 5, 6};
 *   std::vector<int> hcsr_col_ind = {0, 0, 1, 1, 2, 3};
@@ -172,7 +172,7 @@ extern "C" {
 *   // Scalar alpha
 *   float alpha = 1.0f;
 *
-*   rocsparse_int nnz = hcsr_row_ptr[m] - hcsr_row_ptr[0];
+*   int nnz = hcsr_row_ptr[m] - hcsr_row_ptr[0];
 *
 *   // Offload data to device
 *   int* dcsr_row_ptr;

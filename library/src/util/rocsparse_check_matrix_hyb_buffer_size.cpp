@@ -1,6 +1,6 @@
 /*! \file */
 /* ************************************************************************
- * Copyright (C) 2023-2024 Advanced Micro Devices, Inc. All rights Reserved.
+ * Copyright (C) 2023-2025 Advanced Micro Devices, Inc. All rights Reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -23,10 +23,10 @@
  * ************************************************************************ */
 #include "internal/util/rocsparse_check_matrix_hyb.h"
 
-#include "control.h"
 #include "rocsparse_check_matrix_coo.hpp"
 #include "rocsparse_check_matrix_ell.hpp"
-#include "utility.h"
+#include "rocsparse_control.hpp"
+#include "rocsparse_utility.hpp"
 
 namespace rocsparse
 {
@@ -45,6 +45,8 @@ namespace rocsparse
                                                        rocsparse_storage_mode storage,
                                                        size_t*                buffer_size)
     {
+        ROCSPARSE_ROUTINE_TRACE;
+
         switch(type)
         {
         case rocsparse_datatype_f32_r:
@@ -120,6 +122,7 @@ namespace rocsparse
         case rocsparse_datatype_u8_r:
         case rocsparse_datatype_i32_r:
         case rocsparse_datatype_u32_r:
+        case rocsparse_datatype_f16_r:
         {
             return rocsparse_status_not_implemented;
         }
@@ -142,6 +145,8 @@ namespace rocsparse
                                                        rocsparse_storage_mode storage,
                                                        size_t*                buffer_size)
     {
+        ROCSPARSE_ROUTINE_TRACE;
+
         switch(type)
         {
         case rocsparse_datatype_f32_r:
@@ -222,6 +227,7 @@ namespace rocsparse
         case rocsparse_datatype_u8_r:
         case rocsparse_datatype_i32_r:
         case rocsparse_datatype_u32_r:
+        case rocsparse_datatype_f16_r:
         {
             return rocsparse_status_not_implemented;
         }
@@ -237,6 +243,8 @@ rocsparse_status rocsparse_check_matrix_hyb_buffer_size(rocsparse_handle        
                                                         rocsparse_storage_mode  storage,
                                                         size_t*                 buffer_size)
 {
+    ROCSPARSE_ROUTINE_TRACE;
+
     ROCSPARSE_CHECKARG_HANDLE(0, handle);
     ROCSPARSE_CHECKARG_POINTER(1, hyb);
     ROCSPARSE_CHECKARG_ENUM(2, idx_base);

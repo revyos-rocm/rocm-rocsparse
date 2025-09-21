@@ -1,6 +1,6 @@
 /*! \file */
 /* ************************************************************************
- * Copyright (C) 2022-2024 Advanced Micro Devices, Inc.
+ * Copyright (C) 2022-2025 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -30,11 +30,11 @@
 #include "../conversion/rocsparse_csxsldu.hpp"
 #include "../conversion/rocsparse_identity.hpp"
 #include "../level1/rocsparse_gthr.hpp"
-#include "common.h"
 #include "common.hpp"
+#include "rocsparse_common.hpp"
 #include "rocsparse_csritilu0_driver.hpp"
 #include "rocsparse_csritilu0x_driver.hpp"
-#include "rocsparse_primitives.h"
+#include "rocsparse_primitives.hpp"
 
 namespace rocsparse
 {
@@ -1331,6 +1331,7 @@ struct rocsparse::csritilu0_driver_t<rocsparse_itilu0_alg_async_inplace>
             case rocsparse_datatype_u8_r:
             case rocsparse_datatype_i32_r:
             case rocsparse_datatype_u32_r:
+            case rocsparse_datatype_f16_r:
             {
                 RETURN_IF_ROCSPARSE_ERROR(rocsparse_status_not_implemented);
             }
@@ -1431,7 +1432,8 @@ struct rocsparse::csritilu0_driver_t<rocsparse_itilu0_alg_async_inplace>
                 if(sizeof(J) * unnz > handle_->buffer_size)
                 {
 
-                    rocsparse_hipMallocAsync(&csc_col_ind, sizeof(J) * unnz, handle_->stream);
+                    RETURN_IF_HIP_ERROR(
+                        rocsparse_hipMallocAsync(&csc_col_ind, sizeof(J) * unnz, handle_->stream));
                 }
                 else
                 {

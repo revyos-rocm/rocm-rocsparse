@@ -1,6 +1,6 @@
 /*! \file */
 /* ************************************************************************
- * Copyright (C) 2024 Advanced Micro Devices, Inc. All rights Reserved.
+ * Copyright (C) 2024-2025 Advanced Micro Devices, Inc. All rights Reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -22,9 +22,9 @@
  *
  * ************************************************************************ */
 
-#include "control.h"
-#include "rocsparse_primitives.h"
-#include "utility.h"
+#include "rocsparse_control.hpp"
+#include "rocsparse_primitives.hpp"
+#include "rocsparse_utility.hpp"
 
 #include <rocprim/rocprim.hpp>
 
@@ -37,9 +37,10 @@ rocsparse_status
                                                                  uint32_t         endbit,
                                                                  size_t*          buffer_size)
 {
+    ROCSPARSE_ROUTINE_TRACE;
+
     using config
         = rocprim::segmented_radix_sort_config<7,
-                                               4,
                                                rocprim::kernel_config<256, 16>,
                                                rocprim::WarpSortConfig<8, 8, 256, 5, 16, 16, 256>,
                                                1>;
@@ -72,11 +73,12 @@ rocsparse_status rocsparse::primitives::segmented_radix_sort_keys(rocsparse_hand
                                                                   size_t            buffer_size,
                                                                   void*             buffer)
 {
+    ROCSPARSE_ROUTINE_TRACE;
+
     rocprim::double_buffer<K> rocprim_keys(keys.current(), keys.alternate());
 
     using config
         = rocprim::segmented_radix_sort_config<7,
-                                               4,
                                                rocprim::kernel_config<256, 16>,
                                                rocprim::WarpSortConfig<8, 8, 256, 5, 16, 16, 256>,
                                                1>;
@@ -103,6 +105,8 @@ template <typename I, typename J>
 rocsparse_status rocsparse::primitives::sort_csr_column_indices_buffer_size(
     rocsparse_handle handle, J m, J n, I nnz, const I* csr_row_ptr, size_t* buffer_size)
 {
+    ROCSPARSE_ROUTINE_TRACE;
+
     uint32_t startbit = 0;
     uint32_t endbit   = rocsparse::clz(n);
 
@@ -123,6 +127,8 @@ rocsparse_status rocsparse::primitives::sort_csr_column_indices(rocsparse_handle
                                                                 J*    csr_col_ind_buffer2,
                                                                 void* buffer)
 {
+    ROCSPARSE_ROUTINE_TRACE;
+
     uint32_t startbit = 0;
     uint32_t endbit   = rocsparse::clz(n);
 
@@ -167,6 +173,8 @@ rocsparse_status rocsparse::primitives::sort_csr_column_indices(rocsparse_handle
                                                                 J*    csr_col_ind_buffer2,
                                                                 void* buffer)
 {
+    ROCSPARSE_ROUTINE_TRACE;
+
     uint32_t startbit = 0;
     uint32_t endbit   = rocsparse::clz(n);
 

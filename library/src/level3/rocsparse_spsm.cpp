@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (C) 2021-2024 Advanced Micro Devices, Inc. All rights Reserved.
+ * Copyright (C) 2021-2025 Advanced Micro Devices, Inc. All rights Reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -21,15 +21,82 @@
  *
  * ************************************************************************ */
 
-#include "common.h"
-#include "control.h"
-#include "handle.h"
+#include <map>
+#include <sstream>
+
 #include "rocsparse.h"
 #include "rocsparse_common.h"
-#include "utility.h"
+#include "rocsparse_common.hpp"
+#include "rocsparse_control.hpp"
+#include "rocsparse_determine_indextype.hpp"
+#include "rocsparse_enum_utils.hpp"
+#include "rocsparse_handle.hpp"
+#include "rocsparse_utility.hpp"
 
 #include "rocsparse_coosm.hpp"
 #include "rocsparse_csrsm.hpp"
+
+template <>
+const char* rocsparse::enum_utils::to_string(rocsparse_spsm_alg value_)
+{
+#define CASE(C) \
+    case C:     \
+        return #C
+    switch(value_)
+    {
+        CASE(rocsparse_spsm_alg_default);
+#undef CASE
+    }
+    // LCOV_EXCL_START
+    THROW_IF_ROCSPARSE_ERROR(rocsparse_status_invalid_value);
+    // LCOV_EXCL_STOP
+}
+
+template <>
+const char* rocsparse::enum_utils::to_string(rocsparse_spsm_stage value_)
+{
+#define CASE(C) \
+    case C:     \
+        return #C
+    switch(value_)
+    {
+        CASE(rocsparse_spsm_stage_buffer_size);
+        CASE(rocsparse_spsm_stage_preprocess);
+        CASE(rocsparse_spsm_stage_compute);
+#undef CASE
+    }
+    // LCOV_EXCL_START
+    THROW_IF_ROCSPARSE_ERROR(rocsparse_status_invalid_value);
+    // LCOV_EXCL_STOP
+}
+
+template <>
+bool rocsparse::enum_utils::is_invalid(rocsparse_spsm_alg value_)
+{
+    switch(value_)
+    {
+    case rocsparse_spsm_alg_default:
+    {
+        return false;
+    }
+    }
+    return true;
+}
+
+template <>
+bool rocsparse::enum_utils::is_invalid(rocsparse_spsm_stage value_)
+{
+    switch(value_)
+    {
+    case rocsparse_spsm_stage_buffer_size:
+    case rocsparse_spsm_stage_preprocess:
+    case rocsparse_spsm_stage_compute:
+    {
+        return false;
+    }
+    }
+    return true;
+}
 
 namespace rocsparse
 {
@@ -86,6 +153,8 @@ namespace rocsparse
                                            rocsparse_spsm_alg          alg,
                                            void*                       temp_buffer)
     {
+        ROCSPARSE_ROUTINE_TRACE;
+
         // 1) B col order + transposed and C row order
         // 2) B row order + non-transposed and C row order
         void* csrsm_buffer = temp_buffer;
@@ -187,6 +256,8 @@ namespace rocsparse
                                             rocsparse_spsm_alg          alg,
                                             void*                       temp_buffer)
     {
+        ROCSPARSE_ROUTINE_TRACE;
+
         // 1) B col order + transposed and C col order
         // 2) B row order + non-transposed and C col order
         void* spsm_buffer = temp_buffer;
@@ -317,6 +388,8 @@ namespace rocsparse
                                             rocsparse_spsm_alg          alg,
                                             void*                       temp_buffer)
     {
+        ROCSPARSE_ROUTINE_TRACE;
+
         // 1) B row order + transposed and C row order
         // 2) B col order + non-transposed and C row order
         void* csrsm_buffer = temp_buffer;
@@ -418,6 +491,8 @@ namespace rocsparse
                                              rocsparse_spsm_alg          alg,
                                              void*                       temp_buffer)
     {
+        ROCSPARSE_ROUTINE_TRACE;
+
         // 1) B row order + transposed and C col order
         // 2) B col order + non-transposed and C col order
         void* spsm_buffer = temp_buffer;
@@ -537,7 +612,7 @@ namespace rocsparse
         return rocsparse_status_success;
     }
 
-    template <typename I, typename J, typename T>
+    template <typename T, typename I, typename J>
     rocsparse_status spsm_template(rocsparse_handle            handle,
                                    rocsparse_operation         trans_A,
                                    rocsparse_operation         trans_B,
@@ -550,6 +625,8 @@ namespace rocsparse
                                    size_t*                     buffer_size,
                                    void*                       temp_buffer)
     {
+        ROCSPARSE_ROUTINE_TRACE;
+
         rocsparse::spsm_case spsm_case = spsm_get_case(trans_B, matB->order, matC->order);
 
         switch(stage)
@@ -739,85 +816,95 @@ namespace rocsparse
         }
     }
 
-    template <typename... Ts>
-    rocsparse_status spsm_dynamic_dispatch(rocsparse_indextype itype,
-                                           rocsparse_indextype jtype,
-                                           rocsparse_datatype  ctype,
-                                           Ts&&... ts)
-    {
-        switch(ctype)
-        {
-#define DATATYPE_CASE(ENUMVAL, TYPE)                                            \
-    case ENUMVAL:                                                               \
-    {                                                                           \
-        switch(itype)                                                           \
-        {                                                                       \
-        case rocsparse_indextype_u16:                                           \
-        {                                                                       \
-            RETURN_IF_ROCSPARSE_ERROR(rocsparse_status_not_implemented);        \
-        }                                                                       \
-        case rocsparse_indextype_i32:                                           \
-        {                                                                       \
-            switch(jtype)                                                       \
-            {                                                                   \
-            case rocsparse_indextype_u16:                                       \
-            case rocsparse_indextype_i64:                                       \
-            {                                                                   \
-                RETURN_IF_ROCSPARSE_ERROR(rocsparse_status_not_implemented);    \
-                return rocsparse_status_success;                                \
-            }                                                                   \
-            case rocsparse_indextype_i32:                                       \
-            {                                                                   \
-                RETURN_IF_ROCSPARSE_ERROR(                                      \
-                    (rocsparse::spsm_template<int32_t, int32_t, TYPE>(ts...))); \
-                return rocsparse_status_success;                                \
-            }                                                                   \
-            }                                                                   \
-        }                                                                       \
-        case rocsparse_indextype_i64:                                           \
-        {                                                                       \
-            switch(jtype)                                                       \
-            {                                                                   \
-            case rocsparse_indextype_u16:                                       \
-            {                                                                   \
-                RETURN_IF_ROCSPARSE_ERROR(rocsparse_status_not_implemented);    \
-            }                                                                   \
-            case rocsparse_indextype_i32:                                       \
-            {                                                                   \
-                RETURN_IF_ROCSPARSE_ERROR(                                      \
-                    (rocsparse::spsm_template<int64_t, int32_t, TYPE>(ts...))); \
-                return rocsparse_status_success;                                \
-            }                                                                   \
-            case rocsparse_indextype_i64:                                       \
-            {                                                                   \
-                RETURN_IF_ROCSPARSE_ERROR(                                      \
-                    (rocsparse::spsm_template<int64_t, int64_t, TYPE>(ts...))); \
-                return rocsparse_status_success;                                \
-            }                                                                   \
-            }                                                                   \
-        }                                                                       \
-        }                                                                       \
+    typedef rocsparse_status (*spsm_template_t)(rocsparse_handle            handle,
+                                                rocsparse_operation         trans_A,
+                                                rocsparse_operation         trans_B,
+                                                const void*                 alpha,
+                                                rocsparse_const_spmat_descr matA,
+                                                rocsparse_const_dnmat_descr matB,
+                                                const rocsparse_dnmat_descr matC,
+                                                rocsparse_spsm_alg          alg,
+                                                rocsparse_spsm_stage        stage,
+                                                size_t*                     buffer_size,
+                                                void*                       temp_buffer);
+
+    using spsm_template_tuple
+        = std::tuple<rocsparse_datatype, rocsparse_indextype, rocsparse_indextype>;
+    // clang-format off
+#define SPSM_TEMPLATE_CONFIG(T_, I_, J_)                                    \
+    {                                                                       \
+        spsm_template_tuple(T_, I_, J_),                                    \
+            spsm_template<typename rocsparse::datatype_traits<T_>::type_t,  \
+                          typename rocsparse::indextype_traits<I_>::type_t, \
+                          typename rocsparse::indextype_traits<J_>::type_t> \
     }
+    // clang-format on
 
-            DATATYPE_CASE(rocsparse_datatype_f32_r, float);
-            DATATYPE_CASE(rocsparse_datatype_f64_r, double);
-            DATATYPE_CASE(rocsparse_datatype_f32_c, rocsparse_float_complex);
-            DATATYPE_CASE(rocsparse_datatype_f64_c, rocsparse_double_complex);
-            //DATATYPE_CASE(rocsparse_datatype_i8_r, int8_t);
-            //DATATYPE_CASE(rocsparse_datatype_u8_r, uint8_t);
-            //DATATYPE_CASE(rocsparse_datatype_i32_r, int32_t);
-            //DATATYPE_CASE(rocsparse_datatype_u32_r, uint32_t);
+    static const std::map<spsm_template_tuple, spsm_template_t> s_spsm_template_dispatch{{
 
-        case rocsparse_datatype_i8_r:
-        case rocsparse_datatype_u8_r:
-        case rocsparse_datatype_i32_r:
-        case rocsparse_datatype_u32_r:
+        SPSM_TEMPLATE_CONFIG(
+            rocsparse_datatype_f32_r, rocsparse_indextype_i32, rocsparse_indextype_i32),
+
+        SPSM_TEMPLATE_CONFIG(
+            rocsparse_datatype_f32_r, rocsparse_indextype_i64, rocsparse_indextype_i32),
+
+        SPSM_TEMPLATE_CONFIG(
+            rocsparse_datatype_f32_r, rocsparse_indextype_i64, rocsparse_indextype_i64),
+
+        SPSM_TEMPLATE_CONFIG(
+            rocsparse_datatype_f64_r, rocsparse_indextype_i32, rocsparse_indextype_i32),
+
+        SPSM_TEMPLATE_CONFIG(
+            rocsparse_datatype_f64_r, rocsparse_indextype_i64, rocsparse_indextype_i32),
+
+        SPSM_TEMPLATE_CONFIG(
+            rocsparse_datatype_f64_r, rocsparse_indextype_i64, rocsparse_indextype_i64),
+
+        SPSM_TEMPLATE_CONFIG(
+            rocsparse_datatype_f64_c, rocsparse_indextype_i32, rocsparse_indextype_i32),
+
+        SPSM_TEMPLATE_CONFIG(
+            rocsparse_datatype_f64_c, rocsparse_indextype_i64, rocsparse_indextype_i32),
+
+        SPSM_TEMPLATE_CONFIG(
+            rocsparse_datatype_f64_c, rocsparse_indextype_i64, rocsparse_indextype_i64),
+
+        SPSM_TEMPLATE_CONFIG(
+            rocsparse_datatype_f32_c, rocsparse_indextype_i32, rocsparse_indextype_i32),
+
+        SPSM_TEMPLATE_CONFIG(
+            rocsparse_datatype_f32_c, rocsparse_indextype_i64, rocsparse_indextype_i32),
+
+        SPSM_TEMPLATE_CONFIG(
+            rocsparse_datatype_f32_c, rocsparse_indextype_i64, rocsparse_indextype_i64)}};
+
+    static rocsparse_status spsm_template_find(spsm_template_t*    spsm_function_,
+                                               rocsparse_datatype  compute_type_,
+                                               rocsparse_indextype i_type_,
+                                               rocsparse_indextype j_type_)
+    {
+        const auto& it = rocsparse::s_spsm_template_dispatch.find(
+            rocsparse::spsm_template_tuple(compute_type_, i_type_, j_type_));
+
+        if(it != rocsparse::s_spsm_template_dispatch.end())
         {
-            RETURN_IF_ROCSPARSE_ERROR(rocsparse_status_not_implemented);
+            spsm_function_[0] = it->second;
         }
+        // LCOV_EXCL_START
+        else
+        {
+            std::stringstream sstr;
+            sstr << "invalid precision configuration: "
+                 << "compute_type: " << rocsparse::enum_utils::to_string(compute_type_)
+                 << ", i_type: " << rocsparse::enum_utils::to_string(i_type_)
+                 << ", j_type: " << rocsparse::enum_utils::to_string(j_type_);
 
-#undef DATATYPE_CASE
+            RETURN_WITH_MESSAGE_IF_ROCSPARSE_ERROR(rocsparse_status_invalid_value,
+                                                   sstr.str().c_str());
         }
+        // LCOV_EXCL_STOP
+
+        return rocsparse_status_success;
     }
 }
 
@@ -841,6 +928,7 @@ extern "C" rocsparse_status rocsparse_spsm(rocsparse_handle            handle, /
                                            void*                       temp_buffer) //11
 try
 {
+    ROCSPARSE_ROUTINE_TRACE;
 
     rocsparse::log_trace(handle,
                          "rocsparse_spsm",
@@ -893,23 +981,21 @@ try
     }
     }
 
-    RETURN_IF_ROCSPARSE_ERROR(rocsparse::spsm_dynamic_dispatch(matA->row_type,
-                                                               matA->col_type,
-                                                               compute_type,
-                                                               handle,
-                                                               trans_A,
-                                                               trans_B,
-                                                               alpha,
-                                                               matA,
-                                                               matB,
-                                                               matC,
-                                                               alg,
-                                                               stage,
-                                                               buffer_size,
-                                                               temp_buffer));
+    rocsparse::spsm_template_t spsm_function;
+    RETURN_IF_ROCSPARSE_ERROR(
+        rocsparse::spsm_template_find(&spsm_function,
+                                      compute_type,
+                                      rocsparse::determine_I_indextype(matA),
+                                      rocsparse::determine_J_indextype(matA)));
+
+    RETURN_IF_ROCSPARSE_ERROR(spsm_function(
+        handle, trans_A, trans_B, alpha, matA, matB, matC, alg, stage, buffer_size, temp_buffer));
+
     return rocsparse_status_success;
+    // LCOV_EXCL_START
 }
 catch(...)
 {
     RETURN_ROCSPARSE_EXCEPTION();
 }
+// LCOV_EXCL_STOP

@@ -1,6 +1,6 @@
 /*! \file */
 /* ************************************************************************
- * Copyright (C) 2021-2024 Advanced Micro Devices, Inc. All rights Reserved.
+ * Copyright (C) 2021-2025 Advanced Micro Devices, Inc. All rights Reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -26,28 +26,29 @@
 #include "rocsparse_common.h"
 #include "rocsparse_gemvi.hpp"
 
-#include "control.h"
 #include "gemvi_device.h"
-#include "utility.h"
+#include "rocsparse_control.hpp"
+#include "rocsparse_utility.hpp"
 
 namespace rocsparse
 {
-    template <uint32_t BLOCKSIZE, uint32_t WFSIZE, typename I, typename T, typename U>
+    template <uint32_t BLOCKSIZE, uint32_t WFSIZE, typename I, typename T>
     ROCSPARSE_KERNEL(BLOCKSIZE)
     void gemvi_kernel(I m,
                       I n,
-                      U alpha_device_host,
+                      ROCSPARSE_DEVICE_HOST_SCALAR_PARAMS(T, alpha),
                       const T* __restrict__ A,
                       int64_t lda,
                       I       nnz,
                       const T* __restrict__ x_val,
                       const I* __restrict__ x_ind,
-                      U beta_device_host,
+                      ROCSPARSE_DEVICE_HOST_SCALAR_PARAMS(T, beta),
                       T* __restrict__ y,
-                      rocsparse_index_base idx_base)
+                      rocsparse_index_base idx_base,
+                      bool                 is_host_mode)
     {
-        auto alpha = rocsparse::load_scalar_device_host(alpha_device_host);
-        auto beta  = rocsparse::load_scalar_device_host(beta_device_host);
+        ROCSPARSE_DEVICE_HOST_SCALAR_GET(alpha);
+        ROCSPARSE_DEVICE_HOST_SCALAR_GET(beta);
 
         if(alpha != static_cast<T>(0) || beta != static_cast<T>(1))
         {
@@ -56,22 +57,24 @@ namespace rocsparse
         }
     }
 
-    template <typename I, typename T, typename U>
+    template <typename I, typename T>
     rocsparse_status gemvi_dispatch(rocsparse_handle     handle,
                                     rocsparse_operation  trans,
                                     I                    m,
                                     I                    n,
-                                    U                    alpha_device_host,
+                                    const T*             alpha_device_host,
                                     const T*             A,
                                     int64_t              lda,
                                     I                    nnz,
                                     const T*             x_val,
                                     const I*             x_ind,
-                                    U                    beta_device_host,
+                                    const T*             beta_device_host,
                                     T*                   y,
                                     rocsparse_index_base idx_base,
                                     void*                temp_buffer)
     {
+        ROCSPARSE_ROUTINE_TRACE;
+
 #define GEMVI_DIM 1024
         // If nnz is zero, only compute beta * y
         if(nnz == 0)
@@ -88,22 +91,24 @@ namespace rocsparse
                 dim3 gemvi_blocks((m - 1) / 32 + 1);
                 dim3 gemvi_threads(GEMVI_DIM);
 
-                RETURN_IF_HIPLAUNCHKERNELGGL_ERROR((rocsparse::gemvi_kernel<GEMVI_DIM, 32>),
-                                                   gemvi_blocks,
-                                                   gemvi_threads,
-                                                   0,
-                                                   handle->stream,
-                                                   m,
-                                                   n,
-                                                   alpha_device_host,
-                                                   A,
-                                                   lda,
-                                                   nnz,
-                                                   x_val,
-                                                   x_ind,
-                                                   beta_device_host,
-                                                   y,
-                                                   idx_base);
+                RETURN_IF_HIPLAUNCHKERNELGGL_ERROR(
+                    (rocsparse::gemvi_kernel<GEMVI_DIM, 32>),
+                    gemvi_blocks,
+                    gemvi_threads,
+                    0,
+                    handle->stream,
+                    m,
+                    n,
+                    ROCSPARSE_DEVICE_HOST_SCALAR_ARGS(handle, alpha_device_host),
+                    A,
+                    lda,
+                    nnz,
+                    x_val,
+                    x_ind,
+                    ROCSPARSE_DEVICE_HOST_SCALAR_ARGS(handle, beta_device_host),
+                    y,
+                    idx_base,
+                    handle->pointer_mode == rocsparse_pointer_mode_host);
             }
             else
             {
@@ -113,22 +118,24 @@ namespace rocsparse
                 dim3 gemvi_blocks((m - 1) / 64 + 1);
                 dim3 gemvi_threads(GEMVI_DIM);
 
-                RETURN_IF_HIPLAUNCHKERNELGGL_ERROR((rocsparse::gemvi_kernel<GEMVI_DIM, 64>),
-                                                   gemvi_blocks,
-                                                   gemvi_threads,
-                                                   0,
-                                                   handle->stream,
-                                                   m,
-                                                   n,
-                                                   alpha_device_host,
-                                                   A,
-                                                   lda,
-                                                   nnz,
-                                                   x_val,
-                                                   x_ind,
-                                                   beta_device_host,
-                                                   y,
-                                                   idx_base);
+                RETURN_IF_HIPLAUNCHKERNELGGL_ERROR(
+                    (rocsparse::gemvi_kernel<GEMVI_DIM, 64>),
+                    gemvi_blocks,
+                    gemvi_threads,
+                    0,
+                    handle->stream,
+                    m,
+                    n,
+                    ROCSPARSE_DEVICE_HOST_SCALAR_ARGS(handle, alpha_device_host),
+                    A,
+                    lda,
+                    nnz,
+                    x_val,
+                    x_ind,
+                    ROCSPARSE_DEVICE_HOST_SCALAR_ARGS(handle, beta_device_host),
+                    y,
+                    idx_base,
+                    handle->pointer_mode == rocsparse_pointer_mode_host);
             }
 #undef GEMVI_DIM
         }
@@ -156,6 +163,8 @@ namespace rocsparse
                                     rocsparse_index_base idx_base, //12
                                     void*                temp_buffer) //13
     {
+        ROCSPARSE_ROUTINE_TRACE;
+
         // Check for valid handle
         ROCSPARSE_CHECKARG_HANDLE(0, handle);
 
@@ -238,42 +247,21 @@ namespace rocsparse
             }
         }
 
-        if(handle->pointer_mode == rocsparse_pointer_mode_device)
-        {
-            RETURN_IF_ROCSPARSE_ERROR(rocsparse::gemvi_dispatch(handle,
-                                                                trans,
-                                                                m,
-                                                                n,
-                                                                alpha_device_host,
-                                                                A,
-                                                                lda,
-                                                                nnz,
-                                                                x_val,
-                                                                x_ind,
-                                                                beta_device_host,
-                                                                y,
-                                                                idx_base,
-                                                                temp_buffer));
-            return rocsparse_status_success;
-        }
-        else
-        {
-            RETURN_IF_ROCSPARSE_ERROR(rocsparse::gemvi_dispatch(handle,
-                                                                trans,
-                                                                m,
-                                                                n,
-                                                                *alpha_device_host,
-                                                                A,
-                                                                lda,
-                                                                nnz,
-                                                                x_val,
-                                                                x_ind,
-                                                                *beta_device_host,
-                                                                y,
-                                                                idx_base,
-                                                                temp_buffer));
-            return rocsparse_status_success;
-        }
+        RETURN_IF_ROCSPARSE_ERROR(rocsparse::gemvi_dispatch(handle,
+                                                            trans,
+                                                            m,
+                                                            n,
+                                                            alpha_device_host,
+                                                            A,
+                                                            lda,
+                                                            nnz,
+                                                            x_val,
+                                                            x_ind,
+                                                            beta_device_host,
+                                                            y,
+                                                            idx_base,
+                                                            temp_buffer));
+        return rocsparse_status_success;
     }
 }
 
@@ -297,6 +285,7 @@ extern "C" {
                            size_t*             buffer_size) \
     try                                                     \
     {                                                       \
+        ROCSPARSE_ROUTINE_TRACE;                            \
         *buffer_size = 0;                                   \
         return rocsparse_status_success;                    \
     }                                                       \
@@ -333,6 +322,7 @@ CAPI_IMPL(rocsparse_zgemvi_buffer_size, rocsparse_double_complex);
     {                                                                          \
         try                                                                    \
         {                                                                      \
+            ROCSPARSE_ROUTINE_TRACE;                                           \
             RETURN_IF_ROCSPARSE_ERROR(rocsparse::gemvi_template(handle,        \
                                                                 trans,         \
                                                                 m,             \

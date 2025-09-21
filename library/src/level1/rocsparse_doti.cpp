@@ -1,6 +1,6 @@
 /*! \file */
 /* ************************************************************************
- * Copyright (C) 2018-2024 Advanced Micro Devices, Inc. All rights Reserved.
+ * Copyright (C) 2018-2025 Advanced Micro Devices, Inc. All rights Reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -23,10 +23,10 @@
  * ************************************************************************ */
 
 #include "internal/level1/rocsparse_doti.h"
-#include "control.h"
 #include "doti_device.h"
+#include "rocsparse_control.hpp"
 #include "rocsparse_doti.hpp"
-#include "utility.h"
+#include "rocsparse_utility.hpp"
 
 template <typename T, typename I, typename X, typename Y>
 rocsparse_status rocsparse::doti_template(rocsparse_handle     handle,
@@ -37,6 +37,8 @@ rocsparse_status rocsparse::doti_template(rocsparse_handle     handle,
                                           T*                   result,
                                           rocsparse_index_base idx_base)
 {
+    ROCSPARSE_ROUTINE_TRACE;
+
     // Check for valid handle
     ROCSPARSE_CHECKARG_HANDLE(0, handle);
 
@@ -157,6 +159,8 @@ INSTANTIATE(rocsparse_double_complex, int64_t);
 
 INSTANTIATE_MIXED(int32_t, int32_t, int8_t, int8_t);
 INSTANTIATE_MIXED(int32_t, int64_t, int8_t, int8_t);
+INSTANTIATE_MIXED(float, int32_t, _Float16, _Float16);
+INSTANTIATE_MIXED(float, int64_t, _Float16, _Float16);
 INSTANTIATE_MIXED(float, int32_t, int8_t, int8_t);
 INSTANTIATE_MIXED(float, int64_t, int8_t, int8_t);
 #undef INSTANTIATE_MIXED
@@ -176,14 +180,18 @@ extern "C" rocsparse_status rocsparse_sdoti(rocsparse_handle     handle,
                                             rocsparse_index_base idx_base)
 try
 {
+    ROCSPARSE_ROUTINE_TRACE;
+
     RETURN_IF_ROCSPARSE_ERROR(
         rocsparse::doti_template(handle, nnz, x_val, x_ind, y, result, idx_base));
     return rocsparse_status_success;
+    // LCOV_EXCL_START
 }
 catch(...)
 {
     RETURN_ROCSPARSE_EXCEPTION();
 }
+// LCOV_EXCL_STOP
 
 extern "C" rocsparse_status rocsparse_ddoti(rocsparse_handle     handle,
                                             rocsparse_int        nnz,
@@ -194,14 +202,18 @@ extern "C" rocsparse_status rocsparse_ddoti(rocsparse_handle     handle,
                                             rocsparse_index_base idx_base)
 try
 {
+    ROCSPARSE_ROUTINE_TRACE;
+
     RETURN_IF_ROCSPARSE_ERROR(
         rocsparse::doti_template(handle, nnz, x_val, x_ind, y, result, idx_base));
     return rocsparse_status_success;
+    // LCOV_EXCL_START
 }
 catch(...)
 {
     RETURN_ROCSPARSE_EXCEPTION();
 }
+// LCOV_EXCL_STOP
 
 extern "C" rocsparse_status rocsparse_cdoti(rocsparse_handle               handle,
                                             rocsparse_int                  nnz,
@@ -212,14 +224,18 @@ extern "C" rocsparse_status rocsparse_cdoti(rocsparse_handle               handl
                                             rocsparse_index_base           idx_base)
 try
 {
+    ROCSPARSE_ROUTINE_TRACE;
+
     RETURN_IF_ROCSPARSE_ERROR(
         rocsparse::doti_template(handle, nnz, x_val, x_ind, y, result, idx_base));
     return rocsparse_status_success;
+    // LCOV_EXCL_START
 }
 catch(...)
 {
     RETURN_ROCSPARSE_EXCEPTION();
 }
+// LCOV_EXCL_STOP
 
 extern "C" rocsparse_status rocsparse_zdoti(rocsparse_handle                handle,
                                             rocsparse_int                   nnz,
@@ -230,11 +246,15 @@ extern "C" rocsparse_status rocsparse_zdoti(rocsparse_handle                hand
                                             rocsparse_index_base            idx_base)
 try
 {
+    ROCSPARSE_ROUTINE_TRACE;
+
     RETURN_IF_ROCSPARSE_ERROR(
         rocsparse::doti_template(handle, nnz, x_val, x_ind, y, result, idx_base));
     return rocsparse_status_success;
+    // LCOV_EXCL_START
 }
 catch(...)
 {
     RETURN_ROCSPARSE_EXCEPTION();
 }
+// LCOV_EXCL_STOP

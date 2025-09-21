@@ -1,6 +1,6 @@
 /*! \file */
 /* ************************************************************************
- * Copyright (C) 2021-2024 Advanced Micro Devices, Inc. All rights Reserved.
+ * Copyright (C) 2021-2025 Advanced Micro Devices, Inc. All rights Reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -21,10 +21,10 @@
  * THE SOFTWARE.
  *
  * ************************************************************************ */
-#include "control.h"
+#include "rocsparse_control.hpp"
 #include "rocsparse_coosm.hpp"
 #include "rocsparse_csrsm.hpp"
-#include "utility.h"
+#include "rocsparse_utility.hpp"
 
 #include "../conversion/rocsparse_coo2csr.hpp"
 
@@ -47,6 +47,8 @@ rocsparse_status rocsparse::coosm_analysis_core(rocsparse_handle          handle
                                                 rocsparse_solve_policy    solve,
                                                 void*                     temp_buffer)
 {
+    ROCSPARSE_ROUTINE_TRACE;
+
     // Buffer
     char* ptr = reinterpret_cast<char*>(temp_buffer);
 
@@ -136,6 +138,8 @@ rocsparse_status rocsparse::coosm_analysis_quickreturn(rocsparse_handle         
                                                        rocsparse_solve_policy    solve,
                                                        void*                     temp_buffer)
 {
+    ROCSPARSE_ROUTINE_TRACE;
+
     if(m == 0 || nrhs == 0)
     {
         return rocsparse_status_success;

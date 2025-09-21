@@ -1,6 +1,6 @@
 /*! \file */
 /* ************************************************************************
- * Copyright (C) 2019-2024 Advanced Micro Devices, Inc. All rights Reserved.
+ * Copyright (C) 2019-2025 Advanced Micro Devices, Inc. All rights Reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -186,6 +186,12 @@ inline void auto_testing_bad_arg_set_invalid(rocsparse_spgemm_alg& p)
 }
 
 template <>
+inline void auto_testing_bad_arg_set_invalid(rocsparse_spgeam_alg& p)
+{
+    p = (rocsparse_spgeam_alg)-1;
+}
+
+template <>
 inline void auto_testing_bad_arg_set_invalid(rocsparse_itilu0_alg& p)
 {
     p = (rocsparse_itilu0_alg)-1;
@@ -270,6 +276,12 @@ inline void auto_testing_bad_arg_set_invalid(rocsparse_spmv_stage& p)
 }
 
 template <>
+inline void auto_testing_bad_arg_set_invalid(rocsparse_v2_spmv_stage& p)
+{
+    p = (rocsparse_v2_spmv_stage)-1;
+}
+
+template <>
 inline void auto_testing_bad_arg_set_invalid(rocsparse_spsv_stage& p)
 {
     p = (rocsparse_spsv_stage)-1;
@@ -297,4 +309,10 @@ template <>
 inline void auto_testing_bad_arg_set_invalid(rocsparse_spgemm_stage& p)
 {
     p = (rocsparse_spgemm_stage)-1;
+}
+
+template <>
+inline void auto_testing_bad_arg_set_invalid(rocsparse_spgeam_stage& p)
+{
+    p = (rocsparse_spgeam_stage)-1;
 }

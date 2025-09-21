@@ -1,6 +1,6 @@
 /*! \file */
 /* ************************************************************************
- * Copyright (C) 2019-2024 Advanced Micro Devices, Inc. All rights Reserved.
+ * Copyright (C) 2019-2025 Advanced Micro Devices, Inc. All rights Reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -100,14 +100,15 @@ void testing_csrmv_bad_arg(const Arguments& arg)
 template <typename T>
 void testing_csrmv(const Arguments& arg)
 {
-    auto                  tol         = get_near_check_tol<T>(arg);
-    rocsparse_int         M           = arg.M;
-    rocsparse_int         N           = arg.N;
-    rocsparse_operation   trans       = arg.transA;
-    rocsparse_index_base  base        = arg.baseA;
-    rocsparse_matrix_type matrix_type = arg.matrix_type;
-    rocsparse_fill_mode   uplo        = arg.uplo;
-    rocsparse_spmv_alg    alg         = arg.spmv_alg;
+    auto                  tol                 = get_near_check_tol<T>(arg);
+    rocsparse_int         M                   = arg.M;
+    rocsparse_int         N                   = arg.N;
+    rocsparse_operation   trans               = arg.transA;
+    rocsparse_index_base  base                = arg.baseA;
+    rocsparse_matrix_type matrix_type         = arg.matrix_type;
+    rocsparse_fill_mode   uplo                = arg.uplo;
+    rocsparse_spmv_alg    alg                 = arg.spmv_alg;
+    const bool            call_stage_analysis = arg.call_stage_analysis;
 
     host_scalar<T> h_alpha(arg.get_alpha<T>());
     host_scalar<T> h_beta(arg.get_beta<T>());
@@ -124,7 +125,9 @@ void testing_csrmv(const Arguments& arg)
     // Create matrix info
     rocsparse_local_mat_info info_ptr;
 
-    rocsparse_mat_info info = (alg == rocsparse_spmv_alg_csr_adaptive) ? info_ptr : nullptr;
+    rocsparse_mat_info info = (call_stage_analysis)
+                                  ? ((alg == rocsparse_spmv_alg_csr_adaptive) ? info_ptr : nullptr)
+                                  : nullptr;
 
     // Set matrix index base
     CHECK_ROCSPARSE_ERROR(rocsparse_set_mat_index_base(descr, base));
@@ -150,7 +153,7 @@ void testing_csrmv(const Arguments& arg)
 
     bool to_int = false;
     to_int |= (prop.warpSize == 32);
-    to_int |= (alg != rocsparse_spmv_alg_csr_stream);
+    to_int |= (alg != rocsparse_spmv_alg_csr_rowsplit);
     to_int |= (trans != rocsparse_operation_none && has_datafile);
     to_int |= (matrix_type == rocsparse_matrix_type_symmetric && has_datafile);
 
@@ -159,6 +162,9 @@ void testing_csrmv(const Arguments& arg)
 
     host_csr_matrix<T> hA;
     matrix_factory.init_csr(hA, M, N);
+
+    // normalize
+    rocsparse_vector_utils<T>::normalize(hA.val);
 
     if((matrix_type == rocsparse_matrix_type_symmetric && M != N)
        || (matrix_type == rocsparse_matrix_type_triangular && M != N))
@@ -176,9 +182,12 @@ void testing_csrmv(const Arguments& arg)
     device_dense_matrix<T> dy(hy);
 
     // If adaptive, run analysis step
-    if(alg == rocsparse_spmv_alg_csr_adaptive)
+    if(call_stage_analysis)
     {
-        CHECK_ROCSPARSE_ERROR(rocsparse_csrmv_analysis<T>(PARAMS_ANALYSIS(dA)));
+        if(alg == rocsparse_spmv_alg_csr_adaptive)
+        {
+            CHECK_ROCSPARSE_ERROR(rocsparse_csrmv_analysis<T>(PARAMS_ANALYSIS(dA)));
+        }
     }
 
     if(arg.unit_check)
@@ -224,26 +233,11 @@ void testing_csrmv(const Arguments& arg)
 
     if(arg.timing)
     {
-        int number_cold_calls = 2;
-        int number_hot_calls  = arg.iters;
 
         CHECK_ROCSPARSE_ERROR(rocsparse_set_pointer_mode(handle, rocsparse_pointer_mode_host));
 
-        // Warm up
-        for(int iter = 0; iter < number_cold_calls; ++iter)
-        {
-            CHECK_ROCSPARSE_ERROR(rocsparse_csrmv<T>(PARAMS(h_alpha, dA, dx, h_beta, dy)));
-        }
-
-        double gpu_time_used = get_time_us();
-
-        // Performance run
-        for(int iter = 0; iter < number_hot_calls; ++iter)
-        {
-            CHECK_ROCSPARSE_ERROR(rocsparse_csrmv<T>(PARAMS(h_alpha, dA, dx, h_beta, dy)));
-        }
-
-        gpu_time_used = (get_time_us() - gpu_time_used) / number_hot_calls;
+        const double gpu_time_used = rocsparse_clients::run_benchmark(
+            arg, rocsparse_csrmv<T>, PARAMS(h_alpha, dA, dx, h_beta, dy));
 
         double gflop_count = spmv_gflop_count(M, dA.nnz, *h_beta != static_cast<T>(0));
         double gbyte_count = csrmv_gbyte_count<T>(M, N, dA.nnz, *h_beta != static_cast<T>(0));
@@ -271,8 +265,7 @@ void testing_csrmv(const Arguments& arg)
                             get_gpu_time_msec(gpu_time_used));
     }
 
-    // If adaptive, clear analysis data
-    if(alg == rocsparse_spmv_alg_csr_adaptive)
+    if(info != nullptr)
     {
         CHECK_ROCSPARSE_ERROR(rocsparse_csrmv_clear(handle, info));
     }

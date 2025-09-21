@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (C) 2023-2024 Advanced Micro Devices, Inc. All rights Reserved.
+ * Copyright (C) 2023-2025 Advanced Micro Devices, Inc. All rights Reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -22,10 +22,11 @@
  * ************************************************************************ */
 
 #include "rocsparse_gcsr2csc.hpp"
-#include "control.h"
+#include "rocsparse_control.hpp"
 #include "rocsparse_convert_array.hpp"
 #include "rocsparse_csr2csc.hpp"
-#include "utility.h"
+#include "rocsparse_internal_convert_scalar.hpp"
+#include "rocsparse_utility.hpp"
 
 rocsparse_status rocsparse::gcsr2csc_buffer_size(rocsparse_handle    handle,
                                                  int64_t             m,
@@ -38,6 +39,7 @@ rocsparse_status rocsparse::gcsr2csc_buffer_size(rocsparse_handle    handle,
                                                  rocsparse_action    copy_values,
                                                  size_t*             buffer_size)
 {
+    ROCSPARSE_ROUTINE_TRACE;
 
 #define CALL_TEMPLATE(PTRTYPE, INDTYPE)                                                          \
     PTRTYPE local_nnz;                                                                           \
@@ -93,7 +95,9 @@ rocsparse_status rocsparse::gcsr2csc_buffer_size(rocsparse_handle    handle,
         return rocsparse_status_success;
     }
     }
+    // LCOV_EXCL_START
     RETURN_IF_ROCSPARSE_ERROR(rocsparse_status_invalid_value);
+    // LCOV_EXCL_STOP
 
 #undef CALL_TEMPLATE
 #undef DISPATCH_INDEX_TYPE_IND
@@ -116,6 +120,7 @@ rocsparse_status rocsparse::gcsr2csc(rocsparse_handle     handle,
                                      rocsparse_index_base idx_base,
                                      void*                temp_buffer)
 {
+    ROCSPARSE_ROUTINE_TRACE;
 
 #define CALL_TEMPLATE(DATATYPE, PTRTYPE, INDTYPE)                                              \
     PTRTYPE local_nnz;                                                                         \
@@ -190,6 +195,12 @@ rocsparse_status rocsparse::gcsr2csc(rocsparse_handle     handle,
     {
         DISPATCH_INDEX_TYPE_PTR(int8_t);
     }
+    case rocsparse_datatype_f16_r:
+    {
+        // LCOV_EXCL_START
+        RETURN_IF_ROCSPARSE_ERROR(rocsparse_status_invalid_value);
+        // LCOV_EXCL_STOP
+    }
     case rocsparse_datatype_u32_r:
     {
         DISPATCH_INDEX_TYPE_PTR(uint32_t);
@@ -216,7 +227,9 @@ rocsparse_status rocsparse::gcsr2csc(rocsparse_handle     handle,
     }
     }
 
+    // LCOV_EXCL_START
     RETURN_IF_ROCSPARSE_ERROR(rocsparse_status_invalid_value);
+    // LCOV_EXCL_STOP
 
 #undef CALL_TEMPLATE
 #undef DISPATCH_INDEX_TYPE_IND
@@ -228,6 +241,8 @@ rocsparse_status rocsparse::spmat_csr2csc_buffer_size(rocsparse_handle          
                                                       rocsparse_spmat_descr       target_,
                                                       size_t*                     buffer_size_)
 {
+    ROCSPARSE_ROUTINE_TRACE;
+
     RETURN_IF_ROCSPARSE_ERROR(rocsparse::gcsr2csc_buffer_size(
         handle,
         source_->rows,
@@ -253,6 +268,8 @@ rocsparse_status rocsparse::spmat_csr2csc(rocsparse_handle            handle,
                                           size_t                      buffer_size_,
                                           void*                       buffer_)
 {
+    ROCSPARSE_ROUTINE_TRACE;
+
     RETURN_ROCSPARSE_ERROR_IF(rocsparse_status_not_implemented,
                               source_->row_type != target_->col_type);
     RETURN_ROCSPARSE_ERROR_IF(rocsparse_status_not_implemented,
@@ -263,28 +280,29 @@ rocsparse_status rocsparse::spmat_csr2csc(rocsparse_handle            handle,
                                   source_->data_type != target_->data_type);
     }
 
-    RETURN_IF_ROCSPARSE_ERROR(rocsparse::gcsr2csc(
-        handle,
-        source_->rows,
-        source_->cols,
-        source_->nnz,
-        //
-        source_->data_type,
-        source_->row_type,
-        source_->col_type,
-        //
-        source_->const_val_data,
-        source_->const_row_data,
-        source_->const_col_data,
-        //
-        target_->val_data,
-        target_->row_data,
-        target_->col_data,
-        //
-        (target_->val_data != nullptr && source_->val_data != nullptr) ? rocsparse_action_numeric
-                                                                       : rocsparse_action_symbolic,
-        source_->idx_base,
-        buffer_));
+    RETURN_IF_ROCSPARSE_ERROR(
+        rocsparse::gcsr2csc(handle,
+                            source_->rows,
+                            source_->cols,
+                            source_->nnz,
+                            //
+                            source_->data_type,
+                            source_->row_type,
+                            source_->col_type,
+                            //
+                            source_->const_val_data,
+                            source_->const_row_data,
+                            source_->const_col_data,
+                            //
+                            target_->val_data,
+                            target_->row_data,
+                            target_->col_data,
+                            //
+                            (target_->val_data != nullptr && source_->const_val_data != nullptr)
+                                ? rocsparse_action_numeric
+                                : rocsparse_action_symbolic,
+                            source_->idx_base,
+                            buffer_));
 
     return rocsparse_status_success;
 }

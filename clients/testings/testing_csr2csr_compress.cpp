@@ -1,6 +1,6 @@
 /*! \file */
 /* ************************************************************************
- * Copyright (C) 2020-2023 Advanced Micro Devices, Inc. All rights Reserved.
+ * Copyright (C) 2020-2025 Advanced Micro Devices, Inc. All rights Reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -269,37 +269,10 @@ void testing_csr2csr_compress(const Arguments& arg)
 
     if(arg.timing)
     {
-        int number_cold_calls = 2;
-        int number_hot_calls  = arg.iters;
 
         CHECK_ROCSPARSE_ERROR(rocsparse_set_pointer_mode(handle, rocsparse_pointer_mode_host));
 
         rocsparse_int nnz_C;
-
-        // Warm up
-        for(int iter = 0; iter < number_cold_calls; ++iter)
-        {
-            CHECK_ROCSPARSE_ERROR(rocsparse_nnz_compress<T>(
-                handle, M, descr_A, dcsr_val_A, dcsr_row_ptr_A, dnnz_per_row, &nnz_C, tol));
-
-            // Allocate device memory for compressed CSR col indices and values array
-            device_vector<rocsparse_int> dcsr_col_ind_C(nnz_C);
-            device_vector<T>             dcsr_val_C(nnz_C);
-
-            CHECK_ROCSPARSE_ERROR(rocsparse_csr2csr_compress<T>(handle,
-                                                                M,
-                                                                N,
-                                                                descr_A,
-                                                                dcsr_val_A,
-                                                                dcsr_row_ptr_A,
-                                                                dcsr_col_ind_A,
-                                                                nnz_A,
-                                                                dnnz_per_row,
-                                                                dcsr_val_C,
-                                                                dcsr_row_ptr_C,
-                                                                dcsr_col_ind_C,
-                                                                tol));
-        }
 
         CHECK_ROCSPARSE_ERROR(rocsparse_nnz_compress<T>(
             handle, M, descr_A, dcsr_val_A, dcsr_row_ptr_A, dnnz_per_row, &nnz_C, tol));
@@ -308,27 +281,21 @@ void testing_csr2csr_compress(const Arguments& arg)
         device_vector<rocsparse_int> dcsr_col_ind_C(nnz_C);
         device_vector<T>             dcsr_val_C(nnz_C);
 
-        double gpu_time_used = get_time_us();
-
-        // Performance run
-        for(int iter = 0; iter < number_hot_calls; ++iter)
-        {
-            CHECK_ROCSPARSE_ERROR(rocsparse_csr2csr_compress<T>(handle,
-                                                                M,
-                                                                N,
-                                                                descr_A,
-                                                                dcsr_val_A,
-                                                                dcsr_row_ptr_A,
-                                                                dcsr_col_ind_A,
-                                                                nnz_A,
-                                                                dnnz_per_row,
-                                                                dcsr_val_C,
-                                                                dcsr_row_ptr_C,
-                                                                dcsr_col_ind_C,
-                                                                tol));
-        }
-
-        gpu_time_used = (get_time_us() - gpu_time_used) / number_hot_calls;
+        const double gpu_time_used = rocsparse_clients::run_benchmark(arg,
+                                                                      rocsparse_csr2csr_compress<T>,
+                                                                      handle,
+                                                                      M,
+                                                                      N,
+                                                                      descr_A,
+                                                                      dcsr_val_A,
+                                                                      dcsr_row_ptr_A,
+                                                                      dcsr_col_ind_A,
+                                                                      nnz_A,
+                                                                      dnnz_per_row,
+                                                                      dcsr_val_C,
+                                                                      dcsr_row_ptr_C,
+                                                                      dcsr_col_ind_C,
+                                                                      tol);
 
         double gbyte_count = csr2csr_compress_gbyte_count<T>(M, nnz_A, nnz_C);
         double gpu_gbyte   = get_gpu_gbyte(gpu_time_used, gbyte_count);

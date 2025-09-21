@@ -1,6 +1,6 @@
 /*! \file */
 /* ************************************************************************
- * Copyright (C) 2020-2024 Advanced Micro Devices, Inc. All rights Reserved.
+ * Copyright (C) 2020-2025 Advanced Micro Devices, Inc. All rights Reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -133,69 +133,6 @@ void testing_csrgeam(const Arguments& arg)
     CHECK_ROCSPARSE_ERROR(rocsparse_set_mat_index_base(descrB, baseB));
     CHECK_ROCSPARSE_ERROR(rocsparse_set_mat_index_base(descrC, baseC));
 
-    // Argument sanity check before allocating invalid memory
-    if(M <= 0 || N <= 0)
-    {
-        static const size_t safe_size = 100;
-
-        // Allocate memory on device
-        device_vector<rocsparse_int> dcsr_row_ptr_A;
-        device_vector<rocsparse_int> dcsr_col_ind_A;
-        device_vector<T>             dcsr_val_A;
-        device_vector<rocsparse_int> dcsr_row_ptr_B;
-        device_vector<rocsparse_int> dcsr_col_ind_B;
-        device_vector<T>             dcsr_val_B;
-        device_vector<rocsparse_int> dcsr_row_ptr_C;
-        device_vector<rocsparse_int> dcsr_col_ind_C;
-        device_vector<T>             dcsr_val_C;
-
-        CHECK_ROCSPARSE_ERROR(rocsparse_set_pointer_mode(handle, rocsparse_pointer_mode_host));
-
-        rocsparse_int nnz_C;
-
-        rocsparse_status status_1 = rocsparse_csrgeam_nnz(handle,
-                                                          M,
-                                                          N,
-                                                          descrA,
-                                                          safe_size,
-                                                          dcsr_row_ptr_A,
-                                                          dcsr_col_ind_A,
-                                                          descrB,
-                                                          safe_size,
-                                                          dcsr_row_ptr_B,
-                                                          dcsr_col_ind_B,
-                                                          descrC,
-                                                          dcsr_row_ptr_C,
-                                                          &nnz_C);
-        rocsparse_status status_2 = rocsparse_csrgeam<T>(handle,
-                                                         M,
-                                                         N,
-                                                         h_alpha,
-                                                         descrA,
-                                                         safe_size,
-                                                         dcsr_val_A,
-                                                         dcsr_row_ptr_A,
-                                                         dcsr_col_ind_A,
-                                                         h_beta,
-                                                         descrB,
-                                                         safe_size,
-                                                         dcsr_val_B,
-                                                         dcsr_row_ptr_B,
-                                                         dcsr_col_ind_B,
-                                                         descrC,
-                                                         dcsr_val_C,
-                                                         dcsr_row_ptr_C,
-                                                         dcsr_col_ind_C);
-
-        // alpha == nullptr && beta != nullptr
-        EXPECT_ROCSPARSE_STATUS(
-            status_1, (M < 0 || N < 0) ? rocsparse_status_invalid_size : rocsparse_status_success);
-        EXPECT_ROCSPARSE_STATUS(
-            status_2, (M < 0 || N < 0) ? rocsparse_status_invalid_size : rocsparse_status_success);
-
-        return;
-    }
-
     // Allocate host memory for matrices
     host_vector<rocsparse_int> hcsr_row_ptr_A;
     host_vector<rocsparse_int> hcsr_col_ind_A;
@@ -297,19 +234,19 @@ void testing_csrgeam(const Arguments& arg)
 
         // CPU csrgemm_nnz
         host_vector<rocsparse_int> hcsr_row_ptr_C_gold(M + 1);
-        host_csrgeam_nnz<T>(M,
-                            N,
-                            *h_alpha,
-                            hcsr_row_ptr_A,
-                            hcsr_col_ind_A,
-                            *h_beta,
-                            hcsr_row_ptr_B,
-                            hcsr_col_ind_B,
-                            hcsr_row_ptr_C_gold,
-                            &hnnz_C_gold,
-                            baseA,
-                            baseB,
-                            baseC);
+        host_csrgeam_nnz<T, rocsparse_int, rocsparse_int>(M,
+                                                          N,
+                                                          h_alpha,
+                                                          hcsr_row_ptr_A,
+                                                          hcsr_col_ind_A,
+                                                          h_beta,
+                                                          hcsr_row_ptr_B,
+                                                          hcsr_col_ind_B,
+                                                          hcsr_row_ptr_C_gold,
+                                                          &hnnz_C_gold,
+                                                          baseA,
+                                                          baseB,
+                                                          baseC);
 
         // Check nnz of C
         unit_check_scalar(hnnz_C_gold, hnnz_C_1);
@@ -385,22 +322,22 @@ void testing_csrgeam(const Arguments& arg)
         // CPU csrgemm
         host_vector<rocsparse_int> hcsr_col_ind_C_gold(hnnz_C_gold);
         host_vector<T>             hcsr_val_C_gold(hnnz_C_gold);
-        host_csrgeam<T>(M,
-                        N,
-                        *h_alpha,
-                        hcsr_row_ptr_A,
-                        hcsr_col_ind_A,
-                        hcsr_val_A,
-                        *h_beta,
-                        hcsr_row_ptr_B,
-                        hcsr_col_ind_B,
-                        hcsr_val_B,
-                        hcsr_row_ptr_C_gold,
-                        hcsr_col_ind_C_gold,
-                        hcsr_val_C_gold,
-                        baseA,
-                        baseB,
-                        baseC);
+        host_csrgeam<T, rocsparse_int, rocsparse_int>(M,
+                                                      N,
+                                                      h_alpha,
+                                                      hcsr_row_ptr_A,
+                                                      hcsr_col_ind_A,
+                                                      hcsr_val_A,
+                                                      h_beta,
+                                                      hcsr_row_ptr_B,
+                                                      hcsr_col_ind_B,
+                                                      hcsr_val_B,
+                                                      hcsr_row_ptr_C_gold,
+                                                      hcsr_col_ind_C_gold,
+                                                      hcsr_val_C_gold,
+                                                      baseA,
+                                                      baseB,
+                                                      baseC);
 
         if(ROCSPARSE_REPRODUCIBILITY)
         {
@@ -423,8 +360,6 @@ void testing_csrgeam(const Arguments& arg)
 
     if(arg.timing)
     {
-        int number_cold_calls = 2;
-        int number_hot_calls  = arg.iters;
 
         CHECK_ROCSPARSE_ERROR(rocsparse_set_pointer_mode(handle, rocsparse_pointer_mode_host));
 
@@ -447,99 +382,45 @@ void testing_csrgeam(const Arguments& arg)
         device_vector<rocsparse_int> dcsr_col_ind_C(nnz_C);
         device_vector<T>             dcsr_val_C(nnz_C);
 
-        // Warm up
-        for(int iter = 0; iter < number_cold_calls; ++iter)
-        {
-            CHECK_ROCSPARSE_ERROR(rocsparse_csrgeam_nnz(handle,
-                                                        M,
-                                                        N,
-                                                        descrA,
-                                                        nnz_A,
-                                                        dcsr_row_ptr_A,
-                                                        dcsr_col_ind_A,
-                                                        descrB,
-                                                        nnz_B,
-                                                        dcsr_row_ptr_B,
-                                                        dcsr_col_ind_B,
-                                                        descrC,
-                                                        dcsr_row_ptr_C_1,
-                                                        &nnz_C));
-        }
+        const double gpu_analysis_time_used
+            = rocsparse_clients::run_benchmark(arg,
+                                               rocsparse_csrgeam_nnz,
+                                               handle,
+                                               M,
+                                               N,
+                                               descrA,
+                                               nnz_A,
+                                               dcsr_row_ptr_A,
+                                               dcsr_col_ind_A,
+                                               descrB,
+                                               nnz_B,
+                                               dcsr_row_ptr_B,
+                                               dcsr_col_ind_B,
+                                               descrC,
+                                               dcsr_row_ptr_C_1,
+                                               &nnz_C);
 
-        double gpu_analysis_time_used = get_time_us();
-
-        // Performance run
-        for(int iter = 0; iter < number_hot_calls; ++iter)
-        {
-            CHECK_ROCSPARSE_ERROR(rocsparse_csrgeam_nnz(handle,
-                                                        M,
-                                                        N,
-                                                        descrA,
-                                                        nnz_A,
-                                                        dcsr_row_ptr_A,
-                                                        dcsr_col_ind_A,
-                                                        descrB,
-                                                        nnz_B,
-                                                        dcsr_row_ptr_B,
-                                                        dcsr_col_ind_B,
-                                                        descrC,
-                                                        dcsr_row_ptr_C_1,
-                                                        &nnz_C));
-        }
-
-        gpu_analysis_time_used = (get_time_us() - gpu_analysis_time_used) / number_hot_calls;
-
-        // Warm up
-        for(int iter = 0; iter < number_cold_calls; ++iter)
-        {
-            CHECK_ROCSPARSE_ERROR(rocsparse_csrgeam<T>(handle,
-                                                       M,
-                                                       N,
-                                                       h_alpha,
-                                                       descrA,
-                                                       nnz_A,
-                                                       dcsr_val_A,
-                                                       dcsr_row_ptr_A,
-                                                       dcsr_col_ind_A,
-                                                       h_beta,
-                                                       descrB,
-                                                       nnz_B,
-                                                       dcsr_val_B,
-                                                       dcsr_row_ptr_B,
-                                                       dcsr_col_ind_B,
-                                                       descrC,
-                                                       dcsr_val_C,
-                                                       dcsr_row_ptr_C_1,
-                                                       dcsr_col_ind_C));
-        }
-
-        double gpu_solve_time_used = get_time_us();
-
-        // Performance run
-        for(int iter = 0; iter < number_hot_calls; ++iter)
-        {
-            CHECK_ROCSPARSE_ERROR(rocsparse_csrgeam<T>(handle,
-                                                       M,
-                                                       N,
-                                                       h_alpha,
-                                                       descrA,
-                                                       nnz_A,
-                                                       dcsr_val_A,
-                                                       dcsr_row_ptr_A,
-                                                       dcsr_col_ind_A,
-                                                       h_beta,
-                                                       descrB,
-                                                       nnz_B,
-                                                       dcsr_val_B,
-                                                       dcsr_row_ptr_B,
-                                                       dcsr_col_ind_B,
-                                                       descrC,
-                                                       dcsr_val_C,
-                                                       dcsr_row_ptr_C_1,
-                                                       dcsr_col_ind_C));
-        }
-
-        gpu_solve_time_used = (get_time_us() - gpu_solve_time_used) / number_hot_calls;
+        const double gpu_solve_time_used = rocsparse_clients::run_benchmark(arg,
+                                                                            rocsparse_csrgeam<T>,
+                                                                            handle,
+                                                                            M,
+                                                                            N,
+                                                                            h_alpha,
+                                                                            descrA,
+                                                                            nnz_A,
+                                                                            dcsr_val_A,
+                                                                            dcsr_row_ptr_A,
+                                                                            dcsr_col_ind_A,
+                                                                            h_beta,
+                                                                            descrB,
+                                                                            nnz_B,
+                                                                            dcsr_val_B,
+                                                                            dcsr_row_ptr_B,
+                                                                            dcsr_col_ind_B,
+                                                                            descrC,
+                                                                            dcsr_val_C,
+                                                                            dcsr_row_ptr_C_1,
+                                                                            dcsr_col_ind_C);
 
         double gflop_count = csrgeam_gflop_count<T>(nnz_A, nnz_B, nnz_C, h_alpha, h_beta);
         double gbyte_count = csrgeam_gbyte_count<T>(M, nnz_A, nnz_B, nnz_C, h_alpha, h_beta);

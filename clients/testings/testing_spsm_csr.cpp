@@ -1,5 +1,5 @@
 /* ************************************************************************
-* Copyright (C) 2021-2024 Advanced Micro Devices, Inc. All rights Reserved.
+* Copyright (C) 2021-2025 Advanced Micro Devices, Inc. All rights Reserved.
 *
 * Permission is hereby granted, free of charge, to any person obtaining a copy
 * of this software and associated documentation files (the "Software"), to deal
@@ -500,48 +500,23 @@ void testing_spsm_csr(const Arguments& arg)
 
     if(arg.timing)
     {
-        int number_cold_calls = 2;
-        int number_hot_calls  = arg.iters;
 
         CHECK_ROCSPARSE_ERROR(rocsparse_set_pointer_mode(handle, rocsparse_pointer_mode_host));
 
-        // Warm up
-        for(int iter = 0; iter < number_cold_calls; ++iter)
-        {
-            CHECK_ROCSPARSE_ERROR(rocsparse_spsm(handle,
-                                                 trans_A,
-                                                 trans_B,
-                                                 &halpha,
-                                                 A,
-                                                 B,
-                                                 C1,
-                                                 ttype,
-                                                 alg,
-                                                 rocsparse_spsm_stage_compute,
-                                                 &buffer_size,
-                                                 dbuffer));
-        }
-
-        double gpu_time_used = get_time_us();
-
-        // Performance run
-        for(int iter = 0; iter < number_hot_calls; ++iter)
-        {
-            CHECK_ROCSPARSE_ERROR(rocsparse_spsm(handle,
-                                                 trans_A,
-                                                 trans_B,
-                                                 &halpha,
-                                                 A,
-                                                 B,
-                                                 C1,
-                                                 ttype,
-                                                 alg,
-                                                 rocsparse_spsm_stage_compute,
-                                                 &buffer_size,
-                                                 dbuffer));
-        }
-
-        gpu_time_used = (get_time_us() - gpu_time_used) / number_hot_calls;
+        const double gpu_time_used = rocsparse_clients::run_benchmark(arg,
+                                                                      rocsparse_spsm,
+                                                                      handle,
+                                                                      trans_A,
+                                                                      trans_B,
+                                                                      &halpha,
+                                                                      A,
+                                                                      B,
+                                                                      C1,
+                                                                      ttype,
+                                                                      alg,
+                                                                      rocsparse_spsm_stage_compute,
+                                                                      &buffer_size,
+                                                                      dbuffer);
 
         double gflop_count = spsv_gflop_count(M, nnz_A, diag) * K;
         double gpu_gflops  = get_gpu_gflops(gpu_time_used, gflop_count);
@@ -691,7 +666,7 @@ static void testing_spsm_csr_extra0(const Arguments& arg)
                                              &buffer_size,
                                              nullptr));
         void* temp_buffer;
-        CHECK_HIP_ERROR(hipMalloc((void**)&temp_buffer, buffer_size));
+        CHECK_HIP_ERROR(rocsparse_hipMalloc((void**)&temp_buffer, buffer_size));
         // Call spsv to perform analysis
         CHECK_ROCSPARSE_ERROR(rocsparse_spsm(handle,
                                              trans_A,
@@ -718,7 +693,7 @@ static void testing_spsm_csr_extra0(const Arguments& arg)
                                              rocsparse_spsm_stage_compute,
                                              &buffer_size,
                                              temp_buffer));
-        CHECK_HIP_ERROR(hipFree(temp_buffer));
+        CHECK_HIP_ERROR(rocsparse_hipFree(temp_buffer));
         // Copy result back to host
         hC.transfer_from(dC);
 
@@ -755,7 +730,7 @@ static void testing_spsm_csr_extra0(const Arguments& arg)
                                              &buffer_size,
                                              nullptr));
         void* temp_buffer;
-        CHECK_HIP_ERROR(hipMalloc((void**)&temp_buffer, buffer_size));
+        CHECK_HIP_ERROR(rocsparse_hipMalloc((void**)&temp_buffer, buffer_size));
         // Call spsv to perform analysis
         CHECK_ROCSPARSE_ERROR(rocsparse_spsm(handle,
                                              trans_A,
@@ -782,7 +757,7 @@ static void testing_spsm_csr_extra0(const Arguments& arg)
                                              rocsparse_spsm_stage_compute,
                                              &buffer_size,
                                              temp_buffer));
-        CHECK_HIP_ERROR(hipFree(temp_buffer));
+        CHECK_HIP_ERROR(rocsparse_hipFree(temp_buffer));
         // Copy result back to host
         hC.transfer_from(dC);
     }

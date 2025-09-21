@@ -1,6 +1,6 @@
 /*! \file */
 /* ************************************************************************
- * Copyright (C) 2020-2024 Advanced Micro Devices, Inc. All rights Reserved.
+ * Copyright (C) 2020-2025 Advanced Micro Devices, Inc. All rights Reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -24,8 +24,8 @@
 
 #pragma once
 
-#include "control.h"
-#include "handle.h"
+#include "rocsparse_control.hpp"
+#include "rocsparse_handle.hpp"
 
 typedef enum rocsparse_bsrmm_alg_
 {
@@ -65,7 +65,7 @@ namespace rocsparse
                                              J                         block_dim,
                                              void*                     temp_buffer);
 
-    template <typename T, typename I, typename J, typename A, typename B, typename C, typename U>
+    template <typename T, typename I, typename J, typename A, typename B, typename C>
     rocsparse_status bsrmm_template_dispatch(rocsparse_handle    handle,
                                              rocsparse_direction dir,
                                              rocsparse_operation trans_A,
@@ -78,7 +78,7 @@ namespace rocsparse
                                              J                   batch_count_A,
                                              int64_t             offsets_batch_stride_A,
                                              int64_t             columns_values_batch_stride_A,
-                                             U                   alpha,
+                                             const T*            alpha,
                                              const rocsparse_mat_descr descr,
                                              const A*                  bsr_val,
                                              const I*                  bsr_row_ptr,
@@ -89,7 +89,7 @@ namespace rocsparse
                                              J                         batch_count_B,
                                              int64_t                   batch_stride_B,
                                              rocsparse_order           order_B,
-                                             U                         beta,
+                                             const T*                  beta,
                                              C*                        dense_C,
                                              int64_t                   ldc,
                                              J                         batch_count_C,

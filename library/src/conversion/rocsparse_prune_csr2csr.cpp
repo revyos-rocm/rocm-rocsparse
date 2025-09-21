@@ -1,6 +1,6 @@
 /*! \file */
 /* ************************************************************************
- * Copyright (C) 2020-2024 Advanced Micro Devices, Inc. All rights Reserved.
+ * Copyright (C) 2020-2025 Advanced Micro Devices, Inc. All rights Reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -23,14 +23,15 @@
  * ************************************************************************ */
 
 #include "internal/conversion/rocsparse_prune_csr2csr.h"
-#include "control.h"
+#include "rocsparse_calculate_nnz.hpp"
+#include "rocsparse_control.hpp"
 #include "rocsparse_nnz_compress.hpp"
 #include "rocsparse_prune_csr2csr.hpp"
-#include "utility.h"
+#include "rocsparse_utility.hpp"
 
 #include "csr2csr_compress_device.h"
 #include "rocsparse_common.h"
-#include "rocsparse_primitives.h"
+#include "rocsparse_primitives.hpp"
 
 namespace rocsparse
 {
@@ -38,8 +39,7 @@ namespace rocsparse
               rocsparse_int SEGMENTS_PER_BLOCK,
               rocsparse_int SEGMENT_SIZE,
               rocsparse_int WF_SIZE,
-              typename T,
-              typename U>
+              typename T>
     ROCSPARSE_KERNEL(BLOCK_SIZE)
     void csr2csr_compress_kernel(rocsparse_int        m,
                                  rocsparse_int        n,
@@ -52,9 +52,10 @@ namespace rocsparse
                                  T* __restrict__ csr_val_C,
                                  const rocsparse_int* __restrict__ csr_row_ptr_C,
                                  rocsparse_int* __restrict__ csr_col_ind_C,
-                                 U threshold_device_host)
+                                 ROCSPARSE_DEVICE_HOST_SCALAR_PARAMS(T, threshold),
+                                 bool is_host_mode)
     {
-        auto threshold = rocsparse::load_scalar_device_host(threshold_device_host);
+        ROCSPARSE_DEVICE_HOST_SCALAR_GET(threshold);
         rocsparse::csr2csr_compress_device<BLOCK_SIZE, SEGMENTS_PER_BLOCK, SEGMENT_SIZE, WF_SIZE>(
             m,
             n,
@@ -88,57 +89,31 @@ namespace rocsparse
                           rocsparse_int* __restrict__ csr_col_ind_C,
                           const T* threshold)
     {
+        ROCSPARSE_ROUTINE_TRACE;
+
         constexpr rocsparse_int SEGMENTS_PER_BLOCK = BLOCK_SIZE / SEGMENT_SIZE;
         rocsparse_int           grid_size = (m + SEGMENTS_PER_BLOCK - 1) / SEGMENTS_PER_BLOCK;
 
-        if(handle->pointer_mode == rocsparse_pointer_mode_device)
-        {
-            THROW_IF_HIPLAUNCHKERNELGGL_ERROR(
-                (rocsparse::csr2csr_compress_kernel<BLOCK_SIZE,
-                                                    SEGMENTS_PER_BLOCK,
-                                                    SEGMENT_SIZE,
-                                                    WF_SIZE>),
-                dim3(grid_size),
-                dim3(BLOCK_SIZE),
-                0,
-                handle->stream,
-                m,
-                n,
-                idx_base_A,
-                csr_val_A,
-                csr_row_ptr_A,
-                csr_col_ind_A,
-                nnz_A,
-                idx_base_C,
-                csr_val_C,
-                csr_row_ptr_C,
-                csr_col_ind_C,
-                threshold);
-        }
-        else
-        {
-            THROW_IF_HIPLAUNCHKERNELGGL_ERROR(
-                (rocsparse::csr2csr_compress_kernel<BLOCK_SIZE,
-                                                    SEGMENTS_PER_BLOCK,
-                                                    SEGMENT_SIZE,
-                                                    WF_SIZE>),
-                dim3(grid_size),
-                dim3(BLOCK_SIZE),
-                0,
-                handle->stream,
-                m,
-                n,
-                idx_base_A,
-                csr_val_A,
-                csr_row_ptr_A,
-                csr_col_ind_A,
-                nnz_A,
-                idx_base_C,
-                csr_val_C,
-                csr_row_ptr_C,
-                csr_col_ind_C,
-                *threshold);
-        }
+        THROW_IF_HIPLAUNCHKERNELGGL_ERROR(
+            (rocsparse::
+                 csr2csr_compress_kernel<BLOCK_SIZE, SEGMENTS_PER_BLOCK, SEGMENT_SIZE, WF_SIZE>),
+            dim3(grid_size),
+            dim3(BLOCK_SIZE),
+            0,
+            handle->stream,
+            m,
+            n,
+            idx_base_A,
+            csr_val_A,
+            csr_row_ptr_A,
+            csr_col_ind_A,
+            nnz_A,
+            idx_base_C,
+            csr_val_C,
+            csr_row_ptr_C,
+            csr_col_ind_C,
+            ROCSPARSE_DEVICE_HOST_SCALAR_ARGS(handle, threshold),
+            handle->pointer_mode == rocsparse_pointer_mode_host);
     }
 }
 
@@ -159,6 +134,7 @@ rocsparse_status
                                                   const rocsparse_int*      csr_col_ind_C, //12
                                                   size_t*                   buffer_size) //13
 {
+    ROCSPARSE_ROUTINE_TRACE;
 
     rocsparse::log_trace(handle,
                          rocsparse::replaceX<T>("rocsparse_Xprune_csr2csr_buffer_size"),
@@ -231,6 +207,7 @@ rocsparse_status rocsparse::prune_csr2csr_nnz_template(rocsparse_handle         
                                                        rocsparse_int* nnz_total_dev_host_ptr, //11
                                                        void*          temp_buffer) //12
 {
+    ROCSPARSE_ROUTINE_TRACE;
 
     // Logging
     rocsparse::log_trace(handle,
@@ -369,6 +346,8 @@ namespace rocsparse
                                             rocsparse_int*            csr_col_ind_C, //12
                                             void*                     temp_buffer) //13
     {
+        ROCSPARSE_ROUTINE_TRACE;
+
         // Logging
         rocsparse::log_trace(handle,
                              rocsparse::replaceX<T>("rocsparse_Xprune_csr2csr"),
@@ -649,6 +628,8 @@ extern "C" rocsparse_status
                                          size_t*                   buffer_size)
 try
 {
+    ROCSPARSE_ROUTINE_TRACE;
+
     RETURN_IF_ROCSPARSE_ERROR(rocsparse::prune_csr2csr_buffer_size_template(handle,
                                                                             m,
                                                                             n,
@@ -664,11 +645,13 @@ try
                                                                             csr_col_ind_C,
                                                                             buffer_size));
     return rocsparse_status_success;
+    // LCOV_EXCL_START
 }
 catch(...)
 {
     RETURN_ROCSPARSE_EXCEPTION();
 }
+// LCOV_EXCL_STOP
 
 extern "C" rocsparse_status
     rocsparse_dprune_csr2csr_buffer_size(rocsparse_handle          handle,
@@ -687,6 +670,8 @@ extern "C" rocsparse_status
                                          size_t*                   buffer_size)
 try
 {
+    ROCSPARSE_ROUTINE_TRACE;
+
     RETURN_IF_ROCSPARSE_ERROR(rocsparse::prune_csr2csr_buffer_size_template(handle,
                                                                             m,
                                                                             n,
@@ -702,11 +687,13 @@ try
                                                                             csr_col_ind_C,
                                                                             buffer_size));
     return rocsparse_status_success;
+    // LCOV_EXCL_START
 }
 catch(...)
 {
     RETURN_ROCSPARSE_EXCEPTION();
 }
+// LCOV_EXCL_STOP
 
 extern "C" rocsparse_status rocsparse_sprune_csr2csr_nnz(rocsparse_handle          handle,
                                                          rocsparse_int             m,
@@ -723,6 +710,8 @@ extern "C" rocsparse_status rocsparse_sprune_csr2csr_nnz(rocsparse_handle       
                                                          void*          temp_buffer)
 try
 {
+    ROCSPARSE_ROUTINE_TRACE;
+
     RETURN_IF_ROCSPARSE_ERROR(rocsparse::prune_csr2csr_nnz_template(handle,
                                                                     m,
                                                                     n,
@@ -737,11 +726,13 @@ try
                                                                     nnz_total_dev_host_ptr,
                                                                     temp_buffer));
     return rocsparse_status_success;
+    // LCOV_EXCL_START
 }
 catch(...)
 {
     RETURN_ROCSPARSE_EXCEPTION();
 }
+// LCOV_EXCL_STOP
 
 extern "C" rocsparse_status rocsparse_dprune_csr2csr_nnz(rocsparse_handle          handle,
                                                          rocsparse_int             m,
@@ -758,6 +749,8 @@ extern "C" rocsparse_status rocsparse_dprune_csr2csr_nnz(rocsparse_handle       
                                                          void*          temp_buffer)
 try
 {
+    ROCSPARSE_ROUTINE_TRACE;
+
     RETURN_IF_ROCSPARSE_ERROR(rocsparse::prune_csr2csr_nnz_template(handle,
                                                                     m,
                                                                     n,
@@ -772,11 +765,13 @@ try
                                                                     nnz_total_dev_host_ptr,
                                                                     temp_buffer));
     return rocsparse_status_success;
+    // LCOV_EXCL_START
 }
 catch(...)
 {
     RETURN_ROCSPARSE_EXCEPTION();
 }
+// LCOV_EXCL_STOP
 
 extern "C" rocsparse_status rocsparse_sprune_csr2csr(rocsparse_handle          handle,
                                                      rocsparse_int             m,
@@ -794,6 +789,8 @@ extern "C" rocsparse_status rocsparse_sprune_csr2csr(rocsparse_handle          h
                                                      void*                     temp_buffer)
 try
 {
+    ROCSPARSE_ROUTINE_TRACE;
+
     RETURN_IF_ROCSPARSE_ERROR(rocsparse::prune_csr2csr_template(handle,
                                                                 m,
                                                                 n,
@@ -809,11 +806,13 @@ try
                                                                 csr_col_ind_C,
                                                                 temp_buffer));
     return rocsparse_status_success;
+    // LCOV_EXCL_START
 }
 catch(...)
 {
     RETURN_ROCSPARSE_EXCEPTION();
 }
+// LCOV_EXCL_STOP
 
 extern "C" rocsparse_status rocsparse_dprune_csr2csr(rocsparse_handle          handle,
                                                      rocsparse_int             m,
@@ -831,6 +830,8 @@ extern "C" rocsparse_status rocsparse_dprune_csr2csr(rocsparse_handle          h
                                                      void*                     temp_buffer)
 try
 {
+    ROCSPARSE_ROUTINE_TRACE;
+
     RETURN_IF_ROCSPARSE_ERROR(rocsparse::prune_csr2csr_template(handle,
                                                                 m,
                                                                 n,
@@ -846,8 +847,10 @@ try
                                                                 csr_col_ind_C,
                                                                 temp_buffer));
     return rocsparse_status_success;
+    // LCOV_EXCL_START
 }
 catch(...)
 {
     RETURN_ROCSPARSE_EXCEPTION();
 }
+// LCOV_EXCL_STOP

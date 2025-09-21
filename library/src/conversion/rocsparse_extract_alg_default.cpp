@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (C) 2024 Advanced Micro Devices, Inc. All rights Reserved.
+ * Copyright (C) 2024-2025 Advanced Micro Devices, Inc. All rights Reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -22,7 +22,7 @@
  * ************************************************************************ */
 
 #include "rocsparse_extract_alg_default.hpp"
-#include "rocsparse_primitives.h"
+#include "rocsparse_primitives.hpp"
 
 namespace rocsparse
 {
@@ -34,6 +34,8 @@ namespace rocsparse
                                                                   int64_t             source_n_,
                                                                   size_t*             buffer_size_)
     {
+        ROCSPARSE_ROUTINE_TRACE;
+
         if((source_m_ > std::numeric_limits<I>::max()))
         {
             RETURN_WITH_MESSAGE_IF_ROCSPARSE_ERROR(rocsparse_status_internal_error,
@@ -71,6 +73,8 @@ namespace rocsparse
     static rocsparse_status internal_extract_buffer_size_dispatch(rocsparse_indextype indextype_I,
                                                                   P&&... p)
     {
+        ROCSPARSE_ROUTINE_TRACE;
+
         switch(indextype_I)
         {
         case rocsparse_indextype_u16:
@@ -89,7 +93,9 @@ namespace rocsparse
             return rocsparse_status_success;
         }
         }
+        // LCOV_EXCL_START
         return rocsparse_status_invalid_value;
+        // LCOV_EXCL_STOP
     }
 
     template <typename I, typename J>
@@ -99,6 +105,8 @@ namespace rocsparse
                                                             size_t buffer_size_,
                                                             void* __restrict__ buffer_)
     {
+        ROCSPARSE_ROUTINE_TRACE;
+
         RETURN_IF_ROCSPARSE_ERROR(rocsparse::primitives::inclusive_scan(
             handle_, ptr_, ptr_, nseq_ + 1, buffer_size_, buffer_));
         return rocsparse_status_success;
@@ -168,6 +176,7 @@ namespace rocsparse
                                            size_t               buffer_size_,
                                            void* __restrict__ buffer_)
     {
+        ROCSPARSE_ROUTINE_TRACE;
 
         if((source_m_ > std::numeric_limits<J>::max()))
         {
@@ -279,6 +288,8 @@ namespace rocsparse
     static rocsparse_status internal_extract_analysis_dispatch_J(rocsparse_indextype indextype_J,
                                                                  P&&... p)
     {
+        ROCSPARSE_ROUTINE_TRACE;
+
         switch(indextype_J)
         {
         case rocsparse_indextype_u16:
@@ -297,13 +308,17 @@ namespace rocsparse
             return rocsparse_status_success;
         }
         }
+        // LCOV_EXCL_START
         return rocsparse_status_invalid_value;
+        // LCOV_EXCL_STOP
     }
 
     template <typename T, typename... P>
     static rocsparse_status internal_extract_analysis_dispatch_I(rocsparse_indextype indextype_I,
                                                                  P&&... p)
     {
+        ROCSPARSE_ROUTINE_TRACE;
+
         switch(indextype_I)
         {
         case rocsparse_indextype_u16:
@@ -322,15 +337,24 @@ namespace rocsparse
             return rocsparse_status_success;
         }
         }
+        // LCOV_EXCL_START
         return rocsparse_status_invalid_value;
+        // LCOV_EXCL_STOP
     }
 
     template <typename... P>
     static rocsparse_status internal_extract_analysis_dispatch(rocsparse_datatype datatype_T,
                                                                P&&... p)
     {
+        ROCSPARSE_ROUTINE_TRACE;
+
         switch(datatype_T)
         {
+        case rocsparse_datatype_f16_r:
+        {
+            RETURN_IF_ROCSPARSE_ERROR((internal_extract_analysis_dispatch_I<_Float16>)(p...));
+            return rocsparse_status_success;
+        }
         case rocsparse_datatype_f32_r:
         {
             RETURN_IF_ROCSPARSE_ERROR((internal_extract_analysis_dispatch_I<float>)(p...));
@@ -374,7 +398,9 @@ namespace rocsparse
             return rocsparse_status_success;
         }
         }
+        // LCOV_EXCL_START
         return rocsparse_status_invalid_value;
+        // LCOV_EXCL_STOP
     }
 
     template <uint32_t BLOCKSIZE, typename T, typename I, typename J>
@@ -433,6 +459,8 @@ namespace rocsparse
                                                        rocsparse_index_base target_base_,
                                                        void* __restrict__ buffer_)
     {
+        ROCSPARSE_ROUTINE_TRACE;
+
         if((source_m_ > std::numeric_limits<J>::max()))
         {
             RETURN_WITH_MESSAGE_IF_ROCSPARSE_ERROR(rocsparse_status_internal_error,
@@ -523,6 +551,8 @@ namespace rocsparse
     static rocsparse_status internal_extract_compute_dispatch_J(rocsparse_indextype indextype_J,
                                                                 P&&... p)
     {
+        ROCSPARSE_ROUTINE_TRACE;
+
         switch(indextype_J)
         {
         case rocsparse_indextype_u16:
@@ -541,13 +571,17 @@ namespace rocsparse
             return rocsparse_status_success;
         }
         }
+        // LCOV_EXCL_START
         return rocsparse_status_invalid_value;
+        // LCOV_EXCL_STOP
     }
 
     template <typename T, typename... P>
     static rocsparse_status internal_extract_compute_dispatch_I(rocsparse_indextype indextype_I,
                                                                 P&&... p)
     {
+        ROCSPARSE_ROUTINE_TRACE;
+
         switch(indextype_I)
         {
         case rocsparse_indextype_u16:
@@ -566,15 +600,24 @@ namespace rocsparse
             return rocsparse_status_success;
         }
         }
+        // LCOV_EXCL_START
         return rocsparse_status_invalid_value;
+        // LCOV_EXCL_STOP
     }
 
     template <typename... P>
     static rocsparse_status internal_extract_compute_dispatch(rocsparse_datatype datatype_T,
                                                               P&&... p)
     {
+        ROCSPARSE_ROUTINE_TRACE;
+
         switch(datatype_T)
         {
+        case rocsparse_datatype_f16_r:
+        {
+            RETURN_IF_ROCSPARSE_ERROR((internal_extract_compute_dispatch_I<_Float16>)(p...));
+            return rocsparse_status_success;
+        }
         case rocsparse_datatype_f32_r:
         {
             RETURN_IF_ROCSPARSE_ERROR((internal_extract_compute_dispatch_I<float>)(p...));
@@ -618,7 +661,9 @@ namespace rocsparse
             return rocsparse_status_success;
         }
         }
+        // LCOV_EXCL_START
         return rocsparse_status_invalid_value;
+        // LCOV_EXCL_STOP
     }
 
 }
@@ -627,6 +672,8 @@ rocsparse_extract_descr_default_t::rocsparse_extract_descr_default_t(
     rocsparse_const_spmat_descr source, rocsparse_const_spmat_descr target)
     : _rocsparse_extract_descr(rocsparse_extract_alg_default, source, target)
 {
+    ROCSPARSE_ROUTINE_TRACE;
+
     if(source->format != target->format)
     {
         THROW_WITH_MESSAGE_IF_ROCSPARSE_ERROR(
@@ -673,6 +720,7 @@ rocsparse_status
                                                    rocsparse_extract_stage     stage,
                                                    size_t* __restrict__ buffer_size_in_bytes)
 {
+    ROCSPARSE_ROUTINE_TRACE;
 
     switch(stage)
     {
@@ -709,6 +757,8 @@ rocsparse_status rocsparse_extract_descr_default_t::run(rocsparse_handle        
                                                         void* __restrict__ buffer)
 
 {
+    ROCSPARSE_ROUTINE_TRACE;
+
     const rocsparse_fill_mode target_fill_mode = target->descr->fill_mode;
     const rocsparse_diag_type target_diag_type = target->descr->diag_type;
 

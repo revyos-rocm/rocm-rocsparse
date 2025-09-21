@@ -1,6 +1,6 @@
 /*! \file */
 /* ************************************************************************
- * Copyright (C) 2020-2024 Advanced Micro Devices, Inc. All rights Reserved.
+ * Copyright (C) 2020-2025 Advanced Micro Devices, Inc. All rights Reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -26,14 +26,14 @@
 #include "internal/conversion/rocsparse_csr2bsr.h"
 #include "internal/conversion/rocsparse_csr2coo.h"
 
-#include "control.h"
+#include "rocsparse_control.hpp"
 #include "rocsparse_csr2bsr.hpp"
 #include "rocsparse_csr2gebsr.hpp"
-#include "utility.h"
+#include "rocsparse_utility.hpp"
 
 #include "csr2gebsr_device.h"
 #include "rocsparse_common.h"
-#include "rocsparse_primitives.h"
+#include "rocsparse_primitives.hpp"
 
 namespace rocsparse
 {
@@ -108,6 +108,7 @@ namespace rocsparse
                                                             rocsparse_int             row_block_dim,
                                                             rocsparse_int             col_block_dim)
     {
+        ROCSPARSE_ROUTINE_TRACE;
         RETURN_IF_ROCSPARSE_ERROR(rocsparse_status_internal_error);
     }
 
@@ -134,6 +135,8 @@ namespace rocsparse
                                                             rocsparse_int             row_block_dim,
                                                             rocsparse_int             col_block_dim)
     {
+        ROCSPARSE_ROUTINE_TRACE;
+
         hipStream_t stream = handle->stream;
 
         launch_csr2gebsr_block_per_row_multipass_kernel(256, 64, 64);
@@ -155,6 +158,8 @@ rocsparse_status rocsparse::csr2gebsr_buffer_size_template(rocsparse_handle     
                                                            rocsparse_int        col_block_dim, //9
                                                            size_t*              buffer_size) //10
 {
+    ROCSPARSE_ROUTINE_TRACE;
+
     //
     // Logging
     //
@@ -243,6 +248,7 @@ rocsparse_status rocsparse::csr2gebsr_template(rocsparse_handle          handle,
                                                rocsparse_int             col_block_dim, //13
                                                void*                     temp_buffer) //14
 {
+    ROCSPARSE_ROUTINE_TRACE;
 
     rocsparse::log_trace(handle,
                          rocsparse::replaceX<T>("rocsparse_Xcsr2gebsr"),
@@ -784,6 +790,8 @@ extern "C" rocsparse_status rocsparse_csr2gebsr_nnz(rocsparse_handle          ha
                                                     void*                     temp_buffer) //12
 try
 {
+    ROCSPARSE_ROUTINE_TRACE;
+
     // Logging
     rocsparse::log_trace(handle,
                          "rocsparse_csr2gebsr_nnz",
@@ -1156,11 +1164,13 @@ try
     }
 
     return rocsparse_status_success;
+    // LCOV_EXCL_START
 }
 catch(...)
 {
     RETURN_ROCSPARSE_EXCEPTION();
 }
+// LCOV_EXCL_STOP
 
 //
 // C INTERFACE
@@ -1179,6 +1189,7 @@ catch(...)
                                         size_t*                   buffer_size)             \
     try                                                                                    \
     {                                                                                      \
+        ROCSPARSE_ROUTINE_TRACE;                                                           \
         RETURN_IF_ROCSPARSE_ERROR(rocsparse::csr2gebsr_buffer_size_template(handle,        \
                                                                             dir,           \
                                                                             m,             \
@@ -1215,6 +1226,7 @@ catch(...)
                                                                                            \
     try                                                                                    \
     {                                                                                      \
+        ROCSPARSE_ROUTINE_TRACE;                                                           \
         RETURN_IF_ROCSPARSE_ERROR(rocsparse::csr2gebsr_template(handle,                    \
                                                                 dir,                       \
                                                                 m,                         \

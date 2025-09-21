@@ -1,6 +1,6 @@
 /*! \file */
 /* ************************************************************************
- * Copyright (C) 2021-2024 Advanced Micro Devices, Inc. All rights Reserved.
+ * Copyright (C) 2021-2025 Advanced Micro Devices, Inc. All rights Reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -24,11 +24,17 @@
 
 #pragma once
 
-#include "handle.h"
+#include "rocsparse_handle.hpp"
 
 namespace rocsparse
 {
-    template <rocsparse_format FORMAT, rocsparse_sddmm_alg ALG, typename I, typename J, typename T>
+    template <rocsparse_format FORMAT,
+              typename T,
+              typename I,
+              typename J,
+              typename A,
+              typename B,
+              typename C>
     struct rocsparse_sddmm_st
     {
 
@@ -42,14 +48,14 @@ namespace rocsparse
                                             J                    k,
                                             I                    nnz,
                                             const T*             alpha,
-                                            const T*             A_val,
+                                            const A*             A_val,
                                             int64_t              A_ld,
-                                            const T*             B_val,
+                                            const B*             B_val,
                                             int64_t              B_ld,
                                             const T*             beta,
                                             const I*             C_row_data,
                                             const J*             C_col_data,
-                                            T*                   C_val_data,
+                                            C*                   C_val_data,
                                             rocsparse_index_base C_base,
                                             rocsparse_mat_descr  C_descr,
                                             rocsparse_sddmm_alg  alg,
@@ -65,14 +71,14 @@ namespace rocsparse
                                            J                    k,
                                            I                    nnz,
                                            const T*             alpha,
-                                           const T*             A_val,
+                                           const A*             A_val,
                                            int64_t              A_ld,
-                                           const T*             B_val,
+                                           const B*             B_val,
                                            int64_t              B_ld,
                                            const T*             beta,
                                            const I*             C_row_data,
                                            const J*             C_col_data,
-                                           T*                   C_val_data,
+                                           C*                   C_val_data,
                                            rocsparse_index_base C_base,
                                            rocsparse_mat_descr  C_descr,
                                            rocsparse_sddmm_alg  alg,
@@ -88,14 +94,14 @@ namespace rocsparse
                                         J                    k,
                                         I                    nnz,
                                         const T*             alpha,
-                                        const T*             A_val,
+                                        const A*             A_val,
                                         int64_t              A_ld,
-                                        const T*             B_val,
+                                        const B*             B_val,
                                         int64_t              B_ld,
                                         const T*             beta,
                                         const I*             C_row_data,
                                         const J*             C_col_data,
-                                        T*                   C_val_data,
+                                        C*                   C_val_data,
                                         rocsparse_index_base C_base,
                                         rocsparse_mat_descr  C_descr,
                                         rocsparse_sddmm_alg  alg,
@@ -118,116 +124,122 @@ namespace rocsparse
             case rocsparse_format_csr:
             case rocsparse_format_coo:
             {
-                RETURN_IF_ROCSPARSE_ERROR((rocsparse_sddmm_st<FORMAT, ALG, I, J, T>::buffer_size(
-                    handle,
-                    trans_A,
-                    trans_B,
-                    mat_A->order,
-                    mat_B->order,
-                    mat_C->rows,
-                    mat_C->cols,
-                    (trans_A == rocsparse_operation_none) ? mat_A->cols : mat_A->rows,
-                    mat_C->nnz,
-                    (const T*)alpha,
-                    (const T*)mat_A->const_values,
-                    mat_A->ld,
-                    (const T*)mat_B->const_values,
-                    mat_B->ld,
-                    (const T*)beta,
-                    (const I*)mat_C->const_row_data,
-                    (const J*)mat_C->const_col_data,
-                    (T*)mat_C->val_data,
-                    mat_C->idx_base,
-                    mat_C->descr,
-                    alg,
-                    out_buffer_size)));
+                RETURN_IF_ROCSPARSE_ERROR(
+                    (rocsparse_sddmm_st<FORMAT, T, I, J, A, B, C>::buffer_size(
+                        handle,
+                        trans_A,
+                        trans_B,
+                        mat_A->order,
+                        mat_B->order,
+                        mat_C->rows,
+                        mat_C->cols,
+                        (trans_A == rocsparse_operation_none) ? mat_A->cols : mat_A->rows,
+                        mat_C->nnz,
+                        (const T*)alpha,
+                        (const A*)mat_A->const_values,
+                        mat_A->ld,
+                        (const B*)mat_B->const_values,
+                        mat_B->ld,
+                        (const T*)beta,
+                        (const I*)mat_C->const_row_data,
+                        (const J*)mat_C->const_col_data,
+                        (C*)mat_C->val_data,
+                        mat_C->idx_base,
+                        mat_C->descr,
+                        alg,
+                        out_buffer_size)));
                 return rocsparse_status_success;
             }
 
             case rocsparse_format_csc:
             {
-                RETURN_IF_ROCSPARSE_ERROR((rocsparse_sddmm_st<FORMAT, ALG, I, J, T>::buffer_size(
-                    handle,
-                    trans_A,
-                    trans_B,
-                    mat_A->order,
-                    mat_B->order,
-                    mat_C->rows,
-                    mat_C->cols,
-                    (trans_A == rocsparse_operation_none) ? mat_A->cols : mat_A->rows,
-                    mat_C->nnz,
-                    (const T*)alpha,
-                    (const T*)mat_A->const_values,
-                    mat_A->ld,
-                    (const T*)mat_B->const_values,
-                    mat_B->ld,
-                    (const T*)beta,
-                    (const I*)mat_C->const_col_data,
-                    (const J*)mat_C->const_row_data,
-                    (T*)mat_C->val_data,
-                    mat_C->idx_base,
-                    mat_C->descr,
-                    alg,
-                    out_buffer_size)));
+                RETURN_IF_ROCSPARSE_ERROR(
+                    (rocsparse_sddmm_st<FORMAT, T, I, J, A, B, C>::buffer_size(
+                        handle,
+                        trans_A,
+                        trans_B,
+                        mat_A->order,
+                        mat_B->order,
+                        mat_C->rows,
+                        mat_C->cols,
+                        (trans_A == rocsparse_operation_none) ? mat_A->cols : mat_A->rows,
+                        mat_C->nnz,
+                        (const T*)alpha,
+                        (const A*)mat_A->const_values,
+                        mat_A->ld,
+                        (const B*)mat_B->const_values,
+                        mat_B->ld,
+                        (const T*)beta,
+                        (const I*)mat_C->const_col_data,
+                        (const J*)mat_C->const_row_data,
+                        (C*)mat_C->val_data,
+                        mat_C->idx_base,
+                        mat_C->descr,
+                        alg,
+                        out_buffer_size)));
                 return rocsparse_status_success;
             }
             case rocsparse_format_ell:
             {
-                RETURN_IF_ROCSPARSE_ERROR((rocsparse_sddmm_st<FORMAT, ALG, I, J, T>::buffer_size(
-                    handle,
-                    trans_A,
-                    trans_B,
-                    mat_A->order,
-                    mat_B->order,
-                    mat_C->rows,
-                    mat_C->cols,
-                    (trans_A == rocsparse_operation_none) ? mat_A->cols : mat_A->rows,
-                    mat_C->nnz,
-                    (const T*)alpha,
-                    (const T*)mat_A->const_values,
-                    mat_A->ld,
-                    (const T*)mat_B->const_values,
-                    mat_B->ld,
-                    (const T*)beta,
-                    (const I*)nullptr,
-                    (const J*)mat_C->const_col_data,
-                    (T*)mat_C->val_data,
-                    mat_C->idx_base,
-                    mat_C->descr,
-                    alg,
-                    out_buffer_size)));
+                RETURN_IF_ROCSPARSE_ERROR(
+                    (rocsparse_sddmm_st<FORMAT, T, I, J, A, B, C>::buffer_size(
+                        handle,
+                        trans_A,
+                        trans_B,
+                        mat_A->order,
+                        mat_B->order,
+                        mat_C->rows,
+                        mat_C->cols,
+                        (trans_A == rocsparse_operation_none) ? mat_A->cols : mat_A->rows,
+                        mat_C->nnz,
+                        (const T*)alpha,
+                        (const A*)mat_A->const_values,
+                        mat_A->ld,
+                        (const B*)mat_B->const_values,
+                        mat_B->ld,
+                        (const T*)beta,
+                        (const I*)nullptr,
+                        (const J*)mat_C->const_col_data,
+                        (C*)mat_C->val_data,
+                        mat_C->idx_base,
+                        mat_C->descr,
+                        alg,
+                        out_buffer_size)));
                 return rocsparse_status_success;
             }
 
             case rocsparse_format_coo_aos:
             {
-                RETURN_IF_ROCSPARSE_ERROR((rocsparse_sddmm_st<FORMAT, ALG, I, J, T>::buffer_size(
-                    handle,
-                    trans_A,
-                    trans_B,
-                    mat_A->order,
-                    mat_B->order,
-                    mat_C->rows,
-                    mat_C->cols,
-                    (trans_A == rocsparse_operation_none) ? mat_A->cols : mat_A->rows,
-                    mat_C->nnz,
-                    (const T*)alpha,
-                    (const T*)mat_A->const_values,
-                    mat_A->ld,
-                    (const T*)mat_B->const_values,
-                    mat_B->ld,
-                    (const T*)beta,
-                    (const I*)mat_C->const_ind_data,
-                    (const J*)(((const I*)mat_C->const_ind_data) + 1),
-                    (T*)mat_C->val_data,
-                    mat_C->idx_base,
-                    mat_C->descr,
-                    alg,
-                    out_buffer_size)));
+                RETURN_IF_ROCSPARSE_ERROR(
+                    (rocsparse_sddmm_st<FORMAT, T, I, J, A, B, C>::buffer_size(
+                        handle,
+                        trans_A,
+                        trans_B,
+                        mat_A->order,
+                        mat_B->order,
+                        mat_C->rows,
+                        mat_C->cols,
+                        (trans_A == rocsparse_operation_none) ? mat_A->cols : mat_A->rows,
+                        mat_C->nnz,
+                        (const T*)alpha,
+                        (const A*)mat_A->const_values,
+                        mat_A->ld,
+                        (const B*)mat_B->const_values,
+                        mat_B->ld,
+                        (const T*)beta,
+                        (const I*)mat_C->const_ind_data,
+                        (const J*)(((const I*)mat_C->const_ind_data) + 1),
+                        (C*)mat_C->val_data,
+                        mat_C->idx_base,
+                        mat_C->descr,
+                        alg,
+                        out_buffer_size)));
                 return rocsparse_status_success;
             }
             }
+            // LCOV_EXCL_START
             RETURN_IF_ROCSPARSE_ERROR(rocsparse_status_invalid_value);
+            // LCOV_EXCL_STOP
         }
 
         static rocsparse_status preprocess_template(rocsparse_handle            handle,
@@ -247,7 +259,7 @@ namespace rocsparse
             case rocsparse_format_csr:
             case rocsparse_format_coo:
             {
-                RETURN_IF_ROCSPARSE_ERROR((rocsparse_sddmm_st<FORMAT, ALG, I, J, T>::preprocess(
+                RETURN_IF_ROCSPARSE_ERROR((rocsparse_sddmm_st<FORMAT, T, I, J, A, B, C>::preprocess(
                     handle,
                     trans_A,
                     trans_B,
@@ -258,14 +270,14 @@ namespace rocsparse
                     (trans_A == rocsparse_operation_none) ? mat_A->cols : mat_A->rows,
                     mat_C->nnz,
                     (const T*)alpha,
-                    (const T*)mat_A->const_values,
+                    (const A*)mat_A->const_values,
                     mat_A->ld,
-                    (const T*)mat_B->const_values,
+                    (const B*)mat_B->const_values,
                     mat_B->ld,
                     (const T*)beta,
                     (const I*)mat_C->const_row_data,
                     (const J*)mat_C->const_col_data,
-                    (T*)mat_C->val_data,
+                    (C*)mat_C->val_data,
                     mat_C->idx_base,
                     mat_C->descr,
                     alg,
@@ -274,7 +286,7 @@ namespace rocsparse
             }
             case rocsparse_format_csc:
             {
-                RETURN_IF_ROCSPARSE_ERROR((rocsparse_sddmm_st<FORMAT, ALG, I, J, T>::preprocess(
+                RETURN_IF_ROCSPARSE_ERROR((rocsparse_sddmm_st<FORMAT, T, I, J, A, B, C>::preprocess(
                     handle,
                     trans_A,
                     trans_B,
@@ -285,14 +297,14 @@ namespace rocsparse
                     (trans_A == rocsparse_operation_none) ? mat_A->cols : mat_A->rows,
                     mat_C->nnz,
                     (const T*)alpha,
-                    (const T*)mat_A->const_values,
+                    (const A*)mat_A->const_values,
                     mat_A->ld,
-                    (const T*)mat_B->const_values,
+                    (const B*)mat_B->const_values,
                     mat_B->ld,
                     (const T*)beta,
                     (const I*)mat_C->const_col_data,
                     (const J*)mat_C->const_row_data,
-                    (T*)mat_C->val_data,
+                    (C*)mat_C->val_data,
                     mat_C->idx_base,
                     mat_C->descr,
                     alg,
@@ -301,7 +313,7 @@ namespace rocsparse
             }
             case rocsparse_format_ell:
             {
-                RETURN_IF_ROCSPARSE_ERROR((rocsparse_sddmm_st<FORMAT, ALG, I, J, T>::preprocess(
+                RETURN_IF_ROCSPARSE_ERROR((rocsparse_sddmm_st<FORMAT, T, I, J, A, B, C>::preprocess(
                     handle,
                     trans_A,
                     trans_B,
@@ -312,14 +324,14 @@ namespace rocsparse
                     (trans_A == rocsparse_operation_none) ? mat_A->cols : mat_A->rows,
                     mat_C->nnz,
                     (const T*)alpha,
-                    (const T*)mat_A->const_values,
+                    (const A*)mat_A->const_values,
                     mat_A->ld,
-                    (const T*)mat_B->const_values,
+                    (const B*)mat_B->const_values,
                     mat_B->ld,
                     (const T*)beta,
                     (const I*)nullptr,
                     (const J*)mat_C->const_col_data,
-                    (T*)mat_C->val_data,
+                    (C*)mat_C->val_data,
                     mat_C->idx_base,
                     mat_C->descr,
                     alg,
@@ -328,7 +340,7 @@ namespace rocsparse
             }
             case rocsparse_format_coo_aos:
             {
-                RETURN_IF_ROCSPARSE_ERROR((rocsparse_sddmm_st<FORMAT, ALG, I, J, T>::preprocess(
+                RETURN_IF_ROCSPARSE_ERROR((rocsparse_sddmm_st<FORMAT, T, I, J, A, B, C>::preprocess(
                     handle,
                     trans_A,
                     trans_B,
@@ -339,14 +351,14 @@ namespace rocsparse
                     (trans_A == rocsparse_operation_none) ? mat_A->cols : mat_A->rows,
                     mat_C->nnz,
                     (const T*)alpha,
-                    (const T*)mat_A->const_values,
+                    (const A*)mat_A->const_values,
                     mat_A->ld,
-                    (const T*)mat_B->const_values,
+                    (const B*)mat_B->const_values,
                     mat_B->ld,
                     (const T*)beta,
                     (const I*)mat_C->const_ind_data,
                     (const J*)(((const I*)mat_C->const_ind_data) + 1),
-                    (T*)mat_C->val_data,
+                    (C*)mat_C->val_data,
                     mat_C->idx_base,
                     mat_C->descr,
                     alg,
@@ -354,7 +366,9 @@ namespace rocsparse
                 return rocsparse_status_success;
             }
             }
+            // LCOV_EXCL_START
             RETURN_IF_ROCSPARSE_ERROR(rocsparse_status_invalid_value);
+            // LCOV_EXCL_STOP
         }
 
         static rocsparse_status compute_template(rocsparse_handle            handle,
@@ -374,7 +388,7 @@ namespace rocsparse
             case rocsparse_format_csr:
             case rocsparse_format_coo:
             {
-                RETURN_IF_ROCSPARSE_ERROR((rocsparse_sddmm_st<FORMAT, ALG, I, J, T>::compute(
+                RETURN_IF_ROCSPARSE_ERROR((rocsparse_sddmm_st<FORMAT, T, I, J, A, B, C>::compute(
                     handle,
                     trans_A,
                     trans_B,
@@ -385,14 +399,14 @@ namespace rocsparse
                     (trans_A == rocsparse_operation_none) ? mat_A->cols : mat_A->rows,
                     mat_C->nnz,
                     (const T*)alpha,
-                    (const T*)mat_A->const_values,
+                    (const A*)mat_A->const_values,
                     mat_A->ld,
-                    (const T*)mat_B->const_values,
+                    (const B*)mat_B->const_values,
                     mat_B->ld,
                     (const T*)beta,
                     (const I*)mat_C->const_row_data,
                     (const J*)mat_C->const_col_data,
-                    (T*)mat_C->val_data,
+                    (C*)mat_C->val_data,
                     mat_C->idx_base,
                     mat_C->descr,
                     alg,
@@ -401,7 +415,7 @@ namespace rocsparse
             }
             case rocsparse_format_csc:
             {
-                RETURN_IF_ROCSPARSE_ERROR((rocsparse_sddmm_st<FORMAT, ALG, I, J, T>::compute(
+                RETURN_IF_ROCSPARSE_ERROR((rocsparse_sddmm_st<FORMAT, T, I, J, A, B, C>::compute(
                     handle,
                     trans_A,
                     trans_B,
@@ -412,14 +426,14 @@ namespace rocsparse
                     (trans_A == rocsparse_operation_none) ? mat_A->cols : mat_A->rows,
                     mat_C->nnz,
                     (const T*)alpha,
-                    (const T*)mat_A->const_values,
+                    (const A*)mat_A->const_values,
                     mat_A->ld,
-                    (const T*)mat_B->const_values,
+                    (const B*)mat_B->const_values,
                     mat_B->ld,
                     (const T*)beta,
                     (const I*)mat_C->const_col_data,
                     (const J*)mat_C->const_row_data,
-                    (T*)mat_C->val_data,
+                    (C*)mat_C->val_data,
                     mat_C->idx_base,
                     mat_C->descr,
                     alg,
@@ -428,7 +442,7 @@ namespace rocsparse
             }
             case rocsparse_format_ell:
             {
-                RETURN_IF_ROCSPARSE_ERROR((rocsparse_sddmm_st<FORMAT, ALG, I, J, T>::compute(
+                RETURN_IF_ROCSPARSE_ERROR((rocsparse_sddmm_st<FORMAT, T, I, J, A, B, C>::compute(
                     handle,
                     trans_A,
                     trans_B,
@@ -439,14 +453,14 @@ namespace rocsparse
                     (trans_A == rocsparse_operation_none) ? mat_A->cols : mat_A->rows,
                     mat_C->nnz,
                     (const T*)alpha,
-                    (const T*)mat_A->const_values,
+                    (const A*)mat_A->const_values,
                     mat_A->ld,
-                    (const T*)mat_B->const_values,
+                    (const B*)mat_B->const_values,
                     mat_B->ld,
                     (const T*)beta,
                     (const I*)nullptr,
                     (const J*)mat_C->const_col_data,
-                    (T*)mat_C->val_data,
+                    (C*)mat_C->val_data,
                     mat_C->idx_base,
                     mat_C->descr,
                     alg,
@@ -455,7 +469,7 @@ namespace rocsparse
             }
             case rocsparse_format_coo_aos:
             {
-                RETURN_IF_ROCSPARSE_ERROR((rocsparse_sddmm_st<FORMAT, ALG, I, J, T>::compute(
+                RETURN_IF_ROCSPARSE_ERROR((rocsparse_sddmm_st<FORMAT, T, I, J, A, B, C>::compute(
                     handle,
                     trans_A,
                     trans_B,
@@ -466,14 +480,14 @@ namespace rocsparse
                     (trans_A == rocsparse_operation_none) ? mat_A->cols : mat_A->rows,
                     mat_C->nnz,
                     (const T*)alpha,
-                    (const T*)mat_A->const_values,
+                    (const A*)mat_A->const_values,
                     mat_A->ld,
-                    (const T*)mat_B->const_values,
+                    (const B*)mat_B->const_values,
                     mat_B->ld,
                     (const T*)beta,
                     (const I*)mat_C->const_ind_data,
                     (const J*)(((const I*)mat_C->const_ind_data) + 1),
-                    (T*)mat_C->val_data,
+                    (C*)mat_C->val_data,
                     mat_C->idx_base,
                     mat_C->descr,
                     alg,
@@ -481,7 +495,9 @@ namespace rocsparse
                 return rocsparse_status_success;
             }
             }
+            // LCOV_EXCL_START
             RETURN_IF_ROCSPARSE_ERROR(rocsparse_status_invalid_value);
+            // LCOV_EXCL_STOP
         }
     };
 }

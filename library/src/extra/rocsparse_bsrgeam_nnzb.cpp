@@ -1,6 +1,6 @@
 /*! \file */
 /* ************************************************************************
- * Copyright (C) 2023-2024 Advanced Micro Devices, Inc. All rights Reserved.
+ * Copyright (C) 2023-2025 Advanced Micro Devices, Inc. All rights Reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -22,11 +22,11 @@
  *
  * ************************************************************************ */
 
-#include "common.h"
 #include "internal/extra/rocsparse_bsrgeam.h"
 #include "rocsparse_common.h"
+#include "rocsparse_common.hpp"
 #include "rocsparse_csrgeam.hpp"
-#include "utility.h"
+#include "rocsparse_utility.hpp"
 
 namespace rocsparse
 {
@@ -47,20 +47,31 @@ namespace rocsparse
                                               rocsparse_int*            bsr_row_ptr_C,
                                               rocsparse_int*            nnzb_C)
     {
-        RETURN_IF_ROCSPARSE_ERROR(rocsparse::csrgeam_nnz_template(handle,
-                                                                  mb,
-                                                                  nb,
-                                                                  descr_A,
-                                                                  nnzb_A,
-                                                                  bsr_row_ptr_A,
-                                                                  bsr_col_ind_A,
-                                                                  descr_B,
-                                                                  nnzb_B,
-                                                                  bsr_row_ptr_B,
-                                                                  bsr_col_ind_B,
-                                                                  descr_C,
-                                                                  bsr_row_ptr_C,
-                                                                  nnzb_C));
+        ROCSPARSE_ROUTINE_TRACE;
+
+        const rocsparse_spgeam_descr descr       = nullptr;
+        void*                        temp_buffer = nullptr;
+        RETURN_IF_ROCSPARSE_ERROR(
+            (csrgeam_nnz_template<rocsparse_int, rocsparse_int>(handle,
+                                                                descr,
+                                                                rocsparse_operation_none,
+                                                                rocsparse_operation_none,
+                                                                mb,
+                                                                nb,
+                                                                descr_A,
+                                                                nnzb_A,
+                                                                bsr_row_ptr_A,
+                                                                bsr_col_ind_A,
+                                                                descr_B,
+                                                                nnzb_B,
+                                                                bsr_row_ptr_B,
+                                                                bsr_col_ind_B,
+                                                                descr_C,
+                                                                bsr_row_ptr_C,
+                                                                nnzb_C,
+                                                                temp_buffer,
+                                                                false)));
+
         return rocsparse_status_success;
     }
 
@@ -81,6 +92,8 @@ namespace rocsparse
                                                      rocsparse_int*            bsr_row_ptr_C,
                                                      rocsparse_int*            nnzb_C)
     {
+        ROCSPARSE_ROUTINE_TRACE;
+
         // Quick return if possible
         if(mb == 0 || nb == 0 || (nnzb_A == 0 && nnzb_B == 0))
         {
@@ -126,6 +139,7 @@ namespace rocsparse
                                                   rocsparse_int*            bsr_row_ptr_C, //14
                                                   rocsparse_int*            nnzb_C) //15
     {
+        ROCSPARSE_ROUTINE_TRACE;
 
         ROCSPARSE_CHECKARG_HANDLE(0, handle);
         ROCSPARSE_CHECKARG_POINTER(5, descr_A);
@@ -205,6 +219,8 @@ namespace rocsparse
     template <typename... P>
     static rocsparse_status bsrgeam_nnzb_impl(P&&... p)
     {
+        ROCSPARSE_ROUTINE_TRACE;
+
         rocsparse::log_trace("rocsparse_csrgeam_nnz", p...);
 
         const rocsparse_status status = rocsparse::bsrgeam_nnzb_checkarg(p...);
@@ -243,6 +259,8 @@ extern "C" rocsparse_status rocsparse_bsrgeam_nnzb(rocsparse_handle          han
                                                    rocsparse_int*            nnzb_C)
 try
 {
+    ROCSPARSE_ROUTINE_TRACE;
+
     RETURN_IF_ROCSPARSE_ERROR(rocsparse::bsrgeam_nnzb_impl(handle,
                                                            dir,
                                                            mb,
@@ -261,8 +279,10 @@ try
                                                            nnzb_C));
 
     return rocsparse_status_success;
+    // LCOV_EXCL_START
 }
 catch(...)
 {
     RETURN_ROCSPARSE_EXCEPTION();
 }
+// LCOV_EXCL_STOP

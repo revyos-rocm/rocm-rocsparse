@@ -1,6 +1,6 @@
 /*! \file */
 /* ************************************************************************
- * Copyright (C) 2022-2024 Advanced Micro Devices, Inc. All rights Reserved.
+ * Copyright (C) 2022-2025 Advanced Micro Devices, Inc. All rights Reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -23,12 +23,12 @@
  * ************************************************************************ */
 #include "internal/util/rocsparse_check_matrix_csr.h"
 #include "rocsparse_check_matrix_csr.hpp"
-#include "to_string.hpp"
-#include "utility.h"
+#include "rocsparse_enum_utils.hpp"
+#include "rocsparse_utility.hpp"
 
 #include "check_matrix_csr_device.h"
 
-#include "rocsparse_primitives.h"
+#include "rocsparse_primitives.hpp"
 
 #define LAUNCH_CHECK_MATRIX_CSR(block_size, wf_size)                                              \
     RETURN_IF_HIPLAUNCHKERNELGGL_ERROR((rocsparse::check_matrix_csr_device<block_size, wf_size>), \
@@ -64,6 +64,7 @@ rocsparse_status rocsparse::check_matrix_csr_core(rocsparse_handle       handle,
                                                   rocsparse_data_status* data_status,
                                                   void*                  temp_buffer)
 {
+    ROCSPARSE_ROUTINE_TRACE;
 
     // Check that nnz matches row pointer array
     I start = 0;
@@ -77,8 +78,10 @@ rocsparse_status rocsparse::check_matrix_csr_core(rocsparse_handle       handle,
 
     if(nnz != (end - start))
     {
+        // LCOV_EXCL_START
         rocsparse::log_debug(handle, "CSR row pointer array does not match nnz.");
         RETURN_IF_ROCSPARSE_ERROR(rocsparse_status_invalid_value);
+        // LCOV_EXCL_STOP
     }
 
     // clear output status to success
@@ -111,7 +114,7 @@ rocsparse_status rocsparse::check_matrix_csr_core(rocsparse_handle       handle,
 
     if(*data_status != rocsparse_data_status_success)
     {
-        rocsparse::log_debug(handle, rocsparse::to_string(*data_status));
+        rocsparse::log_debug(handle, rocsparse::enum_utils::to_string(*data_status));
 
         return rocsparse_status_success;
     }
@@ -194,7 +197,7 @@ rocsparse_status rocsparse::check_matrix_csr_core(rocsparse_handle       handle,
 
     if(*data_status != rocsparse_data_status_success)
     {
-        rocsparse::log_debug(handle, rocsparse::to_string(*data_status));
+        rocsparse::log_debug(handle, rocsparse::enum_utils::to_string(*data_status));
     }
 
     return rocsparse_status_success;
@@ -217,6 +220,8 @@ namespace rocsparse
                                                          rocsparse_data_status* data_status,
                                                          void*                  temp_buffer)
     {
+        ROCSPARSE_ROUTINE_TRACE;
+
         return rocsparse_status_continue;
     }
 }
@@ -236,6 +241,8 @@ rocsparse_status rocsparse::check_matrix_csr_checkarg(rocsparse_handle       han
                                                       rocsparse_data_status* data_status, //11
                                                       void*                  temp_buffer) //12
 {
+    ROCSPARSE_ROUTINE_TRACE;
+
     ROCSPARSE_CHECKARG_HANDLE(0, handle);
     ROCSPARSE_CHECKARG_SIZE(1, m);
     ROCSPARSE_CHECKARG_SIZE(2, n);
@@ -256,7 +263,7 @@ rocsparse_status rocsparse::check_matrix_csr_checkarg(rocsparse_handle       han
         {
             rocsparse::log_debug(handle,
                                  ("Matrix was specified to be "
-                                  + std::string(rocsparse::to_string(matrix_type))
+                                  + std::string(rocsparse::enum_utils::to_string(matrix_type))
                                   + " but m != n"));
         }
     }
@@ -290,6 +297,8 @@ rocsparse_status rocsparse::check_matrix_csr_checkarg(rocsparse_handle       han
 template <typename T, typename I, typename J, typename... P>
 rocsparse_status rocsparse_check_matrix_csr_template(P&&... p)
 {
+    ROCSPARSE_ROUTINE_TRACE;
+
     const rocsparse_status status = rocsparse::check_matrix_csr_quickreturn<T, I, J>(p...);
     if(status != rocsparse_status_continue)
     {
@@ -367,6 +376,7 @@ INSTANTIATE(int64_t, int64_t, rocsparse_double_complex);
                                      void*                  temp_buffer)                       \
     try                                                                                        \
     {                                                                                          \
+        ROCSPARSE_ROUTINE_TRACE;                                                               \
         RETURN_IF_ROCSPARSE_ERROR(                                                             \
             (rocsparse::check_matrix_csr_impl<T, rocsparse_int, rocsparse_int>(handle,         \
                                                                                m,              \

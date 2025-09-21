@@ -1,6 +1,6 @@
 /*! \file */
 /* ************************************************************************
-* Copyright (C) 2020-2024 Advanced Micro Devices, Inc. All rights Reserved.
+* Copyright (C) 2020-2025 Advanced Micro Devices, Inc. All rights Reserved.
 *
 * Permission is hereby granted, free of charge, to any person obtaining a copy
 * of this software and associated documentation files (the "Software"), to deal
@@ -21,8 +21,8 @@
 * THE SOFTWARE.
 *
 * ************************************************************************ */
-#include "control.h"
-#include "utility.h"
+#include "rocsparse_control.hpp"
+#include "rocsparse_utility.hpp"
 
 #include "internal/conversion/rocsparse_dense2coo.h"
 #include "rocsparse_csr2coo.hpp"
@@ -44,6 +44,8 @@ namespace rocsparse
                                         I*                        coo_row_ind, //8
                                         I*                        coo_col_ind) //9
     {
+        ROCSPARSE_ROUTINE_TRACE;
+
         ROCSPARSE_CHECKARG_HANDLE(0, handle);
         ROCSPARSE_CHECKARG_SIZE(1, m);
         ROCSPARSE_CHECKARG_SIZE(2, n);
@@ -82,6 +84,8 @@ rocsparse_status rocsparse::dense2coo_template(rocsparse_handle          handle,
                                                I*                        coo_row_ind, //9
                                                I*                        coo_col_ind) //10
 {
+    ROCSPARSE_ROUTINE_TRACE;
+
     // Logging
     rocsparse::log_trace(handle,
                          rocsparse::replaceX<T>("rocsparse_Xdense2coo"),
@@ -133,10 +137,12 @@ rocsparse_status rocsparse::dense2coo_template(rocsparse_handle          handle,
         ITYPE*                    coo_row_ind,                             \
         ITYPE*                    coo_col_ind);
 
+INSTANTIATE(int32_t, _Float16);
 INSTANTIATE(int32_t, float);
 INSTANTIATE(int32_t, double);
 INSTANTIATE(int32_t, rocsparse_float_complex);
 INSTANTIATE(int32_t, rocsparse_double_complex);
+INSTANTIATE(int64_t, _Float16);
 INSTANTIATE(int64_t, float);
 INSTANTIATE(int64_t, double);
 INSTANTIATE(int64_t, rocsparse_float_complex);
@@ -161,6 +167,8 @@ extern "C" rocsparse_status rocsparse_sdense2coo(rocsparse_handle          handl
                                                  rocsparse_int*            coo_col_ind)
 try
 {
+    ROCSPARSE_ROUTINE_TRACE;
+
     const rocsparse_status status = rocsparse::dense2coo_checkarg(
         handle, m, n, descr, A, ld, nnz_per_rows, coo_val, coo_row_ind, coo_col_ind);
     if(status != rocsparse_status_continue)
@@ -181,11 +189,13 @@ try
                                                             coo_row_ind,
                                                             coo_col_ind));
     return rocsparse_status_success;
+    // LCOV_EXCL_START
 }
 catch(...)
 {
     RETURN_ROCSPARSE_EXCEPTION();
 }
+// LCOV_EXCL_STOP
 
 extern "C" rocsparse_status rocsparse_ddense2coo(rocsparse_handle          handle,
                                                  rocsparse_int             m,
@@ -199,6 +209,8 @@ extern "C" rocsparse_status rocsparse_ddense2coo(rocsparse_handle          handl
                                                  rocsparse_int*            coo_col_ind)
 try
 {
+    ROCSPARSE_ROUTINE_TRACE;
+
     const rocsparse_status status = rocsparse::dense2coo_checkarg(
         handle, m, n, descr, A, ld, nnz_per_rows, coo_val, coo_row_ind, coo_col_ind);
     if(status != rocsparse_status_continue)
@@ -219,11 +231,13 @@ try
                                                             coo_row_ind,
                                                             coo_col_ind));
     return rocsparse_status_success;
+    // LCOV_EXCL_START
 }
 catch(...)
 {
     RETURN_ROCSPARSE_EXCEPTION();
 }
+// LCOV_EXCL_STOP
 
 extern "C" rocsparse_status rocsparse_cdense2coo(rocsparse_handle               handle,
                                                  rocsparse_int                  m,
@@ -237,6 +251,8 @@ extern "C" rocsparse_status rocsparse_cdense2coo(rocsparse_handle               
                                                  rocsparse_int*                 coo_col_ind)
 try
 {
+    ROCSPARSE_ROUTINE_TRACE;
+
     const rocsparse_status status = rocsparse::dense2coo_checkarg(
         handle, m, n, descr, A, ld, nnz_per_rows, coo_val, coo_row_ind, coo_col_ind);
     if(status != rocsparse_status_continue)
@@ -257,11 +273,13 @@ try
                                                             coo_row_ind,
                                                             coo_col_ind));
     return rocsparse_status_success;
+    // LCOV_EXCL_START
 }
 catch(...)
 {
     RETURN_ROCSPARSE_EXCEPTION();
 }
+// LCOV_EXCL_STOP
 
 extern "C" rocsparse_status rocsparse_zdense2coo(rocsparse_handle                handle,
                                                  rocsparse_int                   m,
@@ -275,6 +293,8 @@ extern "C" rocsparse_status rocsparse_zdense2coo(rocsparse_handle               
                                                  rocsparse_int*                  coo_col_ind)
 try
 {
+    ROCSPARSE_ROUTINE_TRACE;
+
     const rocsparse_status status = rocsparse::dense2coo_checkarg(
         handle, m, n, descr, A, ld, nnz_per_rows, coo_val, coo_row_ind, coo_col_ind);
     if(status != rocsparse_status_continue)
@@ -294,8 +314,10 @@ try
                                                             coo_row_ind,
                                                             coo_col_ind));
     return rocsparse_status_success;
+    // LCOV_EXCL_START
 }
 catch(...)
 {
     RETURN_ROCSPARSE_EXCEPTION();
 }
+// LCOV_EXCL_STOP

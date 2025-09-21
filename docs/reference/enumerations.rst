@@ -1,6 +1,6 @@
 .. meta::
-  :description: rocSPARSE documentation and API reference library
-  :keywords: rocSPARSE, ROCm, API, documentation
+  :description: rocSPARSE enumerations API documentation
+  :keywords: rocSPARSE, ROCm, API, documentation, enumerations
 
 .. _rocsparse_enumerations_:
 
@@ -106,6 +106,11 @@ rocsparse_status
 
 .. doxygenenum:: rocsparse_status
 
+rocsparse_data_status
+---------------------
+
+.. doxygenenum:: rocsparse_data_status
+
 rocsparse_indextype
 -------------------
 
@@ -141,6 +146,15 @@ rocsparse_spmv_stage
 
 .. doxygenenum:: rocsparse_spmv_stage
 
+rocsparse_spmv_input
+--------------------
+
+.. doxygenenum:: rocsparse_spmv_input
+
+rocsparse_v2_spmv_stage
+-----------------------
+
+.. doxygenenum:: rocsparse_v2_spmv_stage
 
 rocsparse_spsv_alg
 ------------------
@@ -189,6 +203,25 @@ rocsparse_spgemm_alg
 
 .. doxygenenum:: rocsparse_spgemm_alg
 
+rocsparse_spgeam_stage
+----------------------
+
+.. doxygenenum:: rocsparse_spgeam_stage
+
+rocsparse_spgeam_alg
+--------------------
+
+.. doxygenenum:: rocsparse_spgeam_alg
+
+rocsparse_spgeam_input
+----------------------
+
+.. doxygenenum:: rocsparse_spgeam_input
+
+rocsparse_spgeam_output
+-----------------------
+
+.. doxygenenum:: rocsparse_spgeam_output
 
 rocsparse_sparse_to_dense_alg
 -----------------------------
@@ -224,6 +257,16 @@ rocsparse_gtsv_interleaved_alg
 ------------------------------
 
 .. doxygenenum:: rocsparse_gtsv_interleaved_alg
+
+rocsparse_gpsv_interleaved_alg
+------------------------------
+
+.. doxygenenum:: rocsparse_gpsv_interleaved_alg
+
+rocsparse_check_spmat_stage
+---------------------------
+
+.. doxygenenum:: rocsparse_check_spmat_stage
 
 rocsparse_spitsv_alg
 --------------------

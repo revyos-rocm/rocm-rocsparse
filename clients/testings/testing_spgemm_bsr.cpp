@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (C) 2022-2024 Advanced Micro Devices, Inc. All rights Reserved.
+ * Copyright (C) 2022-2025 Advanced Micro Devices, Inc. All rights Reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -516,89 +516,43 @@ void testing_spgemm_bsr(const Arguments& arg)
 
     if(arg.timing)
     {
-        int number_hot_calls  = arg.iters;
-        int number_cold_calls = 2;
-
         CHECK_ROCSPARSE_ERROR(rocsparse_set_pointer_mode(handle, rocsparse_pointer_mode_host));
-        for(int iter = 0; iter < number_cold_calls; ++iter)
-        {
-            CHECK_ROCSPARSE_ERROR(rocsparse_spgemm(handle,
-                                                   trans_A,
-                                                   trans_B,
-                                                   h_alpha_ptr,
-                                                   A,
-                                                   B,
-                                                   h_beta_ptr,
-                                                   D,
-                                                   C,
-                                                   compute_type,
-                                                   alg,
-                                                   rocsparse_spgemm_stage_nnz,
-                                                   &buffer_size,
-                                                   dbuffer));
-        }
 
-        double gpu_analysis_time_used = get_time_us();
+        const double gpu_analysis_time_used
+            = rocsparse_clients::run_benchmark(arg,
+                                               rocsparse_spgemm,
+                                               handle,
+                                               trans_A,
+                                               trans_B,
+                                               h_alpha_ptr,
+                                               A,
+                                               B,
+                                               h_beta_ptr,
+                                               D,
+                                               C,
+                                               compute_type,
+                                               alg,
+                                               rocsparse_spgemm_stage_nnz,
+                                               &buffer_size,
+                                               dbuffer);
 
-        for(int iter = 0; iter < number_hot_calls; ++iter)
-        {
-            CHECK_ROCSPARSE_ERROR(rocsparse_spgemm(handle,
-                                                   trans_A,
-                                                   trans_B,
-                                                   h_alpha_ptr,
-                                                   A,
-                                                   B,
-                                                   h_beta_ptr,
-                                                   D,
-                                                   C,
-                                                   compute_type,
-                                                   alg,
-                                                   rocsparse_spgemm_stage_nnz,
-                                                   &buffer_size,
-                                                   dbuffer));
-        }
-
-        gpu_analysis_time_used = (get_time_us() - gpu_analysis_time_used) / number_hot_calls;
-
-        for(int iter = 0; iter < number_cold_calls; ++iter)
-        {
-            CHECK_ROCSPARSE_ERROR(rocsparse_spgemm(handle,
-                                                   trans_A,
-                                                   trans_B,
-                                                   h_alpha_ptr,
-                                                   A,
-                                                   B,
-                                                   h_beta_ptr,
-                                                   D,
-                                                   C,
-                                                   compute_type,
-                                                   alg,
-                                                   rocsparse_spgemm_stage_compute,
-                                                   &buffer_size,
-                                                   dbuffer));
-        }
-
-        double gpu_solve_time_used = get_time_us();
-
-        for(int iter = 0; iter < number_hot_calls; ++iter)
-        {
-            CHECK_ROCSPARSE_ERROR(rocsparse_spgemm(handle,
-                                                   trans_A,
-                                                   trans_B,
-                                                   h_alpha_ptr,
-                                                   A,
-                                                   B,
-                                                   h_beta_ptr,
-                                                   D,
-                                                   C,
-                                                   compute_type,
-                                                   alg,
-                                                   rocsparse_spgemm_stage_compute,
-                                                   &buffer_size,
-                                                   dbuffer));
-        }
-
-        gpu_solve_time_used = (get_time_us() - gpu_solve_time_used) / number_hot_calls;
+        const double gpu_solve_time_used
+            = rocsparse_clients::run_benchmark(arg,
+                                               rocsparse_spgemm,
+                                               handle,
+                                               trans_A,
+                                               trans_B,
+                                               h_alpha_ptr,
+                                               A,
+                                               B,
+                                               h_beta_ptr,
+                                               D,
+                                               C,
+                                               compute_type,
+                                               alg,
+                                               rocsparse_spgemm_stage_compute,
+                                               &buffer_size,
+                                               dbuffer);
 
         double gflop_count = bsrgemm_gflop_count<T, I, J>(
             Mb, hA.row_block_dim, h_alpha_ptr, hA.ptr, hA.ind, hB.ptr, h_beta_ptr, hD.ptr, hA.base);

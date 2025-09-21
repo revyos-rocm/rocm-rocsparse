@@ -1,6 +1,6 @@
 /*! \file */
 /* ************************************************************************
- * Copyright (C) 2020-2024 Advanced Micro Devices, Inc. All rights Reserved.
+ * Copyright (C) 2020-2025 Advanced Micro Devices, Inc. All rights Reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -24,9 +24,9 @@
 #include "internal/level3/rocsparse_csrsm.h"
 #include "rocsparse_csrsm.hpp"
 
-#include "common.h"
-#include "control.h"
-#include "utility.h"
+#include "rocsparse_common.hpp"
+#include "rocsparse_control.hpp"
+#include "rocsparse_utility.hpp"
 
 #include "../level1/rocsparse_gthr.hpp"
 #include "../level2/rocsparse_csrsv.hpp"
@@ -37,6 +37,8 @@ extern "C" rocsparse_status rocsparse_csrsm_zero_pivot(rocsparse_handle   handle
                                                        rocsparse_int*     position)
 try
 {
+    ROCSPARSE_ROUTINE_TRACE;
+
     rocsparse::log_trace(
         handle, "rocsparse_csrsm_zero_pivot", (const void*&)info, (const void*&)position);
     ROCSPARSE_CHECKARG_HANDLE(0, handle);
@@ -108,15 +110,19 @@ try
     }
 
     return rocsparse_status_success;
+    // LCOV_EXCL_START
 }
 catch(...)
 {
     RETURN_ROCSPARSE_EXCEPTION();
 }
+// LCOV_EXCL_STOP
 
 extern "C" rocsparse_status rocsparse_csrsm_clear(rocsparse_handle handle, rocsparse_mat_info info)
 try
 {
+    ROCSPARSE_ROUTINE_TRACE;
+
     rocsparse::log_trace(handle, "rocsparse_csrsm_clear", (const void*&)info);
 
     ROCSPARSE_CHECKARG_HANDLE(0, handle);
@@ -125,19 +131,21 @@ try
     // Clear csrsm meta data (this includes lower, upper and their transposed equivalents
     if(!rocsparse::check_trm_shared(info, info->csrsm_lower_info))
     {
-        RETURN_IF_ROCSPARSE_ERROR(rocsparse::destroy_trm_info(info->csrsm_lower_info));
+        rocsparse::trm_info_t::destroy(info->csrsm_lower_info);
     }
     if(!rocsparse::check_trm_shared(info, info->csrsm_upper_info))
     {
-        RETURN_IF_ROCSPARSE_ERROR(rocsparse::destroy_trm_info(info->csrsm_upper_info));
+        rocsparse::trm_info_t::destroy(info->csrsm_upper_info);
     }
 
     info->csrsm_lower_info = nullptr;
     info->csrsm_upper_info = nullptr;
 
     return rocsparse_status_success;
+    // LCOV_EXCL_START
 }
 catch(...)
 {
     RETURN_ROCSPARSE_EXCEPTION();
 }
+// LCOV_EXCL_STOP

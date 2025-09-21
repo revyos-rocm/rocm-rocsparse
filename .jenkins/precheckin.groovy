@@ -15,7 +15,12 @@ def runCI =
     def prj  = new rocProject('rocSPARSE', 'PreCheckin')
 
     // customize for project
-    prj.paths.build_command = './install.sh --matrices-dir-install ${JENKINS_HOME_DIR}/rocsparse_matrices && ./install.sh -c --matrices-dir ${JENKINS_HOME_DIR}/rocsparse_matrices'
+    if (env.BRANCH_NAME ==~ /PR-\d+/){
+        prj.paths.build_command = './install.sh --matrices-dir-install ${JENKINS_HOME_DIR}/rocsparse_matrices && ./install.sh -c -a \$gfx_arch --matrices-dir ${JENKINS_HOME_DIR}/rocsparse_matrices'
+    }
+    else {
+        prj.paths.build_command = './install.sh --matrices-dir-install ${JENKINS_HOME_DIR}/rocsparse_matrices && ./install.sh -c --matrices-dir ${JENKINS_HOME_DIR}/rocsparse_matrices'
+    }
     prj.libraryDependencies = ['rocPRIM', 'hipBLAS-common', 'hipBLASLt', 'rocBLAS']
     prj.defaults.ccache = false
 
@@ -39,7 +44,7 @@ def runCI =
         platform, project->
 
         def gfilter = "*quick*:*pre_checkin*"
-        commonGroovy.runTestCommand(platform, project, gfilter)
+        commonGroovy.runTestCommand(platform, project, gfilter, true)
     }
 
     def packageCommand =

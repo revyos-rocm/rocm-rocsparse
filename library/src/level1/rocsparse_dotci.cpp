@@ -1,6 +1,6 @@
 /*! \file */
 /* ************************************************************************
- * Copyright (C) 2018-2024 Advanced Micro Devices, Inc. All rights Reserved.
+ * Copyright (C) 2018-2025 Advanced Micro Devices, Inc. All rights Reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -23,10 +23,10 @@
  * ************************************************************************ */
 
 #include "internal/level1/rocsparse_dotci.h"
-#include "control.h"
 #include "dotci_device.h"
+#include "rocsparse_control.hpp"
 #include "rocsparse_dotci.hpp"
-#include "utility.h"
+#include "rocsparse_utility.hpp"
 
 template <typename T, typename I, typename X, typename Y>
 rocsparse_status rocsparse::dotci_template(rocsparse_handle     handle,
@@ -37,6 +37,8 @@ rocsparse_status rocsparse::dotci_template(rocsparse_handle     handle,
                                            T*                   result,
                                            rocsparse_index_base idx_base)
 {
+    ROCSPARSE_ROUTINE_TRACE;
+
     // Check for valid handle
     ROCSPARSE_CHECKARG_HANDLE(0, handle);
 
@@ -157,14 +159,18 @@ extern "C" rocsparse_status rocsparse_cdotci(rocsparse_handle               hand
                                              rocsparse_index_base           idx_base)
 try
 {
+    ROCSPARSE_ROUTINE_TRACE;
+
     RETURN_IF_ROCSPARSE_ERROR(
         rocsparse::dotci_template(handle, nnz, x_val, x_ind, y, result, idx_base));
     return rocsparse_status_success;
+    // LCOV_EXCL_START
 }
 catch(...)
 {
     RETURN_ROCSPARSE_EXCEPTION();
 }
+// LCOV_EXCL_STOP
 
 extern "C" rocsparse_status rocsparse_zdotci(rocsparse_handle                handle,
                                              rocsparse_int                   nnz,
@@ -175,11 +181,15 @@ extern "C" rocsparse_status rocsparse_zdotci(rocsparse_handle                han
                                              rocsparse_index_base            idx_base)
 try
 {
+    ROCSPARSE_ROUTINE_TRACE;
+
     RETURN_IF_ROCSPARSE_ERROR(
         rocsparse::dotci_template(handle, nnz, x_val, x_ind, y, result, idx_base));
     return rocsparse_status_success;
+    // LCOV_EXCL_START
 }
 catch(...)
 {
     RETURN_ROCSPARSE_EXCEPTION();
 }
+// LCOV_EXCL_STOP

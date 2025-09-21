@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (C) 2022-2023 Advanced Micro Devices, Inc. All rights Reserved.
+ * Copyright (C) 2022-2025 Advanced Micro Devices, Inc. All rights Reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -433,54 +433,26 @@ void testing_check_matrix_gebsc(const Arguments& arg)
 
     if(arg.timing)
     {
-        int number_cold_calls = 2;
-        int number_hot_calls  = arg.iters;
 
-        // Warm up
-        for(int iter = 0; iter < number_cold_calls; ++iter)
-        {
-            CHECK_ROCSPARSE_ERROR(rocsparse_check_matrix_gebsc<T>(handle,
-                                                                  direction,
-                                                                  mb,
-                                                                  nb,
-                                                                  nnzb,
-                                                                  row_block_dim,
-                                                                  col_block_dim,
-                                                                  dbsc_val,
-                                                                  dbsc_col_ptr,
-                                                                  dbsc_row_ind,
-                                                                  base,
-                                                                  matrix_type,
-                                                                  uplo,
-                                                                  storage,
-                                                                  &data_status,
-                                                                  dbuffer));
-        }
-
-        double gpu_time_used = get_time_us();
-
-        // Performance run
-        for(int iter = 0; iter < number_hot_calls; ++iter)
-        {
-            CHECK_ROCSPARSE_ERROR(rocsparse_check_matrix_gebsc<T>(handle,
-                                                                  direction,
-                                                                  mb,
-                                                                  nb,
-                                                                  nnzb,
-                                                                  row_block_dim,
-                                                                  col_block_dim,
-                                                                  dbsc_val,
-                                                                  dbsc_col_ptr,
-                                                                  dbsc_row_ind,
-                                                                  base,
-                                                                  matrix_type,
-                                                                  uplo,
-                                                                  storage,
-                                                                  &data_status,
-                                                                  dbuffer));
-        }
-
-        gpu_time_used = (get_time_us() - gpu_time_used) / number_hot_calls;
+        const double gpu_time_used
+            = rocsparse_clients::run_benchmark(arg,
+                                               rocsparse_check_matrix_gebsc<T>,
+                                               handle,
+                                               direction,
+                                               mb,
+                                               nb,
+                                               nnzb,
+                                               row_block_dim,
+                                               col_block_dim,
+                                               dbsc_val,
+                                               dbsc_col_ptr,
+                                               dbsc_row_ind,
+                                               base,
+                                               matrix_type,
+                                               uplo,
+                                               storage,
+                                               &data_status,
+                                               dbuffer);
 
         double gbyte_count
             = check_matrix_gebsc_gbyte_count<T>(nb, nnzb, row_block_dim, col_block_dim);

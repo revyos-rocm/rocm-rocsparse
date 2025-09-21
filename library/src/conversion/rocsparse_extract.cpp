@@ -1,5 +1,5 @@
 /* ************************************************************************
- * Copyright (C) 2024 Advanced Micro Devices, Inc. All rights Reserved.
+ * Copyright (C) 2024-2025 Advanced Micro Devices, Inc. All rights Reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -23,7 +23,34 @@
 
 #include "rocsparse_extract.hpp"
 #include "rocsparse_extract_alg_default.hpp"
-#include "utility.h"
+#include "rocsparse_utility.hpp"
+
+template <>
+bool rocsparse::enum_utils::is_invalid(rocsparse_extract_stage value)
+{
+    switch(value)
+    {
+    case rocsparse_extract_stage_analysis:
+    case rocsparse_extract_stage_compute:
+    {
+        return false;
+    }
+    }
+    return true;
+}
+
+template <>
+bool rocsparse::enum_utils::is_invalid(rocsparse_extract_alg value)
+{
+    switch(value)
+    {
+    case rocsparse_extract_alg_default:
+    {
+        return false;
+    }
+    }
+    return true;
+}
 
 namespace rocsparse
 {
@@ -39,6 +66,8 @@ namespace rocsparse
                                          size_t                      buffer_size_in_bytes,
                                          void*                       buffer)
     {
+        ROCSPARSE_ROUTINE_TRACE;
+
         switch(descr->alg())
         {
         case rocsparse_extract_alg_default:
@@ -62,6 +91,7 @@ namespace rocsparse
                                                 size_t                      buffer_size_in_bytes,
                                                 void*                       buffer)
     {
+        ROCSPARSE_ROUTINE_TRACE;
         return rocsparse_status_continue;
     }
 
@@ -76,6 +106,7 @@ namespace rocsparse
                                              size_t                      buffer_size_in_bytes, //5
                                              void*                       buffer) //6
     {
+        ROCSPARSE_ROUTINE_TRACE;
 
         ROCSPARSE_CHECKARG_HANDLE(0, handle);
         ROCSPARSE_CHECKARG_POINTER(1, descr);
@@ -101,6 +132,8 @@ namespace rocsparse
     template <typename... P>
     static rocsparse_status extract_impl(P&&... p)
     {
+        ROCSPARSE_ROUTINE_TRACE;
+
         const rocsparse_status status = rocsparse::extract_checkarg(p...);
         if(status != rocsparse_status_continue)
         {
@@ -126,11 +159,15 @@ extern "C" rocsparse_status rocsparse_extract(rocsparse_handle            handle
                                               void*                       buffer)
 try
 {
+    ROCSPARSE_ROUTINE_TRACE;
+
     RETURN_IF_ROCSPARSE_ERROR(rocsparse::extract_impl(
         handle, descr, source, target, stage, buffer_size_in_bytes, buffer));
     return rocsparse_status_success;
+    // LCOV_EXCL_START
 }
 catch(...)
 {
     RETURN_ROCSPARSE_EXCEPTION();
 }
+// LCOV_EXCL_STOP

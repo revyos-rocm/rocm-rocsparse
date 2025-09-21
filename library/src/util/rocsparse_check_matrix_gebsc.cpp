@@ -1,6 +1,6 @@
 /*! \file */
 /* ************************************************************************
- * Copyright (C) 2022-2024 Advanced Micro Devices, Inc. All rights Reserved.
+ * Copyright (C) 2022-2025 Advanced Micro Devices, Inc. All rights Reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -24,8 +24,8 @@
 #include "internal/util/rocsparse_check_matrix_gebsc.h"
 #include "rocsparse_check_matrix_gebsc.hpp"
 #include "rocsparse_check_matrix_gebsr.hpp"
-#include "to_string.hpp"
-#include "utility.h"
+#include "rocsparse_enum_utils.hpp"
+#include "rocsparse_utility.hpp"
 
 template <typename T, typename I, typename J>
 rocsparse_status rocsparse::check_matrix_gebsc_core(rocsparse_handle       handle,
@@ -45,6 +45,8 @@ rocsparse_status rocsparse::check_matrix_gebsc_core(rocsparse_handle       handl
                                                     rocsparse_data_status* data_status,
                                                     void*                  temp_buffer)
 {
+    ROCSPARSE_ROUTINE_TRACE;
+
     RETURN_IF_ROCSPARSE_ERROR(rocsparse::check_matrix_gebsr_core(handle,
                                                                  dir,
                                                                  nb, // switch mb
@@ -84,6 +86,8 @@ namespace rocsparse
                                                            rocsparse_data_status* data_status,
                                                            void*                  temp_buffer)
     {
+        ROCSPARSE_ROUTINE_TRACE;
+
         return rocsparse_status_continue;
     }
 }
@@ -106,6 +110,7 @@ rocsparse_status rocsparse::check_matrix_gebsc_checkarg(rocsparse_handle       h
                                                         rocsparse_data_status* data_status, //14
                                                         void*                  temp_buffer) //15
 {
+    ROCSPARSE_ROUTINE_TRACE;
 
     ROCSPARSE_CHECKARG_HANDLE(0, handle);
     ROCSPARSE_CHECKARG_ENUM(1, dir);
@@ -135,7 +140,7 @@ rocsparse_status rocsparse::check_matrix_gebsc_checkarg(rocsparse_handle       h
         {
             rocsparse::log_debug(handle,
                                  ("Matrix was specified to be "
-                                  + std::string(rocsparse::to_string(matrix_type))
+                                  + std::string(rocsparse::enum_utils::to_string(matrix_type))
                                   + " but (row_block_dim != col_block_dim || mb != nb)"));
         }
     }
@@ -240,6 +245,7 @@ INSTANTIATE(int64_t, int64_t, rocsparse_double_complex);
                                      void*                  temp_buffer)                         \
     try                                                                                          \
     {                                                                                            \
+        ROCSPARSE_ROUTINE_TRACE;                                                                 \
         RETURN_IF_ROCSPARSE_ERROR(                                                               \
             (rocsparse::check_matrix_gebsc_impl<T, rocsparse_int, rocsparse_int>(handle,         \
                                                                                  dir,            \

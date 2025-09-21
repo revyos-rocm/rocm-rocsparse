@@ -1,6 +1,6 @@
 /*! \file */
 /* ************************************************************************
- * Copyright (C) 2022-2024 Advanced Micro Devices, Inc.
+ * Copyright (C) 2022-2025 Advanced Micro Devices, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -23,8 +23,8 @@
  * ************************************************************************ */
 
 #include "rocsparse_csritilu0_preprocess.hpp"
-#include "common.h"
 #include "internal/precond/rocsparse_csritilu0.h"
+#include "rocsparse_common.hpp"
 #include "rocsparse_csritilu0_driver.hpp"
 
 namespace rocsparse
@@ -65,7 +65,9 @@ namespace rocsparse
         }
         }
 
+        // LCOV_EXCL_START
         RETURN_IF_ROCSPARSE_ERROR(rocsparse_status_invalid_value);
+        // LCOV_EXCL_STOP
     }
 }
 
@@ -184,8 +186,10 @@ try
                                                                             buffer_size_,
                                                                             buffer_)));
     return rocsparse_status_success;
+    // LCOV_EXCL_START
 }
 catch(...)
 {
     RETURN_ROCSPARSE_EXCEPTION();
 }
+// LCOV_EXCL_STOP

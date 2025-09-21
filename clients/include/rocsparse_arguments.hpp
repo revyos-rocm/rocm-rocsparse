@@ -1,6 +1,6 @@
 /*! \file */
 /* ************************************************************************
- * Copyright (C) 2019-2024 Advanced Micro Devices, Inc. All rights Reserved.
+ * Copyright (C) 2019-2025 Advanced Micro Devices, Inc. All rights Reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -106,6 +106,7 @@ struct Arguments
     rocsparse_order                orderC;
     rocsparse_format               formatA;
     rocsparse_format               formatB;
+    rocsparse_format               formatC;
     rocsparse_itilu0_alg           itilu0_alg;
     rocsparse_sddmm_alg            sddmm_alg;
     rocsparse_spmv_alg             spmv_alg;
@@ -114,6 +115,7 @@ struct Arguments
     rocsparse_spsm_alg             spsm_alg;
     rocsparse_spmm_alg             spmm_alg;
     rocsparse_spgemm_alg           spgemm_alg;
+    rocsparse_spgeam_alg           spgeam_alg;
     rocsparse_sparse_to_dense_alg  sparse_to_dense_alg;
     rocsparse_dense_to_sparse_alg  dense_to_sparse_alg;
     rocsparse_gtsv_interleaved_alg gtsv_interleaved_alg;
@@ -125,6 +127,7 @@ struct Arguments
     rocsparse_int unit_check;
     rocsparse_int timing;
     rocsparse_int iters;
+    rocsparse_int iters_inner;
     rocsparse_int nfreeiter;
     rocsparse_int nmaxiter;
 
@@ -149,6 +152,7 @@ struct Arguments
     bool graph_test;
     bool skip_reproducibility;
     bool sparsity_pattern_statistics;
+    bool call_stage_analysis;
     char filename[128];
     char function[64];
     char name[64];
@@ -251,6 +255,7 @@ struct Arguments
         ROCSPARSE_FORMAT_CHECK(orderC);
         ROCSPARSE_FORMAT_CHECK(formatA);
         ROCSPARSE_FORMAT_CHECK(formatB);
+        ROCSPARSE_FORMAT_CHECK(formatC);
         ROCSPARSE_FORMAT_CHECK(itilu0_alg);
         ROCSPARSE_FORMAT_CHECK(sddmm_alg);
         ROCSPARSE_FORMAT_CHECK(spmv_alg);
@@ -259,6 +264,7 @@ struct Arguments
         ROCSPARSE_FORMAT_CHECK(spsm_alg);
         ROCSPARSE_FORMAT_CHECK(spmm_alg);
         ROCSPARSE_FORMAT_CHECK(spgemm_alg);
+        ROCSPARSE_FORMAT_CHECK(spgeam_alg);
         ROCSPARSE_FORMAT_CHECK(sparse_to_dense_alg);
         ROCSPARSE_FORMAT_CHECK(dense_to_sparse_alg);
         ROCSPARSE_FORMAT_CHECK(gtsv_interleaved_alg);
@@ -268,6 +274,7 @@ struct Arguments
         ROCSPARSE_FORMAT_CHECK(unit_check);
         ROCSPARSE_FORMAT_CHECK(timing);
         ROCSPARSE_FORMAT_CHECK(iters);
+        ROCSPARSE_FORMAT_CHECK(iters_inner);
         ROCSPARSE_FORMAT_CHECK(nfreeiter);
         ROCSPARSE_FORMAT_CHECK(nmaxiter);
         ROCSPARSE_FORMAT_CHECK(denseld);
@@ -287,6 +294,7 @@ struct Arguments
         ROCSPARSE_FORMAT_CHECK(graph_test);
         ROCSPARSE_FORMAT_CHECK(skip_reproducibility);
         ROCSPARSE_FORMAT_CHECK(sparsity_pattern_statistics);
+        ROCSPARSE_FORMAT_CHECK(call_stage_analysis);
         ROCSPARSE_FORMAT_CHECK(filename);
         ROCSPARSE_FORMAT_CHECK(function);
         ROCSPARSE_FORMAT_CHECK(name);
@@ -474,6 +482,7 @@ private:
         print("orderC", rocsparse_order2string(arg.orderC));
         print("formatA", rocsparse_format2string(arg.formatA));
         print("formatB", rocsparse_format2string(arg.formatB));
+        print("formatC", rocsparse_format2string(arg.formatC));
         print("itilu0_alg", rocsparse_itilu0alg2string(arg.itilu0_alg));
         print("sddmm_alg", rocsparse_sddmmalg2string(arg.sddmm_alg));
         print("spmv_alg", rocsparse_spmvalg2string(arg.spmv_alg));
@@ -482,6 +491,7 @@ private:
         print("spsm_alg", rocsparse_spsmalg2string(arg.spsm_alg));
         print("spmm_alg", rocsparse_spmmalg2string(arg.spmm_alg));
         print("spgemm_alg", rocsparse_spgemmalg2string(arg.spgemm_alg));
+        print("spgeam_alg", rocsparse_spgeamalg2string(arg.spgeam_alg));
         print("sparse_to_dense_alg", rocsparse_sparsetodensealg2string(arg.sparse_to_dense_alg));
         print("dense_to_sparse_alg", rocsparse_densetosparsealg2string(arg.dense_to_sparse_alg));
         print("gtsv_interleaved_alg",
@@ -499,6 +509,7 @@ private:
         print("graph_test", arg.graph_test);
         print("skip_reproducibility", arg.skip_reproducibility);
         print("sparsity_pattern_statistics", arg.sparsity_pattern_statistics);
+        print("call_stage_analysis", arg.call_stage_analysis);
         print("name", arg.name);
         print("category", arg.category);
         print("hardware", arg.hardware);
@@ -507,6 +518,7 @@ private:
         print("unit_check", arg.unit_check);
         print("timing", arg.timing);
         print("iters", arg.iters);
+        print("iters_inner", arg.iters_inner);
         print("nfreeiter", arg.nfreeiter);
         print("nmaxiter", arg.nmaxiter);
         print("denseld", arg.denseld);

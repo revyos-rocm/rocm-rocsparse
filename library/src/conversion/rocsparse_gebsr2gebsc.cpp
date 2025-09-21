@@ -1,6 +1,6 @@
 /*! \file */
 /* ************************************************************************
- * Copyright (C) 2018-2024 Advanced Micro Devices, Inc. All rights Reserved.
+ * Copyright (C) 2018-2025 Advanced Micro Devices, Inc. All rights Reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -23,17 +23,17 @@
  * ************************************************************************ */
 
 #include "internal/conversion/rocsparse_gebsr2gebsc.h"
-#include "common.h"
-#include "control.h"
 #include "internal/conversion/rocsparse_coo2csr.h"
 #include "internal/conversion/rocsparse_csr2coo.h"
 #include "internal/conversion/rocsparse_inverse_permutation.h"
+#include "rocsparse_common.hpp"
+#include "rocsparse_control.hpp"
 #include "rocsparse_gebsr2gebsc.hpp"
-#include "utility.h"
+#include "rocsparse_utility.hpp"
 
 #include "gebsr2gebsc_device.h"
 #include "rocsparse_common.h"
-#include "rocsparse_primitives.h"
+#include "rocsparse_primitives.hpp"
 
 namespace rocsparse
 {
@@ -53,6 +53,8 @@ namespace rocsparse
                                                     rocsparse_index_base idx_base,
                                                     void*                temp_buffer)
     {
+        ROCSPARSE_ROUTINE_TRACE;
+
         // Quick return if possible
         if(mb == 0 || nb == 0)
         {
@@ -93,6 +95,7 @@ rocsparse_status rocsparse::gebsr2gebsc_template(rocsparse_handle     handle, //
                                                  rocsparse_index_base idx_base, //13
                                                  void*                temp_buffer) //14
 {
+    ROCSPARSE_ROUTINE_TRACE;
 
     // Logging
     rocsparse::log_trace(handle,
@@ -280,6 +283,8 @@ namespace rocsparse
                                                                 rocsparse_int    col_block_dim,
                                                                 size_t*          p_buffer_size)
     {
+        ROCSPARSE_ROUTINE_TRACE;
+
         // Quick return if possible
         if(mb == 0 || nb == 0)
         {
@@ -301,6 +306,8 @@ namespace rocsparse
                                                       rocsparse_int        col_block_dim, //8
                                                       size_t*              p_buffer_size) //9
     {
+        ROCSPARSE_ROUTINE_TRACE;
+
         // Logging
         rocsparse::log_trace(handle,
                              "rocsparse_gebsr2gebsc_buffer_size",
@@ -347,9 +354,12 @@ namespace rocsparse
         ROCSPARSE_CHECKARG_ARRAY(5, mb, bsr_row_ptr);
         ROCSPARSE_CHECKARG_ARRAY(6, nnzb, bsr_col_ind);
 
+        uint32_t startbit = 0;
+        uint32_t endbit   = rocsparse::clz(nb);
+
         RETURN_IF_ROCSPARSE_ERROR(
             (rocsparse::primitives::radix_sort_pairs_buffer_size<rocsparse_int, rocsparse_int>(
-                handle, nnzb, 0, 32, p_buffer_size)));
+                handle, nnzb, startbit, endbit, p_buffer_size)));
 
         *p_buffer_size = ((*p_buffer_size - 1) / 256 + 1) * 256;
 
@@ -380,6 +390,7 @@ namespace rocsparse
                                      size_t*              p_buffer_size)                       \
     try                                                                                        \
     {                                                                                          \
+        ROCSPARSE_ROUTINE_TRACE;                                                               \
         RETURN_IF_ROCSPARSE_ERROR(rocsparse::gebsr2gebsc_buffer_size_template(handle,          \
                                                                               mb,              \
                                                                               nb,              \
@@ -425,6 +436,7 @@ C_IMPL(rocsparse_zgebsr2gebsc_buffer_size, rocsparse_double_complex);
                                      void*                buffer)                \
     try                                                                          \
     {                                                                            \
+        ROCSPARSE_ROUTINE_TRACE;                                                 \
         RETURN_IF_ROCSPARSE_ERROR(rocsparse::gebsr2gebsc_template(handle,        \
                                                                   mb,            \
                                                                   nb,            \

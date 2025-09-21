@@ -1,6 +1,6 @@
 /*! \file */
 /* ************************************************************************
- * Copyright (C) 2020-2024 Advanced Micro Devices, Inc. All rights Reserved.
+ * Copyright (C) 2020-2025 Advanced Micro Devices, Inc. All rights Reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -23,12 +23,14 @@
  * ************************************************************************ */
 
 #include "internal/conversion/rocsparse_gebsr2csr.h"
-#include "common.h"
-#include "control.h"
+#include "rocsparse_common.hpp"
+#include "rocsparse_control.hpp"
+#include "rocsparse_utility.hpp"
+
 #include "rocsparse_bsr2csr.hpp"
+#include "rocsparse_calculate_nnz.hpp"
 #include "rocsparse_common.h"
 #include "rocsparse_gebsr2csr.hpp"
-#include "utility.h"
 
 #include "gebsr2csr_device.h"
 
@@ -98,6 +100,8 @@ namespace rocsparse
                                                         rocsparse_int*            csr_row_ptr,
                                                         rocsparse_int*            csr_col_ind)
     {
+        ROCSPARSE_ROUTINE_TRACE;
+
         // Stream
         hipStream_t stream = handle->stream;
 
@@ -389,6 +393,7 @@ rocsparse_status rocsparse::gebsr2csr_template(rocsparse_handle          handle,
                                                rocsparse_int*            csr_row_ptr, //12
                                                rocsparse_int*            csr_col_ind) //13
 {
+    ROCSPARSE_ROUTINE_TRACE;
 
     // Logging
     rocsparse::log_trace(handle,
@@ -503,6 +508,7 @@ extern "C" {
                            rocsparse_int*            csr_col_ind)              \
     try                                                                        \
     {                                                                          \
+        ROCSPARSE_ROUTINE_TRACE;                                               \
         RETURN_IF_ROCSPARSE_ERROR(rocsparse::gebsr2csr_template(handle,        \
                                                                 dir,           \
                                                                 mb,            \
